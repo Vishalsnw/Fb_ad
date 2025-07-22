@@ -1,8 +1,7 @@
-
 {
   "functions": {
     "api/config.js": {
-      "runtime": "@vercel/node@18.x"
+      "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
