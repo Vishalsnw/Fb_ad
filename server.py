@@ -15,6 +15,9 @@ def load_env():
     return env_vars
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory="public", **kwargs)
+    
     def do_GET(self):
         if self.path == '/config.js':
             # Serve the config with environment variables
