@@ -167,7 +167,8 @@ function getToneInHindi(tone) {
 }
 
 function parseAdContent(content) {
-    const lines = content.split('\n');
+    console.log('🔍 Parsing content:', content);
+    
     const result = {
         headline: '',
         adText: '',
@@ -175,22 +176,41 @@ function parseAdContent(content) {
         hashtags: ''
     };
     
-    let currentSection = '';
+    // Handle both plain and markdown formats
+    const headlineMatch = content.match(/\*\*HEADLINE:\*\*\s*(.*?)(?=\n\n|\*\*AD_TEXT|\*\*CTA|\*\*HASHTAGS|$)/s) || 
+                         content.match(/HEADLINE:\s*(.*?)(?=\n\n|AD_TEXT|CTA|HASHTAGS|$)/s);
     
-    for (let line of lines) {
-        line = line.trim();
-        
-        if (line.startsWith('HEADLINE:')) {
-            result.headline = line.replace('HEADLINE:', '').trim();
-        } else if (line.startsWith('AD_TEXT:')) {
-            result.adText = line.replace('AD_TEXT:', '').trim();
-        } else if (line.startsWith('CTA:')) {
-            result.cta = line.replace('CTA:', '').trim();
-        } else if (line.startsWith('HASHTAGS:')) {
-            result.hashtags = line.replace('HASHTAGS:', '').trim();
-        }
+    const adTextMatch = content.match(/\*\*AD_TEXT:\*\*\s*(.*?)(?=\n\n|\*\*CTA|\*\*HASHTAGS|$)/s) || 
+                       content.match(/AD_TEXT:\s*(.*?)(?=\n\n|CTA|HASHTAGS|$)/s);
+    
+    const ctaMatch = content.match(/\*\*CTA:\*\*\s*(.*?)(?=\n\n|\*\*HASHTAGS|$)/s) || 
+                    content.match(/CTA:\s*(.*?)(?=\n\n|HASHTAGS|$)/s);
+    
+    const hashtagsMatch = content.match(/\*\*HASHTAGS:\*\*\s*(.*?)$/s) || 
+                         content.match(/HASHTAGS:\s*(.*?)$/s);
+    
+    if (headlineMatch) {
+        result.headline = headlineMatch[1].trim().replace(/\*\*/g, '').replace(/🚀|✨|📢/g, '').trim();
     }
     
+    if (adTextMatch) {
+        result.adText = adTextMatch[1].trim()
+            .replace(/\*\*/g, '')
+            .replace(/✅|✔|📩|🔥|💪/g, '')
+            .replace(/\n\s*\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+    
+    if (ctaMatch) {
+        result.cta = ctaMatch[1].trim().replace(/\*\*/g, '').replace(/📩|🔥|💪/g, '').trim();
+    }
+    
+    if (hashtagsMatch) {
+        result.hashtags = hashtagsMatch[1].trim().replace(/\*\*/g, '').trim();
+    }
+    
+    console.log('📋 Parsed result:', result);
     return result;
 }
 
@@ -283,16 +303,39 @@ function copyAdText() {
     });
 }
 
-function downloadImage() {
+async function downloadImage() {
     if (!currentImageUrl) return;
     
-    const link = document.createElement('a');
-    link.href = currentImageUrl;
-    link.download = 'facebook-ad-image.jpg';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+        console.log('📥 Downloading image from:', currentImageUrl);
+        
+        // Fetch the image
+        const response = await fetch(currentImageUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        
+        // Get the image blob
+        const blob = await response.blob();
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'facebook-ad-image.jpg';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ Image downloaded successfully');
+        
+    } catch (error) {
+        console.error('❌ Download failed:', error);
+        alert('Failed to download image. Please try right-clicking on the image and selecting "Save image as..."');
+    }
 }
 
 function regenerateAd() {
