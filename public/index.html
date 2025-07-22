@@ -72,6 +72,12 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="competitorUrl">Competitor's Website/Ad (Optional)</label>
+                        <input type="url" id="competitorUrl" placeholder="https://competitor-website.com">
+                        <small style="color: #666; font-size: 0.8rem;">Add competitor URL for better positioning</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="businessType">Business Type</label>
                         <select id="businessType">
                             <option value="">Select business type (optional)</option>
@@ -97,6 +103,16 @@
                             <option value="Professional">💼 Professional</option>
                             <option value="Urgent">⚡ Urgent</option>
                             <option value="Friendly">😊 Friendly</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adFormat">Ad Format *</label>
+                        <select id="adFormat" required>
+                            <option value="facebook-feed">📱 Facebook Feed Ad</option>
+                            <option value="instagram-story">📸 Instagram Story</option>
+                            <option value="google-search">🔍 Google Search Ad</option>
+                            <option value="whatsapp-status">💬 WhatsApp Status</option>
                         </select>
                     </div>
 
@@ -151,7 +167,33 @@
                 <div class="action-buttons">
                     <button class="action-btn copy-btn" onclick="copyAdText()">📋 Copy Text</button>
                     <button class="action-btn download-btn" id="downloadBtn" onclick="downloadImage()" style="display: none;">💾 Download Image</button>
+                    <button class="action-btn variations-btn" onclick="generateVariations()">🎯 Generate 3 Variations</button>
                     <button class="action-btn regenerate-btn" onclick="regenerateAd()">🔄 Regenerate</button>
+                </div>
+                
+                <div id="variationsSection" style="display: none; margin-top: 30px;">
+                    <h3>🎯 Ad Variations</h3>
+                    <div id="variationsContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="roi-calculator">
+            <h2>💰 Calculate Your Ad Budget & ROI</h2>
+            <div class="calculator-grid">
+                <div class="calc-input">
+                    <label>Monthly Budget (₹)</label>
+                    <input type="number" id="monthlyBudget" placeholder="10000" min="1000">
+                </div>
+                <div class="calc-input">
+                    <label>Product Price (₹)</label>
+                    <input type="number" id="productPrice" placeholder="500" min="1">
+                </div>
+                <div class="calc-output">
+                    <div class="roi-result" id="roiResult">
+                        <span class="roi-label">Estimated Monthly Sales:</span>
+                        <span class="roi-value">₹0</span>
+                    </div>
                 </div>
             </div>
         </div>

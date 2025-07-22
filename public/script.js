@@ -281,6 +281,10 @@ function displayResults(textContent, imageUrl) {
         downloadBtn.style.display = 'none';
     }
     
+    // Calculate and display performance score
+    const performanceScore = calculatePerformanceScore(textContent, formData);
+    displayPerformanceScore(performanceScore);
+    
     // Show results section
     document.getElementById('resultSection').style.display = 'block';
     document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
@@ -348,6 +352,56 @@ function regenerateAd() {
     if (validateForm(formData)) {
         handleFormSubmit({ preventDefault: () => {} });
     }
+}
+
+function calculatePerformanceScore(textContent, formData) {
+    let score = 70; // Base score
+    
+    // Check headline length (optimal: 5-10 words)
+    const headlineWords = textContent.headline.split(' ').length;
+    if (headlineWords >= 5 && headlineWords <= 10) score += 10;
+    
+    // Check for emotional words
+    const emotionalWords = ['amazing', 'incredible', 'transform', 'unlock', 'master', 'boost', 'excel'];
+    const hasEmotional = emotionalWords.some(word => 
+        textContent.headline.toLowerCase().includes(word) || 
+        textContent.adText.toLowerCase().includes(word)
+    );
+    if (hasEmotional) score += 10;
+    
+    // Check for urgency/scarcity
+    const urgencyWords = ['limited', 'now', 'today', 'hurry', 'seats available'];
+    const hasUrgency = urgencyWords.some(word => 
+        textContent.adText.toLowerCase().includes(word) || 
+        textContent.cta.toLowerCase().includes(word)
+    );
+    if (hasUrgency) score += 10;
+    
+    // Adjust for target audience specificity
+    if (formData.targetAudience.split(' ').length >= 2) score += 5;
+    
+    return Math.min(score, 95); // Cap at 95%
+}
+
+function displayPerformanceScore(score) {
+    const scoreColor = score >= 80 ? '#28a745' : score >= 60 ? '#ffc107' : '#dc3545';
+    const scoreEmoji = score >= 80 ? '🚀' : score >= 60 ? '⚡' : '💡';
+    
+    const performanceHtml = `
+        <div class="performance-score" style="background: linear-gradient(135deg, ${scoreColor}15, ${scoreColor}05); border-left: 4px solid ${scoreColor}; padding: 15px; margin: 15px 0; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <span style="font-size: 1.5rem;">${scoreEmoji}</span>
+                <span style="font-weight: 600; color: ${scoreColor};">Performance Score: ${score}%</span>
+            </div>
+            <div style="font-size: 0.9rem; color: #666;">
+                ${score >= 80 ? 'Excellent! This ad has high conversion potential.' : 
+                  score >= 60 ? 'Good ad! Consider adding more emotional triggers.' : 
+                  'Room for improvement. Try adding urgency or emotional appeal.'}
+            </div>
+        </div>
+    `;
+    
+    document.querySelector('.ad-preview').insertAdjacentHTML('afterend', performanceHtml);
 }
 
 // Load configuration when page loads
