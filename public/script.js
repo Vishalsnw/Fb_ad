@@ -57,9 +57,7 @@ function validateForm(data) {
     }
     
     if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-        console.log('API keys not loaded yet, trying to load...');
-        // Try to reload config instead of showing error
-        location.reload();
+        alert('API keys are not loaded. Please refresh the page and try again.');
         return false;
     }
     
