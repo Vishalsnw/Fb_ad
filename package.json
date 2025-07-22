@@ -1,0 +1,14 @@
+
+{
+  "name": "facebook-ad-generator",
+  "version": "1.0.0",
+  "description": "AI-powered Facebook ad generator",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 server.py",
+    "build": "echo 'Static build complete'",
+    "start": "python3 server.py"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

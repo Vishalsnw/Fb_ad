@@ -266,47 +266,28 @@ function regenerateAd() {
 
 // Load configuration when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Try to load config from multiple possible server URLs
-    const possibleUrls = [
-        window.location.origin + '/config.js',
-        window.location.protocol + '//' + window.location.hostname + ':3000/config.js',
-        'https://' + window.location.hostname + ':3000/config.js'
-    ];
+    // Load config from the config endpoint
+    const script = document.createElement('script');
+    script.src = window.location.origin + '/config.js?t=' + Date.now();
     
-    let urlIndex = 0;
-    
-    function tryLoadConfig() {
-        if (urlIndex >= possibleUrls.length) {
-            console.error('Failed to load config from all possible URLs');
-            return;
+    script.onload = function() {
+        if (window.CONFIG) {
+            DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
+            DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
+            
+            console.log('✅ API keys loaded successfully');
+            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+        } else {
+            console.error('CONFIG object not found');
         }
-        
-        const script = document.createElement('script');
-        script.src = possibleUrls[urlIndex] + '?t=' + Date.now();
-        
-        script.onload = function() {
-            if (window.CONFIG) {
-                DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
-                DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
-                
-                console.log('✅ API keys loaded successfully from:', possibleUrls[urlIndex]);
-                console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-                console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
-            } else {
-                console.error('CONFIG object not found');
-            }
-        };
-        
-        script.onerror = function() {
-            console.log('Failed to load from:', possibleUrls[urlIndex]);
-            urlIndex++;
-            tryLoadConfig();
-        };
-        
-        document.head.appendChild(script);
-    }
+    };
     
-    tryLoadConfig();
+    script.onerror = function() {
+        console.error('Failed to load config.js');
+    };
+    
+    document.head.appendChild(script);
     // Add placeholder text based on selected language
     const languageInputs = document.querySelectorAll('input[name="language"]');
     
