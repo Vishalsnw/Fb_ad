@@ -57,7 +57,9 @@ function validateForm(data) {
     }
     
     if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-        alert('Please add your API keys in Replit Secrets (DEEPSEEK_API_KEY and DEEPAI_API_KEY).');
+        console.log('API keys not loaded yet, trying to load...');
+        // Try to reload config instead of showing error
+        location.reload();
         return false;
     }
     
@@ -266,13 +268,17 @@ function regenerateAd() {
 document.addEventListener('DOMContentLoaded', function() {
     // Load API keys from server config
     const script = document.createElement('script');
-    script.src = '/config.js?t=' + Date.now(); // Prevent caching
+    
+    // Use the current domain but ensure we're hitting the right server
+    const serverUrl = window.location.origin;
+    script.src = serverUrl + '/config.js?t=' + Date.now(); // Prevent caching
+    
     script.onload = function() {
         if (window.CONFIG) {
             DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
             DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
             
-            // Debug: Log key status without exposing actual keys
+            console.log('✅ API keys loaded successfully from server');
             console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
             console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
         } else {
