@@ -1,7 +1,7 @@
 
-// Configuration - Replace with your actual API keys
-const DEEPSEEK_API_KEY = 'YOUR_DEEPSEEK_API_KEY_HERE';
-const DEEPAI_API_KEY = 'YOUR_DEEPAI_API_KEY_HERE';
+// Configuration - API keys from environment variables
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'YOUR_DEEPSEEK_API_KEY_HERE';
+const DEEPAI_API_KEY = process.env.DEEPAI_API_KEY || 'YOUR_DEEPAI_API_KEY_HERE';
 
 // API endpoints
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
