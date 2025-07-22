@@ -5,15 +5,12 @@ import os
 from urllib.parse import urlparse
 import json
 
-# Load environment variables from .env file
+# Load environment variables from Replit Secrets
 def load_env():
-    env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            for line in f:
-                if line.strip() and not line.startswith('#'):
-                    key, value = line.strip().split('=', 1)
-                    env_vars[key] = value
+    env_vars = {
+        'DEEPSEEK_API_KEY': os.getenv('DEEPSEEK_API_KEY', ''),
+        'DEEPAI_API_KEY': os.getenv('DEEPAI_API_KEY', '')
+    }
     return env_vars
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
