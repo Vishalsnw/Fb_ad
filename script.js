@@ -1,7 +1,7 @@
 
-// Configuration - Replace with your actual API keys
-const DEEPSEEK_API_KEY = 'YOUR_DEEPSEEK_API_KEY_HERE';
-const DEEPAI_API_KEY = 'YOUR_DEEPAI_API_KEY_HERE';
+// Configuration - Replace with your actual API keys from Replit Secrets
+const DEEPSEEK_API_KEY = 'sk-your-actual-deepseek-key-here';
+const DEEPAI_API_KEY = 'your-actual-deepai-key-here';
 
 // API endpoints
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
