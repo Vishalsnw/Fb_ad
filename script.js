@@ -269,8 +269,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Try to load config from multiple possible server URLs
     const possibleUrls = [
         window.location.origin + '/config.js',
-        window.location.protocol + '//' + window.location.hostname + ':5001/config.js',
-        window.location.protocol + '//' + window.location.hostname + ':5000/config.js'
+        window.location.protocol + '//' + window.location.hostname + ':3000/config.js',
+        'https://' + window.location.hostname + ':3000/config.js'
     ];
     
     let urlIndex = 0;
