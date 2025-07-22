@@ -266,12 +266,21 @@ function regenerateAd() {
 document.addEventListener('DOMContentLoaded', function() {
     // Load API keys from server config
     const script = document.createElement('script');
-    script.src = '/config.js';
+    script.src = '/config.js?t=' + Date.now(); // Prevent caching
     script.onload = function() {
         if (window.CONFIG) {
             DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
             DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
+            
+            // Debug: Log key status without exposing actual keys
+            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+        } else {
+            console.error('Failed to load CONFIG from server');
         }
+    };
+    script.onerror = function() {
+        console.error('Failed to load config.js from server');
     };
     document.head.appendChild(script);
     // Add placeholder text based on selected language
