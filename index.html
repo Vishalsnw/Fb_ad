@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Ad Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Facebook Ad Generator</h1>
+            <p>Generate compelling Facebook ads in Hindi or English using AI</p>
+        </header>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2>📝 Create Your Ad</h2>
+                <form id="adForm">
+                    <div class="form-group">
+                        <label for="productName">Product Name *</label>
+                        <input type="text" id="productName" required placeholder="e.g., Aromagic Coffee Beans">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productDescription">Product Description *</label>
+                        <textarea id="productDescription" required placeholder="Describe your product in detail..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="targetAudience">Target Audience *</label>
+                        <input type="text" id="targetAudience" required placeholder="e.g., Young professionals, Coffee lovers">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tone">Tone *</label>
+                        <select id="tone" required>
+                            <option value="">Select tone</option>
+                            <option value="Energetic">Energetic</option>
+                            <option value="Funny">Funny</option>
+                            <option value="Emotional">Emotional</option>
+                            <option value="Professional">Professional</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Language *</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="language" value="English" checked>
+                                <span>English</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="language" value="Hindi">
+                                <span>हिंदी</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generateBtn" class="generate-btn">
+                        <span class="btn-text">Generate Ad</span>
+                        <span class="loading-spinner" style="display: none;">⏳</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="result-section" id="resultSection" style="display: none;">
+                <h2>✨ Your Facebook Ad</h2>
+                
+                <div class="ad-preview">
+                    <div class="ad-header">
+                        <div class="profile-info">
+                            <div class="profile-pic">📘</div>
+                            <div class="profile-details">
+                                <div class="page-name">Your Brand</div>
+                                <div class="sponsored">Sponsored</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ad-content">
+                        <div class="ad-headline" id="adHeadline"></div>
+                        <div class="ad-text" id="adText"></div>
+                        
+                        <div class="ad-image-container" id="imageContainer" style="display: none;">
+                            <img id="adImage" alt="Generated ad image">
+                        </div>
+                        
+                        <div class="ad-cta" id="adCTA"></div>
+                        <div class="ad-hashtags" id="adHashtags"></div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn copy-btn" onclick="copyAdText()">📋 Copy Text</button>
+                    <button class="action-btn download-btn" id="downloadBtn" onclick="downloadImage()" style="display: none;">💾 Download Image</button>
+                    <button class="action-btn regenerate-btn" onclick="regenerateAd()">🔄 Regenerate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -4,3 +4,15 @@ channel = "stable-24_05"
 
 [deployment]
 run = ["sh", "-c", "nom run start"]
+
+[workflows]
+runButton = "Start Server"
+
+[[workflows.workflow]]
+name = "Start Server"
+author = 45353635
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m http.server 5000"
