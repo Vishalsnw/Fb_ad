@@ -1,7 +1,7 @@
 
-// Configuration - Replace with your actual API keys from Replit Secrets
-const DEEPSEEK_API_KEY = 'sk-your-actual-deepseek-key-here';
-const DEEPAI_API_KEY = 'your-actual-deepai-key-here';
+// Configuration - API keys loaded from environment variables
+let DEEPSEEK_API_KEY = '';
+let DEEPAI_API_KEY = '';
 
 // API endpoints
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
@@ -56,8 +56,10 @@ function validateForm(data) {
         return false;
     }
     
-    if (DEEPSEEK_API_KEY === 'YOUR_DEEPSEEK_API_KEY_HERE' || DEEPAI_API_KEY === 'YOUR_DEEPAI_API_KEY_HERE') {
-        alert('Please add your actual API keys in the script.js file.');
+    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY || 
+        DEEPSEEK_API_KEY === 'your-actual-deepseek-api-key-here' || 
+        DEEPAI_API_KEY === 'your-actual-deepai-api-key-here') {
+        alert('Please add your actual API keys in the .env file.');
         return false;
     }
     
@@ -262,8 +264,18 @@ function regenerateAd() {
     }
 }
 
-// Add some helpful UI enhancements
+// Load configuration when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Load API keys from server config
+    const script = document.createElement('script');
+    script.src = '/config.js';
+    script.onload = function() {
+        if (window.CONFIG) {
+            DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
+            DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
+        }
+    };
+    document.head.appendChild(script);
     // Add placeholder text based on selected language
     const languageInputs = document.querySelectorAll('input[name="language"]');
     
