@@ -1,4 +1,5 @@
 run = "nom run start"
+modules = ["python-3.11"]
 [nix]
 channel = "stable-24_05"
 
@@ -15,4 +16,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python -m http.server 5000"
+args = "npx serve -s . -p 5000"
