@@ -31,7 +31,7 @@ async function handleFormSubmit(e) {
         console.log('✅ Text content generated:', textContent);
         
         console.log('🖼️ Generating image...');
-        const imageUrl = await generateAdImage(formData.productDescription);
+        const imageUrl = await generateAdImage(formData.productDescription, formData.productName);
         console.log('✅ Image generated:', imageUrl);
         
         // Display results
@@ -53,6 +53,7 @@ function getFormData() {
         targetAudience: document.getElementById('targetAudience').value.trim(),
         businessType: document.getElementById('businessType').value,
         tone: document.getElementById('tone').value,
+        adFormat: document.getElementById('adFormat').value,
         language: document.querySelector('input[name="language"]:checked').value
     };
 }
@@ -136,12 +137,17 @@ async function generateAdText(formData) {
 }
 
 function createTextPrompt(formData) {
-    const { productName, productDescription, targetAudience, businessType, tone, language } = formData;
+    const { productName, productDescription, targetAudience, businessType, tone, language, adFormat } = formData;
     
     const businessContext = businessType ? ` Business type: ${businessType}.` : '';
     
+    // Get format-specific instructions
+    const formatInstructions = getFormatInstructions(adFormat);
+    
     if (language === 'Hindi') {
-        return `एक प्रभावशाली Facebook विज्ञापन तैयार करो। प्रोडक्ट: ${productName}। विवरण: ${productDescription}। टारगेट ऑडियंस: ${targetAudience}।${businessContext} टोन: ${getToneInHindi(tone)}। 
+        return `एक प्रभावशाली ${formatInstructions.name} विज्ञापन तैयार करो। प्रोडक्ट: ${productName}। विवरण: ${productDescription}। टारगेट ऑडियंस: ${targetAudience}।${businessContext} टोन: ${getToneInHindi(tone)}। 
+
+${formatInstructions.hindiConstraints}
 
 इस विज्ञापन में भारतीय संस्कृति और स्थानीय भावनाओं को ध्यान में रखें। कृपया निम्नलिखित format में जवाब दें:
 HEADLINE: [आकर्षक हेडलाइन]
@@ -149,7 +155,9 @@ AD_TEXT: [मुख्य विज्ञापन टेक्स्ट]
 CTA: [कॉल टू एक्शन]
 HASHTAGS: [5 हैशटैग]`;
     } else {
-        return `Write a high-converting Facebook ad for ${productName}. Description: ${productDescription}. Target audience: ${targetAudience}.${businessContext} Tone: ${tone.toLowerCase()}.
+        return `Write a high-converting ${formatInstructions.name} for ${productName}. Description: ${productDescription}. Target audience: ${targetAudience}.${businessContext} Tone: ${tone.toLowerCase()}.
+
+${formatInstructions.constraints}
 
 Create compelling copy that focuses on benefits, creates urgency, and includes social proof elements. Make it suitable for Indian market.
 
@@ -159,6 +167,33 @@ AD_TEXT: [Main ad text]
 CTA: [Call to action]
 HASHTAGS: [5 hashtags]`;
     }
+}
+
+function getFormatInstructions(adFormat) {
+    const formats = {
+        'facebook-feed': {
+            name: 'Facebook Feed Ad',
+            constraints: 'Keep headline under 25 characters. Main text should be 90-125 characters for optimal engagement. Use engaging visuals and clear CTA.',
+            hindiConstraints: 'हेडलाइन 25 अक्षरों के अंदर रखें। मुख्य टेक्स्ट 90-125 अक्षरों में हो।'
+        },
+        'instagram-story': {
+            name: 'Instagram Story Ad',
+            constraints: 'Very short and visual-focused. Headline max 15 words. Main text max 50 words. Must be mobile-optimized and eye-catching.',
+            hindiConstraints: 'बहुत छोटा और विज़ुअल-फोकस्ड। हेडलाइन अधिकतम 15 शब्द।'
+        },
+        'google-search': {
+            name: 'Google Search Ad',
+            constraints: 'Headline 1: max 30 characters, Headline 2: max 30 characters. Description: max 90 characters. Focus on search intent and keywords.',
+            hindiConstraints: 'हेडलाइन 1: अधिकतम 30 अक्षर, हेडलाइन 2: अधिकतम 30 अक्षर। विवरण: अधिकतम 90 अक्षर।'
+        },
+        'whatsapp-status': {
+            name: 'WhatsApp Status Ad',
+            constraints: 'Very casual and personal tone. Short, conversational text. Maximum 2-3 sentences. Include emojis for engagement.',
+            hindiConstraints: 'बहुत आकस्मिक और व्यक्तिगत टोन। छोटा, बातचीत वाला टेक्स्ट।'
+        }
+    };
+    
+    return formats[adFormat] || formats['facebook-feed'];
 }
 
 function getToneInHindi(tone) {
@@ -215,12 +250,12 @@ function parseAdContent(content) {
     return result;
 }
 
-async function generateAdImage(description) {
+async function generateAdImage(description, productName) {
     console.log('🔗 Making request to DeepAI API...');
     
     try {
         const formData = new FormData();
-        formData.append('text', `Professional product advertisement for ${description}, high quality, commercial photography style, clean background`);
+        formData.append('text', `Professional product advertisement for ${description}, high quality, commercial photography style, clean background, product showcase`);
         
         const response = await fetch(DEEPAI_API_URL, {
             method: 'POST',
@@ -245,7 +280,9 @@ async function generateAdImage(description) {
             throw new Error('No image URL returned from DeepAI API');
         }
         
-        return data.output_url;
+        // Add product name overlay to the image
+        const imageWithText = await addTextOverlay(data.output_url, productName);
+        return imageWithText;
         
     } catch (error) {
         console.error('❌ DeepAI API call failed:', error);
@@ -253,15 +290,82 @@ async function generateAdImage(description) {
     }
 }
 
+async function addTextOverlay(imageUrl, productName) {
+    try {
+        // Create a canvas to add text overlay
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Load the original image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        return new Promise((resolve, reject) => {
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // Draw the original image
+                ctx.drawImage(img, 0, 0);
+                
+                // Add professional text overlay
+                const fontSize = Math.max(24, Math.min(img.width / 15, 48));
+                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Add text shadow for better readability
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Add white text
+                ctx.fillStyle = '#FFFFFF';
+                const textY = img.height - (img.height * 0.15); // Position near bottom
+                ctx.fillText(productName.toUpperCase(), img.width / 2, textY);
+                
+                // Convert canvas to blob and create URL
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    resolve(url);
+                }, 'image/jpeg', 0.9);
+            };
+            
+            img.onerror = () => {
+                console.log('Failed to load image for text overlay, using original');
+                resolve(imageUrl);
+            };
+            
+            img.src = imageUrl;
+        });
+        
+    } catch (error) {
+        console.error('Failed to add text overlay:', error);
+        return imageUrl; // Return original if overlay fails
+    }
+}
+
 function displayResults(textContent, imageUrl) {
     currentAdData = textContent;
     currentImageUrl = imageUrl;
     
-    // Update text content
-    document.getElementById('adHeadline').textContent = textContent.headline;
-    document.getElementById('adText').textContent = textContent.adText;
-    document.getElementById('adCTA').textContent = textContent.cta;
-    document.getElementById('adHashtags').textContent = textContent.hashtags;
+    const currentFormData = getFormData();
+    
+    // Update the preview based on selected format
+    updateAdPreview(textContent, imageUrl, currentFormData.adFormat);
+    
+    // Calculate and display performance score
+    const performanceScore = calculatePerformanceScore(textContent, currentFormData);
+    displayPerformanceScore(performanceScore);
+    
+    // Show results section
+    document.getElementById('resultSection').style.display = 'block';
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateAdPreview(textContent, imageUrl, adFormat) {
+    const adPreview = document.querySelector('.ad-preview');
     
     // Update image
     const imageContainer = document.getElementById('imageContainer');
@@ -277,14 +381,72 @@ function displayResults(textContent, imageUrl) {
         downloadBtn.style.display = 'none';
     }
     
-    // Calculate and display performance score
-    const currentFormData = getFormData();
-    const performanceScore = calculatePerformanceScore(textContent, currentFormData);
-    displayPerformanceScore(performanceScore);
+    // Update preview based on format
+    switch(adFormat) {
+        case 'facebook-feed':
+            updateFacebookPreview(textContent);
+            break;
+        case 'instagram-story':
+            updateInstagramStoryPreview(textContent);
+            break;
+        case 'google-search':
+            updateGoogleSearchPreview(textContent);
+            break;
+        case 'whatsapp-status':
+            updateWhatsAppStatusPreview(textContent);
+            break;
+        default:
+            updateFacebookPreview(textContent);
+    }
+}
+
+function updateFacebookPreview(textContent) {
+    document.getElementById('adHeadline').textContent = textContent.headline;
+    document.getElementById('adText').textContent = textContent.adText;
+    document.getElementById('adCTA').textContent = textContent.cta;
+    document.getElementById('adHashtags').textContent = textContent.hashtags;
     
-    // Show results section
-    document.getElementById('resultSection').style.display = 'block';
-    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    // Reset any format-specific styling
+    const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview facebook-format';
+}
+
+function updateInstagramStoryPreview(textContent) {
+    document.getElementById('adHeadline').textContent = textContent.headline;
+    document.getElementById('adText').textContent = textContent.adText;
+    document.getElementById('adCTA').textContent = textContent.cta;
+    document.getElementById('adHashtags').textContent = textContent.hashtags;
+    
+    const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview instagram-story-format';
+}
+
+function updateGoogleSearchPreview(textContent) {
+    // Split headline for Google's 2-headline format
+    const headlines = textContent.headline.split(' ');
+    const headline1 = headlines.slice(0, Math.ceil(headlines.length/2)).join(' ');
+    const headline2 = headlines.slice(Math.ceil(headlines.length/2)).join(' ');
+    
+    document.getElementById('adHeadline').innerHTML = `
+        <div class="google-headline1">${headline1}</div>
+        <div class="google-headline2">${headline2}</div>
+    `;
+    document.getElementById('adText').textContent = textContent.adText;
+    document.getElementById('adCTA').textContent = textContent.cta;
+    document.getElementById('adHashtags').style.display = 'none'; // Google ads don't show hashtags
+    
+    const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview google-search-format';
+}
+
+function updateWhatsAppStatusPreview(textContent) {
+    document.getElementById('adHeadline').textContent = textContent.headline;
+    document.getElementById('adText').textContent = textContent.adText;
+    document.getElementById('adCTA').textContent = textContent.cta;
+    document.getElementById('adHashtags').textContent = textContent.hashtags;
+    
+    const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview whatsapp-status-format';
 }
 
 function copyAdText() {
