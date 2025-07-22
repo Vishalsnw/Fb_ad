@@ -20,21 +20,27 @@ async function handleFormSubmit(e) {
     const formData = getFormData();
     if (!validateForm(formData)) return;
     
+    console.log('🚀 Starting ad generation with form data:', formData);
+    console.log('API Keys status - DeepSeek:', !!DEEPSEEK_API_KEY, 'DeepAI:', !!DEEPAI_API_KEY);
+    
     setLoading(true);
     
     try {
-        // Generate text content
+        console.log('📝 Generating text content...');
         const textContent = await generateAdText(formData);
+        console.log('✅ Text content generated:', textContent);
         
-        // Generate image
+        console.log('🖼️ Generating image...');
         const imageUrl = await generateAdImage(formData.productDescription);
+        console.log('✅ Image generated:', imageUrl);
         
         // Display results
         displayResults(textContent, imageUrl);
         
     } catch (error) {
-        console.error('Error generating ad:', error);
-        alert('Failed to generate ad. Please check your API keys and try again.');
+        console.error('❌ Error generating ad:', error);
+        console.error('Error details:', error.message, error.stack);
+        alert(`Failed to generate ad: ${error.message}`);
     } finally {
         setLoading(false);
     }
@@ -82,34 +88,50 @@ function setLoading(isLoading) {
 
 async function generateAdText(formData) {
     const prompt = createTextPrompt(formData);
+    console.log('🔗 Making request to DeepSeek API...');
     
-    const response = await fetch(DEEPSEEK_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            max_tokens: 500,
-            temperature: 0.7
-        })
-    });
-    
-    if (!response.ok) {
-        throw new Error(`DeepSeek API error: ${response.status}`);
+    try {
+        const response = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+        
+        console.log('📡 DeepSeek API response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('DeepSeek API error response:', errorText);
+            throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📋 DeepSeek API response data:', data);
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from DeepSeek API');
+        }
+        
+        const content = data.choices[0].message.content;
+        return parseAdContent(content);
+        
+    } catch (error) {
+        console.error('❌ DeepSeek API call failed:', error);
+        throw new Error(`Text generation failed: ${error.message}`);
     }
-    
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    
-    return parseAdContent(content);
 }
 
 function createTextPrompt(formData) {
@@ -173,23 +195,41 @@ function parseAdContent(content) {
 }
 
 async function generateAdImage(description) {
-    const formData = new FormData();
-    formData.append('text', `Professional product advertisement for ${description}, high quality, commercial photography style, clean background`);
+    console.log('🔗 Making request to DeepAI API...');
     
-    const response = await fetch(DEEPAI_API_URL, {
-        method: 'POST',
-        headers: {
-            'api-key': DEEPAI_API_KEY
-        },
-        body: formData
-    });
-    
-    if (!response.ok) {
-        throw new Error(`DeepAI API error: ${response.status}`);
+    try {
+        const formData = new FormData();
+        formData.append('text', `Professional product advertisement for ${description}, high quality, commercial photography style, clean background`);
+        
+        const response = await fetch(DEEPAI_API_URL, {
+            method: 'POST',
+            headers: {
+                'api-key': DEEPAI_API_KEY
+            },
+            body: formData
+        });
+        
+        console.log('📡 DeepAI API response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('DeepAI API error response:', errorText);
+            throw new Error(`DeepAI API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('🖼️ DeepAI API response data:', data);
+        
+        if (!data.output_url) {
+            throw new Error('No image URL returned from DeepAI API');
+        }
+        
+        return data.output_url;
+        
+    } catch (error) {
+        console.error('❌ DeepAI API call failed:', error);
+        throw new Error(`Image generation failed: ${error.message}`);
     }
-    
-    const data = await response.json();
-    return data.output_url;
 }
 
 function displayResults(textContent, imageUrl) {
