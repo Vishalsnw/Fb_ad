@@ -308,28 +308,60 @@ async function addTextOverlay(imageUrl, productName) {
                 // Draw the original image
                 ctx.drawImage(img, 0, 0);
                 
-                // Add professional text overlay
-                const fontSize = Math.max(24, Math.min(img.width / 15, 48));
-                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                // Create professional overlay background
+                const overlayHeight = img.height * 0.25;
+                const gradient = ctx.createLinearGradient(0, img.height - overlayHeight, 0, img.height);
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
+                gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.6)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, img.height - overlayHeight, img.width, overlayHeight);
+                
+                // Add stylish brand name
+                const brandFontSize = Math.max(28, Math.min(img.width / 12, 56));
+                ctx.font = `700 ${brandFontSize}px 'Arial Black', Arial, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // Add text shadow for better readability
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                ctx.shadowBlur = 4;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
+                // Add elegant text shadow with multiple layers
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
                 
-                // Add white text
+                // Main brand text in white
                 ctx.fillStyle = '#FFFFFF';
-                const textY = img.height - (img.height * 0.15); // Position near bottom
-                ctx.fillText(productName.toUpperCase(), img.width / 2, textY);
+                const brandY = img.height - (overlayHeight * 0.4);
+                ctx.fillText(productName.toUpperCase(), img.width / 2, brandY);
+                
+                // Add subtle tagline
+                const taglineFontSize = Math.max(12, Math.min(img.width / 25, 24));
+                ctx.font = `400 ${taglineFontSize}px Arial, sans-serif`;
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                
+                const taglineY = brandY + brandFontSize * 0.8;
+                ctx.fillText('✨ Premium Beauty Services ✨', img.width / 2, taglineY);
+                
+                // Add decorative elements
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // Add corner accent
+                const accentSize = Math.min(img.width, img.height) * 0.08;
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.8)'; // Gold accent
+                ctx.fillRect(img.width - accentSize, img.height - accentSize, accentSize, accentSize);
                 
                 // Convert canvas to blob and create URL
                 canvas.toBlob((blob) => {
                     const url = URL.createObjectURL(blob);
                     resolve(url);
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', 0.95);
             };
             
             img.onerror = () => {
@@ -367,6 +399,9 @@ function displayResults(textContent, imageUrl) {
 function updateAdPreview(textContent, imageUrl, adFormat) {
     const adPreview = document.querySelector('.ad-preview');
     
+    // Update heading based on format
+    updatePreviewHeading(adFormat);
+    
     // Update image
     const imageContainer = document.getElementById('imageContainer');
     const adImage = document.getElementById('adImage');
@@ -397,6 +432,19 @@ function updateAdPreview(textContent, imageUrl, adFormat) {
             break;
         default:
             updateFacebookPreview(textContent);
+    }
+}
+
+function updatePreviewHeading(adFormat) {
+    const resultHeading = document.querySelector('.result-section h2');
+    if (resultHeading) {
+        const headings = {
+            'facebook-feed': '📱 Your Facebook Ad',
+            'instagram-story': '📸 Your Instagram Story',
+            'google-search': '🔍 Your Google Search Ad',
+            'whatsapp-status': '💬 Your WhatsApp Status Ad'
+        };
+        resultHeading.textContent = headings[adFormat] || '📱 Your Facebook Ad';
     }
 }
 
@@ -511,6 +559,85 @@ function regenerateAd() {
     if (validateForm(formData)) {
         handleFormSubmit({ preventDefault: () => {} });
     }
+}
+
+function generateVariations() {
+    if (!currentAdData) {
+        alert('Please generate an ad first!');
+        return;
+    }
+    
+    const formData = getFormData();
+    if (!validateForm(formData)) return;
+    
+    console.log('🔄 Generating ad variations...');
+    setLoading(true);
+    
+    // Generate 3 variations with different tones
+    const variations = [
+        { ...formData, tone: 'Energetic' },
+        { ...formData, tone: 'Emotional' },
+        { ...formData, tone: 'Funny' }
+    ];
+    
+    Promise.all(variations.map(async (variation, index) => {
+        try {
+            const textContent = await generateAdText(variation);
+            return {
+                title: `Variation ${index + 1} (${variation.tone})`,
+                content: textContent
+            };
+        } catch (error) {
+            console.error(`Failed to generate variation ${index + 1}:`, error);
+            return null;
+        }
+    })).then(results => {
+        const validResults = results.filter(r => r !== null);
+        displayVariations(validResults);
+    }).finally(() => {
+        setLoading(false);
+    });
+}
+
+function displayVariations(variations) {
+    const container = document.getElementById('variationsContainer');
+    if (!container) {
+        // Create variations container if it doesn't exist
+        const resultSection = document.querySelector('.result-section');
+        const variationsDiv = document.createElement('div');
+        variationsDiv.id = 'variationsContainer';
+        variationsDiv.innerHTML = '<h3 style="margin: 20px 0 15px 0; color: #333;">Alternative Versions</h3>';
+        resultSection.appendChild(variationsDiv);
+        displayVariations(variations);
+        return;
+    }
+    
+    container.innerHTML = '<h3 style="margin: 20px 0 15px 0; color: #333;">Alternative Versions</h3>';
+    
+    variations.forEach(variation => {
+        const variationCard = document.createElement('div');
+        variationCard.className = 'variation-card';
+        variationCard.innerHTML = `
+            <h4>${variation.title}</h4>
+            <p><strong>Headline:</strong> ${variation.content.headline}</p>
+            <p><strong>Text:</strong> ${variation.content.adText}</p>
+            <p><strong>CTA:</strong> ${variation.content.cta}</p>
+            <button onclick="useVariation(${JSON.stringify(variation.content).replace(/"/g, '&quot;')})" 
+                    style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                Use This Version
+            </button>
+        `;
+        container.appendChild(variationCard);
+    });
+}
+
+function useVariation(variationContent) {
+    currentAdData = variationContent;
+    const formData = getFormData();
+    updateAdPreview(variationContent, currentImageUrl, formData.adFormat);
+    
+    // Scroll to preview
+    document.querySelector('.ad-preview').scrollIntoView({ behavior: 'smooth' });
 }
 
 function calculatePerformanceScore(textContent, formData) {
