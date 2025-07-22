@@ -19,7 +19,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory="public", **kwargs)
     
     def do_GET(self):
-        if self.path == '/config.js':
+        if self.path.startswith('/config.js'):
             # Serve the config with environment variables
             env_vars = load_env()
             deepseek_key = env_vars.get('DEEPSEEK_API_KEY', '')
