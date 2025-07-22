@@ -266,29 +266,47 @@ function regenerateAd() {
 
 // Load configuration when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Load API keys from server config
-    const script = document.createElement('script');
+    // Try to load config from multiple possible server URLs
+    const possibleUrls = [
+        window.location.origin + '/config.js',
+        window.location.protocol + '//' + window.location.hostname + ':5001/config.js',
+        window.location.protocol + '//' + window.location.hostname + ':5000/config.js'
+    ];
     
-    // Use the current domain but ensure we're hitting the right server
-    const serverUrl = window.location.origin;
-    script.src = serverUrl + '/config.js?t=' + Date.now(); // Prevent caching
+    let urlIndex = 0;
     
-    script.onload = function() {
-        if (window.CONFIG) {
-            DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
-            DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
-            
-            console.log('✅ API keys loaded successfully from server');
-            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
-        } else {
-            console.error('Failed to load CONFIG from server');
+    function tryLoadConfig() {
+        if (urlIndex >= possibleUrls.length) {
+            console.error('Failed to load config from all possible URLs');
+            return;
         }
-    };
-    script.onerror = function() {
-        console.error('Failed to load config.js from server');
-    };
-    document.head.appendChild(script);
+        
+        const script = document.createElement('script');
+        script.src = possibleUrls[urlIndex] + '?t=' + Date.now();
+        
+        script.onload = function() {
+            if (window.CONFIG) {
+                DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
+                DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
+                
+                console.log('✅ API keys loaded successfully from:', possibleUrls[urlIndex]);
+                console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+                console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+            } else {
+                console.error('CONFIG object not found');
+            }
+        };
+        
+        script.onerror = function() {
+            console.log('Failed to load from:', possibleUrls[urlIndex]);
+            urlIndex++;
+            tryLoadConfig();
+        };
+        
+        document.head.appendChild(script);
+    }
+    
+    tryLoadConfig();
     // Add placeholder text based on selected language
     const languageInputs = document.querySelectorAll('input[name="language"]');
     
