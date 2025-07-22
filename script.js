@@ -1,7 +1,7 @@
 
-// Configuration - API keys from environment variables
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'YOUR_DEEPSEEK_API_KEY_HERE';
-const DEEPAI_API_KEY = process.env.DEEPAI_API_KEY || 'YOUR_DEEPAI_API_KEY_HERE';
+// Configuration - Replace with your actual API keys
+const DEEPSEEK_API_KEY = 'YOUR_DEEPSEEK_API_KEY_HERE';
+const DEEPAI_API_KEY = 'YOUR_DEEPAI_API_KEY_HERE';
 
 // API endpoints
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
@@ -56,8 +56,8 @@ function validateForm(data) {
         return false;
     }
     
-    if (!DEEPSEEK_API_KEY.includes('sk-') || !DEEPAI_API_KEY.includes('quickstart-')) {
-        alert('Please add your API keys in the script.js file.');
+    if (DEEPSEEK_API_KEY === 'YOUR_DEEPSEEK_API_KEY_HERE' || DEEPAI_API_KEY === 'YOUR_DEEPAI_API_KEY_HERE') {
+        alert('Please add your actual API keys in the script.js file.');
         return false;
     }
     
