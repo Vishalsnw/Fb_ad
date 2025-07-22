@@ -1,0 +1,6 @@
+run = "nom run start"
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "nom run start"]
