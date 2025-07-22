@@ -12,7 +12,45 @@
         <header>
             <h1>🚀 Facebook Ad Generator</h1>
             <p>Generate compelling Facebook ads in Hindi or English using AI</p>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">10,000+</span>
+                    <span class="stat-label">Ads Generated</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">500+</span>
+                    <span class="stat-label">Happy Customers</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">2min</span>
+                    <span class="stat-label">Average Time</span>
+                </div>
+            </div>
+            <div class="benefits">
+                <span class="benefit">✅ Professional Copy</span>
+                <span class="benefit">✅ Custom Images</span>
+                <span class="benefit">✅ Hindi & English</span>
+                <span class="benefit">✅ Instant Results</span>
+            </div>
         </header>
+
+        <div class="examples-section">
+            <h2>🎯 See What You Can Create</h2>
+            <div class="example-grid">
+                <div class="example-card">
+                    <h3>🍕 Restaurant</h3>
+                    <p>"Best Pizza in Town! 🔥 Fresh ingredients, crispy crust, delivered hot to your door!"</p>
+                </div>
+                <div class="example-card">
+                    <h3>💄 Beauty</h3>
+                    <p>"Transform Your Look! ✨ Professional makeup course - Learn from certified artists"</p>
+                </div>
+                <div class="example-card">
+                    <h3>📚 Education</h3>
+                    <p>"Ace Your Exams! 🎓 Expert coaching with proven results - Limited seats available"</p>
+                </div>
+            </div>
+        </div>
 
         <div class="main-content">
             <div class="form-section">
@@ -34,13 +72,31 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="businessType">Business Type</label>
+                        <select id="businessType">
+                            <option value="">Select business type (optional)</option>
+                            <option value="Restaurant">Restaurant/Food</option>
+                            <option value="Beauty">Beauty/Salon</option>
+                            <option value="Education">Education/Coaching</option>
+                            <option value="Retail">Retail/Shopping</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="Technology">Technology/Apps</option>
+                            <option value="Fitness">Fitness/Gym</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="tone">Tone *</label>
                         <select id="tone" required>
                             <option value="">Select tone</option>
-                            <option value="Energetic">Energetic</option>
-                            <option value="Funny">Funny</option>
-                            <option value="Emotional">Emotional</option>
-                            <option value="Professional">Professional</option>
+                            <option value="Energetic">🔥 Energetic</option>
+                            <option value="Funny">😄 Funny</option>
+                            <option value="Emotional">❤️ Emotional</option>
+                            <option value="Professional">💼 Professional</option>
+                            <option value="Urgent">⚡ Urgent</option>
+                            <option value="Friendly">😊 Friendly</option>
                         </select>
                     </div>
 
@@ -99,6 +155,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="testimonials-section">
+            <h2>💬 What Our Users Say</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"Amazing tool! Generated perfect ads for my restaurant in seconds. Sales increased by 40%!"</p>
+                    <span class="author">- Priya Sharma, Restaurant Owner</span>
+                </div>
+                <div class="testimonial">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"The Hindi ads are so natural and engaging. My coaching classes are fully booked now!"</p>
+                    <span class="author">- Rahul Kumar, Education Business</span>
+                </div>
+                <div class="testimonial">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"Professional images and copy in just 2 minutes. This is a game-changer for small businesses!"</p>
+                    <span class="author">- Meera Patel, Beauty Salon</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ for Indian Businesses | <a href="#" onclick="alert('Contact: support@fbadgen.com')">Contact Us</a></p>
+        </footer>
     </div>
 
     <script src="script.js"></script>

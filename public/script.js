@@ -51,6 +51,7 @@ function getFormData() {
         productName: document.getElementById('productName').value.trim(),
         productDescription: document.getElementById('productDescription').value.trim(),
         targetAudience: document.getElementById('targetAudience').value.trim(),
+        businessType: document.getElementById('businessType').value,
         tone: document.getElementById('tone').value,
         language: document.querySelector('input[name="language"]:checked').value
     };
@@ -135,18 +136,22 @@ async function generateAdText(formData) {
 }
 
 function createTextPrompt(formData) {
-    const { productName, productDescription, targetAudience, tone, language } = formData;
+    const { productName, productDescription, targetAudience, businessType, tone, language } = formData;
+    
+    const businessContext = businessType ? ` Business type: ${businessType}.` : '';
     
     if (language === 'Hindi') {
-        return `एक प्रभावशाली Facebook विज्ञापन तैयार करो। प्रोडक्ट: ${productName}। विवरण: ${productDescription}। टारगेट ऑडियंस: ${targetAudience}। टोन: ${getToneInHindi(tone)}। 
+        return `एक प्रभावशाली Facebook विज्ञापन तैयार करो। प्रोडक्ट: ${productName}। विवरण: ${productDescription}। टारगेट ऑडियंस: ${targetAudience}।${businessContext} टोन: ${getToneInHindi(tone)}। 
 
-कृपया निम्नलिखित format में जवाब दें:
+इस विज्ञापन में भारतीय संस्कृति और स्थानीय भावनाओं को ध्यान में रखें। कृपया निम्नलिखित format में जवाब दें:
 HEADLINE: [आकर्षक हेडलाइन]
 AD_TEXT: [मुख्य विज्ञापन टेक्स्ट]
 CTA: [कॉल टू एक्शन]
 HASHTAGS: [5 हैशटैग]`;
     } else {
-        return `Write a high-converting Facebook ad for ${productName}. Description: ${productDescription}. Target audience: ${targetAudience}. Tone: ${tone.toLowerCase()}.
+        return `Write a high-converting Facebook ad for ${productName}. Description: ${productDescription}. Target audience: ${targetAudience}.${businessContext} Tone: ${tone.toLowerCase()}.
+
+Create compelling copy that focuses on benefits, creates urgency, and includes social proof elements. Make it suitable for Indian market.
 
 Please respond in this exact format:
 HEADLINE: [Compelling headline]
