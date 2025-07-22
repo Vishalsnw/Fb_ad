@@ -1,11 +1,11 @@
-run = "nom run start"
+run = "npm run dev"
 modules = ["nodejs-20", "web", "python-3.12"]
 [nix]
 channel = "stable-24_05"
 packages = ["tree"]
 
 [deployment]
-run = ["sh", "-c", "nom run start"]
+run = ["sh", "-c", "npm run dev"]
 
 [workflows]
 runButton = "Start Server"
