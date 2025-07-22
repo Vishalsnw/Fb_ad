@@ -56,10 +56,8 @@ function validateForm(data) {
         return false;
     }
     
-    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY || 
-        DEEPSEEK_API_KEY === 'your-actual-deepseek-api-key-here' || 
-        DEEPAI_API_KEY === 'your-actual-deepai-api-key-here') {
-        alert('Please add your actual API keys in the .env file.');
+    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
+        alert('Please add your API keys in Replit Secrets (DEEPSEEK_API_KEY and DEEPAI_API_KEY).');
         return false;
     }
     
