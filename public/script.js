@@ -181,18 +181,14 @@ function parseAdContent(content) {
         hashtags: ''
     };
     
-    // Handle both plain and markdown formats
-    const headlineMatch = content.match(/\*\*HEADLINE:\*\*\s*(.*?)(?=\n\n|\*\*AD_TEXT|\*\*CTA|\*\*HASHTAGS|$)/s) || 
-                         content.match(/HEADLINE:\s*(.*?)(?=\n\n|AD_TEXT|CTA|HASHTAGS|$)/s);
+    // Handle both plain and markdown formats - more flexible matching
+    const headlineMatch = content.match(/(?:\*\*)?HEADLINE:?\*?\*?\s*(.*?)(?=\n\n|\*\*AD_TEXT|\*\*CTA|\*\*HASHTAGS|AD_TEXT|CTA|HASHTAGS|$)/s);
     
-    const adTextMatch = content.match(/\*\*AD_TEXT:\*\*\s*(.*?)(?=\n\n|\*\*CTA|\*\*HASHTAGS|$)/s) || 
-                       content.match(/AD_TEXT:\s*(.*?)(?=\n\n|CTA|HASHTAGS|$)/s);
+    const adTextMatch = content.match(/(?:\*\*)?AD_TEXT:?\*?\*?\s*(.*?)(?=\n\n|\*\*CTA|\*\*HASHTAGS|CTA|HASHTAGS|$)/s);
     
-    const ctaMatch = content.match(/\*\*CTA:\*\*\s*(.*?)(?=\n\n|\*\*HASHTAGS|$)/s) || 
-                    content.match(/CTA:\s*(.*?)(?=\n\n|HASHTAGS|$)/s);
+    const ctaMatch = content.match(/(?:\*\*)?CTA:?\*?\*?\s*(.*?)(?=\n\n|\*\*HASHTAGS|HASHTAGS|$)/s);
     
-    const hashtagsMatch = content.match(/\*\*HASHTAGS:\*\*\s*(.*?)$/s) || 
-                         content.match(/HASHTAGS:\s*(.*?)$/s);
+    const hashtagsMatch = content.match(/(?:\*\*)?HASHTAGS:?\*?\*?\s*(.*?)$/s);
     
     if (headlineMatch) {
         result.headline = headlineMatch[1].trim().replace(/\*\*/g, '').replace(/🚀|✨|📢/g, '').trim();
@@ -282,7 +278,8 @@ function displayResults(textContent, imageUrl) {
     }
     
     // Calculate and display performance score
-    const performanceScore = calculatePerformanceScore(textContent, formData);
+    const currentFormData = getFormData();
+    const performanceScore = calculatePerformanceScore(textContent, currentFormData);
     displayPerformanceScore(performanceScore);
     
     // Show results section
