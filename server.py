@@ -274,6 +274,8 @@ if PORT is None:
 Handler = CustomHTTPRequestHandler
 
 try:
+    # Set socket options to allow address reuse
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
         print(f"Server starting on http://0.0.0.0:{PORT}")
 

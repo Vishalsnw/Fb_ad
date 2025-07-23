@@ -1,20 +1,17 @@
 
-// Firebase Configuration
+// Firebase configuration (placeholder - replace with your actual config)
 const firebaseConfig = {
-    apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
-    authDomain: "adgenie-59adb.firebaseapp.com",
-    projectId: "adgenie-59adb",
-    storageBucket: "adgenie-59adb.firebasestorage.app",
-    messagingSenderId: "775764972429",
-    appId: "1:775764972429:web:2921b91eea1614a05863c4",
-    measurementId: "G-922RPB06J3"
+  apiKey: "your-api-key",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "your-app-id"
 };
 
-// Initialize Firebase
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+// Initialize Firebase (if you're using Firebase)
+// import { initializeApp } from 'firebase/app';
+// const app = initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-export { signInWithPopup, firebaseSignOut, onAuthStateChanged };
+// For now, just export empty config since Firebase isn't fully set up
+window.firebaseConfig = firebaseConfig;

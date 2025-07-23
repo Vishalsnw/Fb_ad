@@ -51,10 +51,14 @@ function setupEventListeners() {
         form.addEventListener('submit', handleFormSubmit);
     }
 
-    // Add other event listeners as needed
-    const variationsBtn = document.getElementById('variationsBtn');
-    if (variationsBtn) {
-        variationsBtn.addEventListener('click', generateVariations);
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadImage);
+    }
+
+    const regenerateBtn = document.getElementById('regenerateBtn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', regenerateAd);
     }
 
 	const copyBtn = document.querySelector('.copy-btn');
@@ -62,94 +66,57 @@ function setupEventListeners() {
 		copyBtn.addEventListener('click', copyAdText);
 	}
 
-	const downloadBtn = document.getElementById('downloadBtn');
-	if (downloadBtn) {
-		downloadBtn.addEventListener('click', downloadImage);
-	}
-
-	const regenerateBtn = document.getElementById('regenerateBtn');
-	if (regenerateBtn) {
-		regenerateBtn.addEventListener('click', regenerateAd);
-	}
+    const variationsBtn = document.getElementById('variationsBtn');
+    if (variationsBtn) {
+        variationsBtn.addEventListener('click', generateVariations);
+    }
 }
 
 function setupLanguagePlaceholders() {
-    const languageInputs = document.querySelectorAll('input[name="language"]');
+    const languageSelect = document.getElementById('language');
+    const productNameInput = document.getElementById('productName');
+    const productDescInput = document.getElementById('productDescription');
+    const targetAudienceInput = document.getElementById('targetAudience');
 
-    languageInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            updatePlaceholderText(this.value);
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            updatePlaceholders(this.value);
         });
-    });
+    }
 }
 
-function updatePlaceholderText(language) {
+function updatePlaceholders(language) {
     const placeholders = {
-        'English': 'Describe your product or service...',
-        'Hindi': 'अपने उत्पाद या सेवा का वर्णन करें...',
-        'spanish': 'Describe tu producto o servicio...',
-        'french': 'Décrivez votre produit ou service...'
+        'Hindi': {
+            productName: 'उदाहरण: प्रीमियम अगरबत्ती',
+            productDescription: 'आपके उत्पाद या सेवा का विवरण दें',
+            targetAudience: 'जैसे: धार्मिक परिवार, 25-45 वर्ष'
+        },
+        'English': {
+            productName: 'e.g., Premium Incense Sticks',
+            productDescription: 'Describe your product or service',
+            targetAudience: 'e.g., Religious families, age 25-45'
+        }
     };
 
-    const textarea = document.getElementById('productDescription');
-    if (textarea && placeholders[language]) {
-        textarea.placeholder = placeholders[language];
-    }
+    const currentPlaceholders = placeholders[language] || placeholders['English'];
+
+    const productNameInput = document.getElementById('productName');
+    const productDescInput = document.getElementById('productDescription');
+    const targetAudienceInput = document.getElementById('targetAudience');
+
+    if (productNameInput) productNameInput.placeholder = currentPlaceholders.productName;
+    if (productDescInput) productDescInput.placeholder = currentPlaceholders.productDescription;
+    if (targetAudienceInput) targetAudienceInput.placeholder = currentPlaceholders.targetAudience;
 }
 
-function checkApiKeys() {
-    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-        console.error('❌ API keys not loaded properly');
-        showError('API keys not configured. Please set up your environment variables.');
-        return false;
-    }
-    return true;
-}
-
-function getFormData() {
-    const productName = document.getElementById('productName');
-    const productDesc = document.getElementById('productDescription');
-    const targetAud = document.getElementById('targetAudience');
-    const adFormat = document.getElementById('adFormat');
-    const tone = document.getElementById('tone');
-    const competitorUrl = document.getElementById('competitorUrl');
-    const businessType = document.getElementById('businessType');
-    const selectedLanguage = document.querySelector('input[name="language"]:checked');
-
-    return {
-        productName: productName ? productName.value : '',
-        productDescription: productDesc ? productDesc.value : '',
-        targetAudience: targetAud ? targetAud.value : '',
-        language: selectedLanguage ? selectedLanguage.value : 'English',
-        adFormat: adFormat ? adFormat.value : 'facebook-feed',
-        tone: tone ? tone.value : 'Professional',
-        specialOffer: '',
-        competitorUrl: competitorUrl ? competitorUrl.value : '',
-        businessType: businessType ? businessType.value : ''
-    };
-}
-
-function validateForm(formData) {
-    if (!formData.productName.trim()) {
-        showError('Please enter your product name');
-        return false;
-    }
-    if (!formData.productDescription.trim()) {
-        showError('Please describe your product or service');
-        return false;
-    }
-    if (!formData.targetAudience.trim()) {
-        showError('Please specify your target audience');
-        return false;
-    }
-    return true;
-}
-
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
 
     const formData = getFormData();
-    if (!validateForm(formData)) return;
+    if (!validateForm(formData)) {
+        return;
+    }
 
     // Check if user is logged in
     if (!currentUser) {
@@ -165,169 +132,121 @@ function handleFormSubmit(event) {
 
     if (!checkApiKeys()) return;
 
-    console.log('🚀 Starting ad generation...');
-    console.log('Form data:', formData);
+    showLoading();
 
-    setLoading(true);
+    try {
+        // Generate ad text first
+        const textContent = await generateAdText(formData);
 
-    // Generate text first, then use it to create better image
-    generateAdText(formData).then(textResult => {
-        console.log('✅ Text generation completed');
+        // Generate image based on ad text
+        const imageUrl = await generateAdImage(formData, textContent);
 
-        // Generate image using the actual ad content
-        generateImageFromAdText(formData, textResult).then(imageResult => {
-            console.log('✅ Image generation completed');
-            displayResults(textResult, imageResult);
-            setLoading(false);
-        }).catch(imageError => {
-            console.warn('⚠️ Image generation failed:', imageError);
-            // Still display results with text only
-            displayResults(textResult, null);
-            incrementAdUsage(); // Track usage even if image fails
-            setLoading(false);
-            showError('Ad text generated successfully, but image generation failed. You can still use the text content.');
-        });
+        // Display results
+        displayResults(textContent, imageUrl, formData);
 
-    }).catch(error => {
-        console.error('❌ Text generation failed:', error);
-        showError(`Failed to generate ad text: ${error.message}`);
-        setLoading(false);
-    });
+        // Save ad data
+        currentAdData = {
+            id: Date.now().toString(),
+            formData: formData,
+            textContent: textContent,
+            imageUrl: imageUrl,
+            timestamp: new Date().toISOString()
+        };
+
+        // Save to user's ad history if logged in
+        if (window.currentUser) {
+            saveAdToHistory(currentAdData);
+        }
+
+    } catch (error) {
+        console.error('Error generating ad:', error);
+        showError('Failed to generate ad: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+function checkApiKeys() {
+    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
+        console.error('❌ API keys not loaded properly');
+        showError('API keys not configured. Please set up your environment variables.');
+        return false;
+    }
+    return true;
 }
 
 async function generateAdText(formData) {
+    if (!DEEPSEEK_API_KEY) {
+        throw new Error('DeepSeek API key not configured');
+    }
+
     const prompt = createTextPrompt(formData);
-    console.log('🔗 Making request to DeepSeek API...');
 
-    try {
-        const response = await fetch(DEEPSEEK_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'deepseek-chat',
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 500,
-                temperature: 0.7
-            })
-        });
+    const response = await fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7
+        })
+    });
 
-        console.log('📡 DeepSeek API response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('DeepSeek API error response:', errorText);
-            throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        console.log('📋 DeepSeek API response data:', data);
-
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Invalid response format from DeepSeek API');
-        }
-
-        const content = data.choices[0].message.content;
-        return parseAdContent(content);
-
-    } catch (error) {
-        console.error('❌ DeepSeek API request failed:', error);
-        throw error;
+    if (!response.ok) {
+        throw new Error(`DeepSeek API error: ${response.status}`);
     }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    // Parse the response
+    const lines = content.split('\n');
+    const result = {};
+
+    lines.forEach(line => {
+        if (line.startsWith('HEADLINE:')) {
+            result.headline = line.replace('HEADLINE:', '').trim();
+        } else if (line.startsWith('AD_TEXT:')) {
+            result.adText = line.replace('AD_TEXT:', '').trim();
+        } else if (line.startsWith('CTA:')) {
+            result.cta = line.replace('CTA:', '').trim();
+        }
+    });
+
+    return result;
 }
 
-async function generateImage(formData) {
-    console.log('🖼️ Generating image with DeepAI...');
-
+async function generateAdImage(formData, textContent) {
     if (!DEEPAI_API_KEY) {
-        throw new Error('DeepAI API key not found');
+        throw new Error('DeepAI API key not configured');
     }
 
-    const imagePrompt = createImagePrompt(formData);
-    console.log('🎨 Image prompt:', imagePrompt);
+    const imagePrompt = createImagePromptFromAdText(formData, textContent);
 
-    const formDataToSend = new FormData();
-    formDataToSend.append('text', imagePrompt);
-
-    try {
-        const response = await fetch('https://api.deepai.org/api/text2img', {
-            method: 'POST',
-            headers: {
-                'Api-Key': DEEPAI_API_KEY
-            },
-            body: formDataToSend
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ DeepAI API error:', errorText);
-            
-            // Check if it's a content safety error
-            if (errorText.includes('unsafe content')) {
-                console.log('🎨 Content safety triggered, using fallback image approach');
-                return null; // This will be handled in the calling function
-            }
-            
-            throw new Error(`DeepAI API failed: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        console.log('✅ DeepAI response:', data);
-
-        if (!data.output_url) {
-            throw new Error('No image URL returned from DeepAI');
-        }
-
-        return data.output_url;
-    } catch (error) {
-        console.error('❌ DeepAI API error:', error);
-
-        // Check if it's a content safety error
-        if (error.message && error.message.includes('unsafe content')) {
-            console.log('🎨 Content safety triggered, using fallback image approach');
-            return null; // This will be handled in the calling function
-        }
-
-        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
-    }
-}
-
-async function generateImageFromAdText(formData, adTextContent) {
-    console.log('🖼️ Generating image based on ad content with DeepAI...');
-
-    if (!DEEPAI_API_KEY) {
-        throw new Error('DeepAI API key not found');
-    }
-
-    const imagePrompt = createImagePromptFromAdText(formData, adTextContent);
-    console.log('🎨 Enhanced image prompt:', imagePrompt);
-
-    const formDataToSend = new FormData();
-    formDataToSend.append('text', imagePrompt);
+    const formDataObj = new FormData();
+    formDataObj.append('text', imagePrompt);
 
     const response = await fetch('https://api.deepai.org/api/text2img', {
         method: 'POST',
         headers: {
             'Api-Key': DEEPAI_API_KEY
         },
-        body: formDataToSend
+        body: formDataObj
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ DeepAI API error:', errorText);
-        throw new Error(`DeepAI API failed: ${response.status} - ${errorText}`);
+        throw new Error(`DeepAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('✅ DeepAI response:', data);
 
     if (!data.output_url) {
         throw new Error('No image URL returned from DeepAI');
@@ -351,25 +270,7 @@ AD_TEXT: [Main ad copy]
 CTA: [Call to action]`;
 }
 
-function createImagePrompt(formData) {
-    // Create a specific prompt based on the product but keep it safe
-    const productName = formData.productName || 'product';
-    const businessType = formData.businessType || 'business';
-
-    // Create product-specific but safe descriptions
-    let productSpecific = '';
-    if (productName.toLowerCase().includes('agarbatti') || productName.toLowerCase().includes('incense')) {
-        productSpecific = 'traditional Indian incense sticks, aromatic, spiritual, temple style';
-    } else if (productName.toLowerCase().includes('gel') && businessType === 'Healthcare') {
-        productSpecific = 'cosmetic gel product, health and beauty, clean packaging';
-    } else {
-        productSpecific = `${productName} ${businessType} product, commercial quality`;
-    }
-
-    return `Professional advertisement image for ${productSpecific}, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
-}
-
-function createImagePromptFromAdText(formData, adTextContent) {
+function createImagePromptFromAdText(formData, textContent) {
     const productName = formData.productName || 'product';
     const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
@@ -385,15 +286,14 @@ function createImagePromptFromAdText(formData, adTextContent) {
     let settingElements = '';
     let brandNameOverlay = '';
 
-    // Enhanced product detection - check both name and description
+    // Enhanced product detection
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
 
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
         productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
         settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
-        brandNameOverlay = `visible "${productName}" brand name prominently displayed on packaging, clear product labeling, readable brand text`;
+        brandNameOverlay = `clear "${productName}" brand name on product label, professional product branding, visible text on packaging`;
 
-        // Analyze the emotional tone from ad text
         if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil') || fullText.includes('serenity')) {
             moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors';
         } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing') || fullText.includes('sacred')) {
@@ -424,197 +324,201 @@ function createImagePromptFromAdText(formData, adTextContent) {
     }
 
     // Build comprehensive prompt with brand name emphasis
-    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals} with ${brandNameOverlay}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, clear brand name visibility, suitable for ${formData.targetAudience} demographic, ${businessType} industry standards, marketing campaign ready`;
+    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals} with ${brandNameOverlay}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, clear brand name visible, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
 
-    console.log('🎨 Created detailed prompt from ad content:', detailedPrompt);
     return detailedPrompt;
 }
 
-function parseAdContent(content) {
-    console.log('📝 Parsing content:', content);
+function displayResults(textContent, imageUrl, formData) {
+    const resultsDiv = document.getElementById('results');
+    if (!resultsDiv) return;
 
-    // Remove extra spaces and normalize the content
-    const normalizedContent = content.replace(/\s+/g, ' ').trim();
+    currentImageUrl = imageUrl;
+    currentAdData = textContent;
+    const performanceScore = calculatePerformanceScore(textContent, formData);
 
-    // Try to extract content between ** markers first
-    const headlineMatch = normalizedContent.match(/\*\*HEADLINE:\*\*\s*["']?([^"']*?)["']?\s*(?=\*\*|$)/s);
-    const adTextMatch = normalizedContent.match(/\*\*AD_TEXT:\*\*\s*["']?(.*?)["']?\s*(?=\*\*CTA:|$)/s);
-    const ctaMatch = normalizedContent.match(/\*\*CTA:\*\*\s*["']?([^"']*?)["']?\s*$/s);
+    resultsDiv.innerHTML = `
+        <div class="ad-preview">
+            <div class="ad-image-container">
+                <img src="${imageUrl}" alt="Generated Ad" class="ad-image" />
+            </div>
+            <div class="ad-content">
+                <h3 class="ad-headline">${textContent.headline || 'Generated Headline'}</h3>
+                <p class="ad-text">${textContent.adText || 'Generated ad text will appear here.'}</p>
+                <div class="ad-cta">
+                    <button class="cta-button">${textContent.cta || 'Learn More'}</button>
+                </div>
+            </div>
+        </div>
+        <div class="ad-stats">
+            <div class="performance-score">
+                <span class="score-label">Performance Score:</span>
+                <span class="score-value">${performanceScore}/100</span>
+            </div>
+        </div>
+        <div class="ad-actions">
+            <button id="downloadBtn" class="action-btn download-btn">Download Image</button>
+			<button class="copy-btn">Copy Text</button>
+            <button id="regenerateBtn" class="action-btn regenerate-btn">Regenerate</button>
+        </div>
+    `;
 
-    let headline = headlineMatch ? headlineMatch[1].trim() : '';
-    let adText = adTextMatch ? adTextMatch[1].trim() : '';
-    let cta = ctaMatch ? ctaMatch[1].trim() : '';
+    // Re-attach event listeners
+    document.getElementById('downloadBtn').addEventListener('click', downloadImage);
+    document.getElementById('regenerateBtn').addEventListener('click', regenerateAd);
+	document.querySelector('.copy-btn').addEventListener('click', copyAdText);
 
-    // If the regex method didn't work, try line-by-line parsing as fallback
-    if (!headline || !adText || !cta) {
-        console.log('⚠️ Regex parsing incomplete, trying line-by-line method');
-
-        const lines = content.split('\n');
-        let currentSection = '';
-        let tempAdText = [];
-
-        lines.forEach(line => {
-            const trimmedLine = line.trim();
-
-            if (trimmedLine.includes('HEADLINE:')) {
-                currentSection = 'headline';
-                headline = trimmedLine.replace(/\*?\*?HEADLINE:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-            } else if (trimmedLine.includes('AD_TEXT:')) {
-                currentSection = 'adText';
-                const textStart = trimmedLine.replace(/\*?\*?AD_TEXT:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-                if (textStart) tempAdText.push(textStart);
-            } else if (trimmedLine.includes('CTA:')) {
-                currentSection = 'cta';
-                cta = trimmedLine.replace(/\*?\*?CTA:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-            } else if (trimmedLine && currentSection === 'adText' && !trimmedLine.includes('CTA:')) {
-                tempAdText.push(trimmedLine);
-            }
-        });
-
-        if (tempAdText.length > 0) {
-            adText = tempAdText.join(' ').trim();
-        }
-    }
-
-    // Clean up any remaining formatting
-    headline = headline.replace(/[\*"']/g, '').trim();
-    adText = adText.replace(/[\*]/g, '').trim();
-    cta = cta.replace(/[\*"']/g, '').trim();
-
-    console.log('✅ Parsed result:', { headline, adText, cta });
-    return { headline, adText, cta };
+    resultsDiv.style.display = 'block';
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
 }
 
-function setLoading(isLoading) {
-    const btn = document.getElementById('generateBtn');
-    const btnText = btn.querySelector('.btn-text');
-    const spinner = btn.querySelector('.loading-spinner');
+function calculatePerformanceScore(textContent, formData) {
+    let score = 70; // Base score
 
-    btn.disabled = isLoading;
-
-    if (isLoading) {
-        btnText.style.display = 'none';
-        spinner.style.display = 'inline';
-    } else {
-        btnText.style.display = 'inline';
-        spinner.style.display = 'none';
+    if (textContent.headline) {
+        const headlineWords = textContent.headline.split(' ').length;
+        if (headlineWords >= 5 && headlineWords <= 10) score += 5;
     }
+
+    if (textContent.adText && textContent.adText.length > 50) score += 10;
+    if (textContent.cta && textContent.cta.length > 0) score += 10;
+    if (formData.specialOffer && formData.specialOffer.trim()) score += 5;
+
+    return Math.min(score, 100);
+}
+
+async function downloadImage() {
+    if (!currentImageUrl) {
+        alert('No image to download');
+        return;
+    }
+
+    try {
+        const response = await fetch(currentImageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `facebook-ad-${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('❌ Download failed:', error);
+        alert('Failed to download image. Please try right-clicking on the image and selecting "Save image as..."');
+    }
+}
+
+function regenerateAd() {
+    const formData = getFormData();
+    if (validateForm(formData)) {
+        handleFormSubmit({ preventDefault: () => {} });
+    }
+}
+
+function getFormData() {
+    const productName = document.getElementById('productName');
+    const productDescription = document.getElementById('productDescription');
+    const targetAudience = document.getElementById('targetAudience');
+    const businessType = document.getElementById('businessType');
+    const specialOffer = document.getElementById('specialOffer');
+    const language = document.getElementById('language');
+    const tone = document.getElementById('tone');
+    const adFormat = document.getElementById('adFormat');
+
+    return {
+        productName: productName ? productName.value : '',
+        productDescription: productDescription ? productDescription.value : '',
+        targetAudience: targetAudience ? targetAudience.value : '',
+        specialOffer: specialOffer ? specialOffer.value : '',
+        language: language ? language.value : 'English',
+        tone: tone ? tone.value : 'professional',
+        adFormat: adFormat ? adFormat.value : 'facebook-feed',
+        businessType: businessType ? businessType.value : ''
+    };
+}
+
+function validateForm(formData) {
+    if (!formData.productName.trim()) {
+        showError('Please enter your product name');
+        return false;
+    }
+    if (!formData.productDescription.trim()) {
+        showError('Please describe your product or service');
+        return false;
+    }
+    if (!formData.targetAudience.trim()) {
+        showError('Please specify your target audience');
+        return false;
+    }
+    return true;
+}
+
+function showLoading() {
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = `
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Generating your Facebook ad...</p>
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
+    }
+}
+
+function hideLoading() {
+    // Loading will be replaced by results or error message
 }
 
 function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.style.cssText = 'background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #fcc;';
-    errorDiv.textContent = message;
-
-    const form = document.getElementById('adForm');
-    form.insertBefore(errorDiv, form.firstChild);
-
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 5000);
-}
-
-function displayResults(textContent, imageUrl) {
-    currentAdData = textContent;
-    currentImageUrl = imageUrl;
-
-    const currentFormData = getFormData();
-
-    updateAdPreview(textContent, imageUrl, currentFormData.adFormat);
-
-    const performanceScore = calculatePerformanceScore(textContent, currentFormData);
-    displayPerformanceScore(performanceScore);
-
-    // Save the generated ad
-    if (currentUser) {
-        saveAd(textContent, imageUrl);
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = `
+            <div class="error-message">
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+                <button onclick="location.reload()" class="retry-btn">Try Again</button>
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
     }
-
-    // Track successful ad generation
-    incrementAdUsage();
-
-    document.getElementById('resultSection').style.display = 'block';
-    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    console.error('Error:', message);
 }
 
-function updateAdPreview(textContent, imageUrl, adFormat) {
-    const adPreview = document.querySelector('.ad-preview');
+function saveAdToHistory(adData) {
+    try {
+        // Save to server if user is logged in
+        if (window.currentUser) {
+            fetch('/save-ad', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...adData,
+                    userId: window.currentUser.uid
+                })
+            }).catch(error => {
+                console.error('Failed to save ad to server:', error);
+            });
+        }
 
-    updatePreviewHeading(adFormat);
+        // Also save locally
+        const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
+        savedAds.unshift(adData);
 
-    const imageContainer = document.getElementById('imageContainer');
-    const adImage = document.getElementById('adImage');
-    const downloadBtn = document.getElementById('downloadBtn');
+        // Keep only last 50 ads
+        if (savedAds.length > 50) {
+            savedAds.splice(50);
+        }
 
-    if (imageUrl) {
-        adImage.src = imageUrl;
-        imageContainer.style.display = 'block';
-        downloadBtn.style.display = 'inline-block';
-    } else {
-        imageContainer.style.display = 'none';
-        downloadBtn.style.display = 'none';
+        localStorage.setItem('savedAds', JSON.stringify(savedAds));
+    } catch (error) {
+        console.error('Failed to save ad:', error);
     }
-
-    switch(adFormat) {
-        case 'facebook-feed':
-            updateFacebookPreview(textContent);
-            break;
-        case 'instagram-story':
-            updateInstagramStoryPreview(textContent);
-            break;
-        case 'google-search':
-            updateGoogleSearchPreview(textContent);
-            break;
-        case 'whatsapp-status':
-            updateWhatsAppStatusPreview(textContent);
-            break;
-        default:
-            updateFacebookPreview(textContent);
-    }
-}
-
-function updatePreviewHeading(adFormat) {
-    const resultHeading = document.querySelector('.result-section h2');
-    if (resultHeading) {
-        const headings = {
-            'facebook-feed': '📱 Your Facebook Ad',
-            'instagram-story': '📸 Your Instagram Story',
-            'google-search': '🔍 Your Google Search Ad',
-            'whatsapp-status': '💬 Your WhatsApp Status Ad'
-        };
-        resultHeading.textContent = headings[adFormat] || '📱 Your Facebook Ad';
-    }
-}
-
-function updateFacebookPreview(textContent) {
-    const headlineEl = document.getElementById('adHeadline');
-    const textEl = document.getElementById('adText');
-    const ctaEl = document.getElementById('adCta');
-    const hashtagsEl = document.getElementById('adHashtags');
-
-    if (headlineEl) headlineEl.textContent = textContent.headline || 'No headline generated';
-    if (textEl) textEl.textContent = textContent.adText || 'No ad text generated';
-    if (ctaEl) ctaEl.textContent = textContent.cta || 'No CTA generated';
-    if (hashtagsEl) hashtagsEl.textContent = '';
-}
-
-function updateInstagramStoryPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview instagram-story-format';
-}
-
-function updateGoogleSearchPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview google-search-format';
-}
-
-function updateWhatsAppStatusPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview whatsapp-status-format';
 }
 
 function copyAdText() {
@@ -636,44 +540,6 @@ function copyAdText() {
         console.error('Failed to copy text: ', err);
         alert('Failed to copy text. Please try again.');
     });
-}
-
-async function downloadImage() {
-    if (!currentImageUrl) {
-        alert('No image to download');
-        return;
-    }
-
-    try {
-        const response = await fetch(currentImageUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'facebook-ad-image.jpg';
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        console.log('✅ Image downloaded successfully');
-
-    } catch (error) {
-        console.error('❌ Download failed:', error);
-        alert('Failed to download image. Please try right-clicking on the image and selecting "Save image as..."');
-    }
-}
-
-function regenerateAd() {
-    const formData = getFormData();
-    if (validateForm(formData)) {
-        handleFormSubmit({ preventDefault: () => {} });
-    }
 }
 
 function calculatePerformanceScore(textContent, formData) {
@@ -784,4 +650,83 @@ function useVariation(variationContent) {
     updateAdPreview(variationContent, currentImageUrl, formData.adFormat);
 
     document.querySelector('.ad-preview').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateAdPreview(textContent, imageUrl, adFormat) {
+    const adPreview = document.querySelector('.ad-preview');
+
+    updatePreviewHeading(adFormat);
+
+    const imageContainer = document.getElementById('imageContainer');
+    const adImage = document.getElementById('adImage');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    if (imageUrl) {
+        adImage.src = imageUrl;
+        imageContainer.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
+    } else {
+        imageContainer.style.display = 'none';
+        downloadBtn.style.display = 'none';
+    }
+
+    switch(adFormat) {
+        case 'facebook-feed':
+            updateFacebookPreview(textContent);
+            break;
+        case 'instagram-story':
+            updateInstagramStoryPreview(textContent);
+            break;
+        case 'google-search':
+            updateGoogleSearchPreview(textContent);
+            break;
+        case 'whatsapp-status':
+            updateWhatsAppStatusPreview(textContent);
+            break;
+        default:
+            updateFacebookPreview(textContent);
+    }
+}
+
+function updatePreviewHeading(adFormat) {
+    const resultHeading = document.querySelector('.result-section h2');
+    if (resultHeading) {
+        const headings = {
+            'facebook-feed': '📱 Your Facebook Ad',
+            'instagram-story': '📸 Your Instagram Story',
+            'google-search': '🔍 Your Google Search Ad',
+            'whatsapp-status': '💬 Your WhatsApp Status Ad'
+        };
+        resultHeading.textContent = headings[adFormat] || '📱 Your Facebook Ad';
+    }
+}
+
+function updateFacebookPreview(textContent) {
+    const headlineEl = document.getElementById('adHeadline');
+    const textEl = document.getElementById('adText');
+    const ctaEl = document.getElementById('adCta');
+    const hashtagsEl = document.getElementById('adHashtags');
+
+    if (headlineEl) headlineEl.textContent = textContent.headline || 'No headline generated';
+    if (textEl) textEl.textContent = textContent.adText || 'No ad text generated';
+    if (ctaEl) ctaEl.textContent = textContent.cta || 'No CTA generated';
+    if (hashtagsEl) hashtagsEl.textContent = '';
+}
+
+function updateInstagramStoryPreview(textContent) {
+    updateFacebookPreview(textContent);
+	const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview instagram-story-format';
+}
+
+function updateGoogleSearchPreview(textContent) {
+    updateFacebookPreview(textContent);
+	const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview google-search-format';
+}
+
+function updateWhatsAppStatusPreview(textContent) {
+    updateFacebookPreview(textContent);
+	const adPreview = document.querySelector('.ad-preview');
+    adPreview.className = 'ad-preview whatsapp-status-format';
 }

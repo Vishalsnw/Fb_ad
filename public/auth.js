@@ -1,96 +1,195 @@
-// Firebase Authentication and User Management
-import { auth, googleProvider, signInWithPopup, firebaseSignOut, onAuthStateChanged } from './firebase-config.js';
-
+// Simple authentication system without Firebase
 let currentUser = null;
 
-// Initialize authentication when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    initializeAuth();
-    loadUserData();
-});
+// Mock user data structure
+function createMockUser(email, name) {
+    return {
+        uid: 'user_' + Date.now(),
+        email: email,
+        displayName: name,
+        photoURL: null
+    };
+}
 
-function initializeAuth() {
+// Initialize auth system
+function initAuth() {
     // Check if user is already logged in
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-        currentUser = JSON.parse(userData);
-        updateUIForLoggedInUser();
-    }
-
-    // Listen for auth state changes
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log('User signed in:', user);
-            handleFirebaseUser(user);
-        } else {
-            console.log('User signed out');
-            currentUser = null;
+    const savedUser = localStorage.getItem('userData');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            updateAuthUI();
+        } catch (error) {
+            console.error('Error loading saved user:', error);
             localStorage.removeItem('userData');
+        }
+    }
+}
+
+// Update UI based on auth state
+function updateAuthUI() {
+    const authButton = document.getElementById('authButton');
+    const userInfo = document.getElementById('userInfo');
+
+    if (currentUser) {
+        if (authButton) {
+            authButton.textContent = 'Sign Out';
+            authButton.onclick = signOut;
+        }
+        if (userInfo) {
+            userInfo.style.display = 'block';
+            userInfo.innerHTML = `
+                <div class="user-profile">
+                    <span>Welcome, ${currentUser.displayName || currentUser.email}!</span>
+                </div>
+            `;
+        }
+    } else {
+        if (authButton) {
+            authButton.textContent = 'Sign In';
+            authButton.onclick = showSignInForm;
+        }
+        if (userInfo) {
+            userInfo.style.display = 'none';
+        }
+    }
+}
+
+// Show sign in form
+function showSignInForm() {
+    const modal = document.createElement('div');
+    modal.className = 'auth-modal';
+    modal.innerHTML = `
+        <div class="auth-modal-content">
+            <h2>Sign In</h2>
+            <form id="signInForm">
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="text" id="name" placeholder="Your Name" required>
+                <button type="submit">Sign In</button>
+                <button type="button" onclick="closeAuthModal()">Cancel</button>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('signInForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const name = document.getElementById('name').value;
+
+        if (email && name) {
+            signIn(email, name);
+            closeAuthModal();
         }
     });
 }
 
-// Handle Firebase user data
-function handleFirebaseUser(user) {
-    const userData = {
-        id: user.uid,
-        name: user.displayName || 'User',
-        email: user.email,
-        picture: user.photoURL || '',
-        provider: 'firebase-google',
-        loginTime: new Date().toISOString(),
-        adsGenerated: 0,
-        subscriptionStatus: 'free',
-        usageCount: 0,
-        maxUsage: 3
-    };
-
-    saveUserData(userData);
-    updateUIForLoggedInUser();
-    closeAuthModal();
-}
-
-// Sign in with Google using Firebase
-async function signInWithGoogle() {
-    console.log('Firebase Google sign-in clicked');
-
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        console.log('Firebase sign-in successful:', user);
-
-        // Firebase will automatically trigger onAuthStateChanged
-        // which will handle the user data
-
-    } catch (error) {
-        console.error('Firebase sign-in error:', error);
-
-        // Handle specific error cases
-        if (error.code === 'auth/popup-closed-by-user') {
-            showError('Sign-in was cancelled. Please try again.');
-        } else if (error.code === 'auth/popup-blocked') {
-            showError('Popup was blocked by your browser. Please allow popups and try again.');
-        } else {
-            showError('Sign-in failed. Please try again.');
-        }
+// Close auth modal
+function closeAuthModal() {
+    const modal = document.querySelector('.auth-modal');
+    if (modal) {
+        modal.remove();
     }
 }
 
-// Sign out function
+// Sign in user
+async function signIn(email, name) {
+    try {
+        currentUser = createMockUser(email, name);
+        localStorage.setItem('userData', JSON.stringify(currentUser));
+        updateAuthUI();
+
+        // Sync user data with server
+        await syncUserData(currentUser);
+
+        console.log('User signed in:', currentUser);
+    } catch (error) {
+        console.error('Sign-in error:', error);
+        alert('Failed to sign in. Please try again.');
+    }
+}
+
+// Sign out user
 async function signOut() {
     try {
-        await firebaseSignOut(auth);
-
         currentUser = null;
         localStorage.removeItem('userData');
         localStorage.removeItem('savedAds');
-
-        // Reset UI
-        location.reload();
-
+        updateAuthUI();
+        console.log('User signed out');
     } catch (error) {
         console.error('Sign-out error:', error);
-        showError('Failed to sign out. Please try again.');
+        alert('Failed to sign out. Please try again.');
+    }
+}
+
+// Sync user data with server
+async function syncUserData(userData) {
+    try {
+        const response = await fetch('/sync-user-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('User data synced:', result);
+        }
+    } catch (error) {
+        console.error('Failed to sync user data:', error);
+    }
+}
+
+// Initialize auth when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initAuth();
+});
+
+// Export for global access
+window.currentUser = currentUser;
+window.signIn = signIn;
+window.signOut = signOut;
+window.updateAuthUI = updateAuthUI;
+
+// Usage Tracking
+function canGenerateAd() {
+    if (!currentUser) {
+        return false; // Must be logged in
+    }
+
+    if (currentUser.subscriptionStatus === 'premium') {
+        return true; // Unlimited for premium users
+    }
+
+    return currentUser.usageCount < currentUser.maxUsage;
+}
+
+function incrementAdUsage() {
+    if (!currentUser) return;
+
+    currentUser.usageCount += 1;
+    currentUser.adsGenerated += 1;
+
+	//check if currentUser exists before saving
+	if (currentUser) {
+    	saveUserData(currentUser);
+	}
+    updateUsageDisplay();
+}
+
+function updateUsageDisplay() {
+    const usageEl = document.getElementById('usageCount');
+    if (usageEl && currentUser) {
+        if (currentUser.subscriptionStatus === 'premium') {
+            usageEl.textContent = 'Unlimited ads (Premium)';
+        } else {
+            const remaining = currentUser.maxUsage - currentUser.usageCount;
+            usageEl.textContent = `${remaining} ads remaining`;
+        }
     }
 }
 
@@ -133,70 +232,9 @@ async function syncUserDataWithServer(userData) {
     }
 }
 
-// Usage Tracking
-function canGenerateAd() {
-    if (!currentUser) {
-        return false; // Must be logged in
-    }
-
-    if (currentUser.subscriptionStatus === 'premium') {
-        return true; // Unlimited for premium users
-    }
-
-    return currentUser.usageCount < currentUser.maxUsage;
-}
-
-function incrementAdUsage() {
-    if (!currentUser) return;
-
-    currentUser.usageCount += 1;
-    currentUser.adsGenerated += 1;
-    saveUserData(currentUser);
-    updateUsageDisplay();
-}
-
-function updateUsageDisplay() {
-    const usageEl = document.getElementById('usageCount');
-    if (usageEl && currentUser) {
-        if (currentUser.subscriptionStatus === 'premium') {
-            usageEl.textContent = 'Unlimited ads (Premium)';
-        } else {
-            const remaining = currentUser.maxUsage - currentUser.usageCount;
-            usageEl.textContent = `${remaining} ads remaining`;
-        }
-    }
-}
-
 // UI Updates
 function updateUIForLoggedInUser() {
-    if (!currentUser) return;
-
-    // Update user profile display
-    const userProfile = document.getElementById('userProfile');
-    if (userProfile) {
-        userProfile.innerHTML = `
-            <div class="user-info">
-                <img src="${currentUser.picture}" alt="Profile" class="profile-pic">
-                <div class="user-details">
-                    <span class="user-name">${currentUser.name}</span>
-                    <span class="user-email">${currentUser.email}</span>
-                    <span class="subscription-badge ${currentUser.subscriptionStatus}">${currentUser.subscriptionStatus}</span>
-                </div>
-                <button onclick="signOut()" class="sign-out-btn">Sign Out</button>
-            </div>
-        `;
-        userProfile.style.display = 'block';
-    }
-
-    // Hide login buttons
-    const loginSection = document.getElementById('loginSection');
-    if (loginSection) {
-        loginSection.style.display = 'none';
-    }
-
-    // Show saved ads section
-    loadSavedAds();
-    updateUsageDisplay();
+	// This function is replaced by updateAuthUI
 }
 
 function showPaymentModal() {
@@ -224,9 +262,8 @@ function showLoginModal() {
             <div class="auth-modal-body">
                 <p>Please sign in to generate ads and track your usage.</p>
                 <div class="auth-buttons">
-                    <button onclick="signInWithGoogle()" class="auth-btn google-btn">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
-                        Continue with Google
+                    <button onclick="showSignInForm()" class="auth-btn google-btn">
+                        Continue with Mock Sign In
                     </button>
                 </div>
             </div>
@@ -235,13 +272,6 @@ function showLoginModal() {
 
     document.body.appendChild(modal);
     modal.style.display = 'block';
-}
-
-function closeAuthModal() {
-    const modal = document.querySelector('.auth-modal');
-    if (modal) {
-        modal.remove();
-    }
 }
 
 function showError(message) {
@@ -282,7 +312,7 @@ function saveAd(adData, imageUrl) {
     const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
     const adToSave = {
         id: Date.now(),
-        userId: currentUser.id,
+        userId: currentUser.uid,
         ...adData,
         imageUrl,
         createdAt: new Date().toISOString()
@@ -313,7 +343,7 @@ function loadSavedAds() {
     if (!currentUser) return;
 
     const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
-    const userAds = savedAds.filter(ad => ad.userId === currentUser.id);
+    const userAds = savedAds.filter(ad => ad.userId === currentUser.uid);
 
     const savedAdsContainer = document.getElementById('savedAdsContainer');
     if (savedAdsContainer && userAds.length > 0) {
@@ -358,11 +388,10 @@ function loadSavedAd(adId) {
 }
 
 // Make functions available globally
-window.signInWithGoogle = signInWithGoogle;
-window.signOut = signOut;
-window.showLoginModal = showLoginModal;
+window.showSignInForm = showSignInForm;
 window.closeAuthModal = closeAuthModal;
 window.saveAd = saveAd;
 window.loadSavedAd = loadSavedAd;
 window.canGenerateAd = canGenerateAd;
 window.incrementAdUsage = incrementAdUsage;
+window.showLoginModal = showLoginModal;
