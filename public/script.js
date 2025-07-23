@@ -1,5 +1,39 @@
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
+
+// Global variables
+let currentAdData = {};
+let currentImageUrl = '';
+let isGenerating = false;
+
+// Load configuration
+let CONFIG = {};
+
+async function loadConfig() {
+    try {
+        const timestamp = Date.now();
+        const response = await fetch(`/config.js?t=${timestamp}`);
+        const configScript = await response.text();
+
+        // Execute the config script
+        eval(configScript);
+
+        console.log('✅ API keys loaded successfully');
+        console.log('DEEPSEEK_API_KEY loaded:', !!CONFIG.DEEPSEEK_API_KEY);
+        console.log('DEEPAI_API_KEY loaded:', !!CONFIG.DEEPAI_API_KEY);
+
+        // Check if Razorpay keys are loaded
+        if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
+            console.warn('Razorpay keys not found in config');
+        }
+
+    } catch (error) {
+        console.error('Failed to load config:', error);
+        showError('Failed to load configuration. Please refresh the page.');
+    }
+}
+
 let DEEPSEEK_API_KEY = '';
 let DEEPAI_API_KEY = '';
 
@@ -13,37 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     setupLanguagePlaceholders();
 });
-
-function loadConfig() {
-    const script = document.createElement('script');
-    script.src = window.location.origin + '/config.js?t=' + Date.now();
-
-    script.onload = function() {
-        if (window.CONFIG) {
-            DEEPSEEK_API_KEY = window.CONFIG.DEEPSEEK_API_KEY;
-            DEEPAI_API_KEY = window.CONFIG.DEEPAI_API_KEY;
-
-            console.log('✅ API keys loaded successfully');
-            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
-
-            if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-                console.warn('⚠️ Some API keys are missing!');
-                showError('API keys not configured. Please add them in Replit Secrets.');
-            }
-        } else {
-            console.error('❌ CONFIG object not found');
-            showError('Failed to load configuration');
-        }
-    };
-
-    script.onerror = function() {
-        console.error('❌ Failed to load config.js');
-        showError('Failed to load configuration');
-    };
-
-    document.head.appendChild(script);
-}
 
 function setupEventListeners() {
     const form = document.getElementById('adForm');
