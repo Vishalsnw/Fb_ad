@@ -19,9 +19,15 @@ function initializeAuth() {
 
 // Google Sign-In
 function initGoogleAuth() {
+    // Get Google Client ID from config
+    if (!window.CONFIG || !window.CONFIG.GOOGLE_CLIENT_ID) {
+        console.error('Google Client ID not configured');
+        return;
+    }
+
     gapi.load('auth2', function() {
         gapi.auth2.init({
-            client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'
+            client_id: window.CONFIG.GOOGLE_CLIENT_ID
         }).then(function() {
             const authInstance = gapi.auth2.getAuthInstance();
             
@@ -29,6 +35,8 @@ function initGoogleAuth() {
             if (authInstance.isSignedIn.get()) {
                 handleGoogleSignIn(authInstance.currentUser.get());
             }
+        }).catch(function(error) {
+            console.error('Google Auth initialization failed:', error);
         });
     });
 }
@@ -62,54 +70,7 @@ function handleGoogleSignIn(googleUser) {
     updateUIForLoggedInUser();
 }
 
-// Facebook Sign-In
-function initFacebookAuth() {
-    window.fbAsyncInit = function() {
-        FB.init({
-            appId: 'YOUR_FACEBOOK_APP_ID',
-            cookie: true,
-            xfbml: true,
-            version: 'v18.0'
-        });
-        
-        FB.getLoginStatus(function(response) {
-            if (response.status === 'connected') {
-                handleFacebookSignIn(response);
-            }
-        });
-    };
-}
 
-function signInWithFacebook() {
-    FB.login(function(response) {
-        if (response.authResponse) {
-            handleFacebookSignIn(response);
-        } else {
-            console.error('Facebook sign-in failed');
-            showError('Facebook sign-in failed. Please try again.');
-        }
-    }, {scope: 'email,public_profile'});
-}
-
-function handleFacebookSignIn(response) {
-    FB.api('/me', {fields: 'name,email,picture'}, function(profile) {
-        const userData = {
-            id: profile.id,
-            name: profile.name,
-            email: profile.email,
-            picture: profile.picture.data.url,
-            provider: 'facebook',
-            loginTime: new Date().toISOString(),
-            adsGenerated: 0,
-            subscriptionStatus: 'free',
-            usageCount: 0,
-            maxUsage: 3
-        };
-        
-        saveUserData(userData);
-        updateUIForLoggedInUser();
-    });
-}
 
 // User Data Management
 function saveUserData(userData) {
@@ -245,12 +206,6 @@ function showLoginModal() {
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
                         Continue with Google
                     </button>
-                    <button onclick="signInWithFacebook()" class="auth-btn facebook-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        Continue with Facebook
-                    </button>
                 </div>
             </div>
         </div>
@@ -270,9 +225,9 @@ function closeAuthModal() {
 function signOut() {
     if (currentUser?.provider === 'google') {
         const authInstance = gapi.auth2.getAuthInstance();
-        authInstance.signOut();
-    } else if (currentUser?.provider === 'facebook') {
-        FB.logout();
+        if (authInstance) {
+            authInstance.signOut();
+        }
     }
     
     currentUser = null;
@@ -367,17 +322,20 @@ function loadSavedAd(adId) {
 
 // Initialize authentication libraries
 function loadAuthLibraries() {
-    // Load Google API
-    const googleScript = document.createElement('script');
-    googleScript.src = 'https://apis.google.com/js/api.js';
-    googleScript.onload = initGoogleAuth;
-    document.head.appendChild(googleScript);
-    
-    // Load Facebook SDK
-    const facebookScript = document.createElement('script');
-    facebookScript.src = 'https://connect.facebook.net/en_US/sdk.js';
-    facebookScript.onload = initFacebookAuth;
-    document.head.appendChild(facebookScript);
+    // Wait for config to load before initializing Google Auth
+    const checkConfig = () => {
+        if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
+            // Load Google API
+            const googleScript = document.createElement('script');
+            googleScript.src = 'https://apis.google.com/js/api.js';
+            googleScript.onload = initGoogleAuth;
+            document.head.appendChild(googleScript);
+        } else {
+            // Check again after a short delay
+            setTimeout(checkConfig, 100);
+        }
+    };
+    checkConfig();
 }
 
 // Load auth libraries when page loads

@@ -9,12 +9,14 @@ export default function handler(req, res) {
   // Get environment variables
   const deepseekKey = process.env.DEEPSEEK_API_KEY || '';
   const deepaiKey = process.env.DEEPAI_API_KEY || '';
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
   
   // Return JavaScript config
   const config = `
 window.CONFIG = {
     DEEPSEEK_API_KEY: '${deepseekKey}',
-    DEEPAI_API_KEY: '${deepaiKey}'
+    DEEPAI_API_KEY: '${deepaiKey}',
+    GOOGLE_CLIENT_ID: '${googleClientId}'
 };
 `;
   
