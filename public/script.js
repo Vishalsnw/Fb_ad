@@ -158,12 +158,12 @@ function handleFormSubmit(event) {
 
     setLoading(true);
 
-    // Generate text first, then try image
+    // Generate text first, then use it to create better image
     generateAdText(formData).then(textResult => {
         console.log('✅ Text generation completed');
         
-        // Try to generate image, but don't fail if it doesn't work
-        generateImage(formData).then(imageResult => {
+        // Generate image using the actual ad content
+        generateImageFromAdText(formData, textResult).then(imageResult => {
             console.log('✅ Image generation completed');
             displayResults(textResult, imageResult);
             setLoading(false);
@@ -267,6 +267,43 @@ async function generateImage(formData) {
     return data.output_url;
 }
 
+async function generateImageFromAdText(formData, adTextContent) {
+    console.log('🖼️ Generating image based on ad content with DeepAI...');
+
+    if (!DEEPAI_API_KEY) {
+        throw new Error('DeepAI API key not found');
+    }
+
+    const imagePrompt = createImagePromptFromAdText(formData, adTextContent);
+    console.log('🎨 Enhanced image prompt:', imagePrompt);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('text', imagePrompt);
+
+    const response = await fetch('https://api.deepai.org/api/text2img', {
+        method: 'POST',
+        headers: {
+            'Api-Key': DEEPAI_API_KEY
+        },
+        body: formDataToSend
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ DeepAI API error:', errorText);
+        throw new Error(`DeepAI API failed: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ DeepAI response:', data);
+
+    if (!data.output_url) {
+        throw new Error('No image URL returned from DeepAI');
+    }
+
+    return data.output_url;
+}
+
 function createTextPrompt(formData) {
     return `Create a compelling ${formData.adFormat} advertisement in ${formData.language} with a ${formData.tone} tone.
 
@@ -298,6 +335,49 @@ function createImagePrompt(formData) {
     }
     
     return `Professional advertisement image for ${productSpecific}, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
+}
+
+function createImagePromptFromAdText(formData, adTextContent) {
+    const productName = formData.productName || 'product';
+    const businessType = formData.businessType || 'business';
+    const adFormat = formData.adFormat || 'facebook-feed';
+    
+    // Extract key elements from the generated ad text
+    const headline = adTextContent.headline || '';
+    const adText = adTextContent.adText || '';
+    
+    // Create visual elements based on the ad content theme
+    let visualTheme = '';
+    let productVisuals = '';
+    let moodKeywords = '';
+    
+    // Determine product visuals
+    if (productName.toLowerCase().includes('agarbatti') || productName.toLowerCase().includes('incense')) {
+        productVisuals = 'beautiful incense sticks, smoke wisps, traditional Indian setting, spiritual ambiance, temple elements';
+    } else if (productName.toLowerCase().includes('gel') && businessType === 'Healthcare') {
+        productVisuals = 'elegant cosmetic gel bottle, health and beauty product, clean modern packaging, spa-like setting';
+    } else {
+        productVisuals = `${productName} product, ${businessType} style, professional product photography`;
+    }
+    
+    // Extract mood from ad text
+    if (headline.toLowerCase().includes('peace') || adText.toLowerCase().includes('calm') || adText.toLowerCase().includes('tranquil')) {
+        moodKeywords = 'peaceful, serene, calming colors, soft lighting, zen atmosphere';
+    } else if (headline.toLowerCase().includes('love') || adText.toLowerCase().includes('heart') || adText.toLowerCase().includes('emotional')) {
+        moodKeywords = 'warm, emotional, loving atmosphere, golden lighting, heartwarming';
+    } else if (headline.toLowerCase().includes('divine') || adText.toLowerCase().includes('spiritual') || adText.toLowerCase().includes('blessing')) {
+        moodKeywords = 'divine, spiritual, golden light, sacred, peaceful, traditional';
+    } else if (headline.toLowerCase().includes('confidence') || adText.toLowerCase().includes('beauty') || adText.toLowerCase().includes('radiant')) {
+        moodKeywords = 'confident, beautiful, glowing, radiant, elegant, sophisticated';
+    } else {
+        moodKeywords = 'positive, uplifting, professional, clean, modern';
+    }
+    
+    // Combine elements for comprehensive prompt
+    const comprehensivePrompt = `Professional ${adFormat} advertisement image: ${productVisuals}. Visual mood: ${moodKeywords}. Commercial photography style, high quality, marketing ready, clean composition, ${businessType} industry standard, suitable for ${formData.targetAudience} audience`;
+    
+    console.log('🎨 Created enhanced prompt from ad content:', comprehensivePrompt);
+    return comprehensivePrompt;
 }
 
 function parseAdContent(content) {
