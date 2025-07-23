@@ -1,6 +1,18 @@
 // Payment configuration
-const RAZORPAY_KEY_ID = 'rzp_test_KjqxzuaAU2Xh8q'; // Test key for development
+let RAZORPAY_KEY_ID = '';
+let RAZORPAY_KEY_SECRET = '';
 let razorpay;
+
+// Load Razorpay keys from config
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID) {
+        RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
+        RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
+        console.log('Razorpay keys loaded from config');
+    } else {
+        console.error('Razorpay keys not found in config');
+    }
+});
 
 // Initialize Razorpay when page loads
 document.addEventListener('DOMContentLoaded', function() {

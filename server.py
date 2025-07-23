@@ -9,7 +9,9 @@ import sys
 def load_env():
     env_vars = {
         'DEEPSEEK_API_KEY': os.getenv('DEEPSEEK_API_KEY', ''),
-        'DEEPAI_API_KEY': os.getenv('DEEPAI_API_KEY', '')
+        'DEEPAI_API_KEY': os.getenv('DEEPAI_API_KEY', ''),
+        'RAZORPAY_KEY_ID': os.getenv('RAZORPAY_KEY_ID', ''),
+        'RAZORPAY_KEY_SECRET': os.getenv('RAZORPAY_KEY_SECRET', '')
     }
     return env_vars
 
@@ -33,21 +35,31 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             env_vars = load_env()
             deepseek_key = env_vars.get('DEEPSEEK_API_KEY', '')
             deepai_key = env_vars.get('DEEPAI_API_KEY', '')
+            razorpay_key_id = env_vars.get('RAZORPAY_KEY_ID', '')
+            razorpay_key_secret = env_vars.get('RAZORPAY_KEY_SECRET', '')
 
             # Debug: Print key status (without exposing actual keys)
             print(f"DEEPSEEK_API_KEY loaded: {'Yes' if deepseek_key else 'No'}")
             print(f"DEEPAI_API_KEY loaded: {'Yes' if deepai_key else 'No'}")
+            print(f"RAZORPAY_KEY_ID loaded: {'Yes' if razorpay_key_id else 'No'}")
+            print(f"RAZORPAY_KEY_SECRET loaded: {'Yes' if razorpay_key_secret else 'No'}")
 
             # Check if keys are actually available
             if not deepseek_key:
                 print("WARNING: DEEPSEEK_API_KEY is empty or not set in Replit Secrets")
             if not deepai_key:
                 print("WARNING: DEEPAI_API_KEY is empty or not set in Replit Secrets")
+            if not razorpay_key_id:
+                print("WARNING: RAZORPAY_KEY_ID is empty or not set in Replit Secrets")
+            if not razorpay_key_secret:
+                print("WARNING: RAZORPAY_KEY_SECRET is empty or not set in Replit Secrets")
 
             config_content = f"""
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '{deepseek_key}',
-    DEEPAI_API_KEY: '{deepai_key}'
+    DEEPAI_API_KEY: '{deepai_key}',
+    RAZORPAY_KEY_ID: '{razorpay_key_id}',
+    RAZORPAY_KEY_SECRET: '{razorpay_key_secret}'
 }};
 """
             self.send_response(200)
@@ -270,6 +282,8 @@ try:
         print("\n=== API KEYS STATUS ===")
         print(f"DEEPSEEK_API_KEY: {'✓ Loaded' if env_vars.get('DEEPSEEK_API_KEY') else '✗ Missing'}")
         print(f"DEEPAI_API_KEY: {'✓ Loaded' if env_vars.get('DEEPAI_API_KEY') else '✗ Missing'}")
+        print(f"RAZORPAY_KEY_ID: {'✓ Loaded' if env_vars.get('RAZORPAY_KEY_ID') else '✗ Missing'}")
+        print(f"RAZORPAY_KEY_SECRET: {'✓ Loaded' if env_vars.get('RAZORPAY_KEY_SECRET') else '✗ Missing'}")
         
 
         missing_keys = []
@@ -277,6 +291,10 @@ try:
             missing_keys.append('DEEPSEEK_API_KEY')
         if not env_vars.get('DEEPAI_API_KEY'):
             missing_keys.append('DEEPAI_API_KEY')
+        if not env_vars.get('RAZORPAY_KEY_ID'):
+            missing_keys.append('RAZORPAY_KEY_ID')
+        if not env_vars.get('RAZORPAY_KEY_SECRET'):
+            missing_keys.append('RAZORPAY_KEY_SECRET')
         
 
         if missing_keys:
@@ -285,6 +303,8 @@ try:
             print("1. Go to Tools → Secrets")
             print("2. Add DEEPSEEK_API_KEY with your DeepSeek API key")
             print("3. Add DEEPAI_API_KEY with your DeepAI API key")
+            print("4. Add RAZORPAY_KEY_ID with your Razorpay Key ID")
+            print("5. Add RAZORPAY_KEY_SECRET with your Razorpay Key Secret")
         else:
             print("\n✅ All API keys loaded successfully!")
 
