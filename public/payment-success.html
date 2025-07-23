@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success - Facebook Ad Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .success-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        .success-title {
+            color: #28a745;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        .success-message {
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .success-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .success-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-container">
+            <div class="success-icon">🎉</div>
+            <h1 class="success-title">Payment Successful!</h1>
+            <p class="success-message">
+                Thank you for upgrading your plan! You can now enjoy all the premium features of our Facebook Ad Generator.
+                Your subscription is now active and you can start creating unlimited professional ads.
+            </p>
+            <a href="/" class="success-btn">Start Creating Ads</a>
+        </div>
+    </div>
+
+    <script>
+        // Handle payment success
+        const urlParams = new URLSearchParams(window.location.search);
+        const planKey = urlParams.get('plan') || 'pro';
+        
+        // Update user's plan in localStorage
+        localStorage.setItem('userPlan', planKey);
+        localStorage.setItem('adsUsed', '0');
+        
+        console.log('Payment successful for plan:', planKey);
+    </script>
+</body>
+</html>

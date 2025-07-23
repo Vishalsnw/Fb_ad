@@ -151,6 +151,12 @@ function handleFormSubmit(event) {
     const formData = getFormData();
     if (!validateForm(formData)) return;
 
+    // Check if user can generate ads based on their plan
+    if (!canGenerateAd()) {
+        showPaymentModal();
+        return;
+    }
+
     if (!checkApiKeys()) return;
 
     console.log('🚀 Starting ad generation...');
@@ -171,6 +177,7 @@ function handleFormSubmit(event) {
             console.warn('⚠️ Image generation failed:', imageError);
             // Still display results with text only
             displayResults(textResult, null);
+            incrementAdUsage(); // Track usage even if image fails
             setLoading(false);
             showError('Ad text generated successfully, but image generation failed. You can still use the text content.');
         });
@@ -493,6 +500,9 @@ function displayResults(textContent, imageUrl) {
 
     const performanceScore = calculatePerformanceScore(textContent, currentFormData);
     displayPerformanceScore(performanceScore);
+
+    // Track successful ad generation
+    incrementAdUsage();
 
     document.getElementById('resultSection').style.display = 'block';
     document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
