@@ -91,28 +91,32 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        if self.path == '/create-checkout-session':
-            self.handle_checkout_session()
+        if self.path == '/create-razorpay-order':
+            self.handle_razorpay_order()
+        elif self.path == '/verify-payment':
+            self.handle_payment_verification()
         else:
             super().do_POST()
 
-    def handle_checkout_session(self):
+    def handle_razorpay_order(self):
         try:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
 
-            # In a real implementation, you would use Stripe's API here
-            # For demo purposes, we'll return a mock session
-
             plan_key = data.get('planKey')
             plan_name = data.get('planName')
             price = data.get('price')
 
-            # Mock Stripe session response
+            # In a real implementation, you would use Razorpay's API here
+            # For demo purposes, we'll return a mock order
+            import time
+            order_id = f"order_{plan_key}_{int(time.time())}"
+
             response = {
-                'id': f'cs_test_{plan_key}_session',
-                'url': f'https://checkout.stripe.com/pay/cs_test_{plan_key}_session#fidkdWxOYHwnPyd1blpxYHZxWjA0TUNATHZGNlRdPFJTVkBmQEhiU3Y9MVB8QU1gfXw1S19VcFNqVjI2TTVuNVZEMmxHZkdiQWAyXXE8aT1QRnw9cjJSbDA9TnFKYCcpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl'
+                'order_id': order_id,
+                'amount': price,
+                'currency': 'INR'
             }
 
             self.send_response(200)
@@ -125,6 +129,30 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             error_response = {'error': str(e)}
+            self.wfile.write(json.dumps(error_response).encode())
+
+    def handle_payment_verification(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            # In a real implementation, you would verify the payment signature here
+            # using Razorpay's webhook signature verification
+            # For demo purposes, we'll return success
+
+            response = {'success': True}
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            error_response = {'error': str(e), 'success': False}
             self.wfile.write(json.dumps(error_response).encode())
 
 try:
@@ -148,7 +176,8 @@ try:
 
         print("======================\n")
         print("Payment endpoints available:")
-        print("  POST /create-checkout-session - Create Stripe checkout session")
+        print("  POST /create-razorpay-order - Create Razorpay order")
+        print("  POST /verify-payment - Verify Razorpay payment")
         httpd.serve_forever()
 except Exception as e:
     print(f"ERROR starting server: {e}")

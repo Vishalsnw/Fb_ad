@@ -1,13 +1,10 @@
 
 // Payment configuration
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_your_stripe_key_here'; // Replace with your Stripe key
-let stripe;
+const RAZORPAY_KEY_ID = 'rzp_test_your_key_here'; // Replace with your Razorpay key
+let razorpay;
 
-// Initialize Stripe when page loads
+// Initialize Razorpay when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.Stripe && STRIPE_PUBLISHABLE_KEY) {
-        stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-    }
     setupPaymentModal();
     checkUserSubscription();
 });
@@ -17,8 +14,8 @@ const SUBSCRIPTION_PLANS = {
     free: {
         name: 'Free',
         price: 0,
-        adsPerMonth: 5,
-        features: ['5 ads per month', 'Basic templates', 'Standard support']
+        adsPerMonth: 3,
+        features: ['3 ads per month', 'Basic templates', 'Standard support']
     },
     pro: {
         name: 'Pro',
@@ -136,14 +133,9 @@ async function handleSubscription(planKey) {
     
     const plan = SUBSCRIPTION_PLANS[planKey];
     
-    if (!stripe) {
-        alert('Payment system is not configured. Please contact support.');
-        return;
-    }
-    
     try {
-        // Create checkout session
-        const response = await fetch('/create-checkout-session', {
+        // Create Razorpay order
+        const response = await fetch('/create-razorpay-order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -155,21 +147,40 @@ async function handleSubscription(planKey) {
             })
         });
         
-        const session = await response.json();
+        const orderData = await response.json();
         
-        if (session.error) {
-            alert('Error creating checkout session: ' + session.error);
+        if (orderData.error) {
+            alert('Error creating order: ' + orderData.error);
             return;
         }
         
-        // Redirect to Stripe Checkout
-        const result = await stripe.redirectToCheckout({
-            sessionId: session.id
-        });
+        // Initialize Razorpay payment
+        const options = {
+            key: RAZORPAY_KEY_ID,
+            amount: plan.price,
+            currency: 'INR',
+            name: 'Facebook Ad Generator',
+            description: `${plan.name} Plan Subscription`,
+            order_id: orderData.order_id,
+            handler: function(response) {
+                handlePaymentSuccess(planKey, response);
+            },
+            prefill: {
+                name: 'User',
+                email: 'user@example.com'
+            },
+            theme: {
+                color: '#667eea'
+            },
+            modal: {
+                ondismiss: function() {
+                    console.log('Payment modal closed');
+                }
+            }
+        };
         
-        if (result.error) {
-            alert('Payment failed: ' + result.error.message);
-        }
+        const rzp = new Razorpay(options);
+        rzp.open();
         
     } catch (error) {
         console.error('Payment error:', error);
@@ -178,9 +189,31 @@ async function handleSubscription(planKey) {
 }
 
 // Payment success handler
-function handlePaymentSuccess(planKey) {
-    localStorage.setItem('userPlan', planKey);
-    localStorage.setItem('adsUsed', '0'); // Reset usage
-    alert('🎉 Payment successful! Your plan has been upgraded.');
-    location.reload();
+function handlePaymentSuccess(planKey, paymentResponse) {
+    // Verify payment on server side
+    fetch('/verify-payment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            planKey,
+            payment_id: paymentResponse.razorpay_payment_id,
+            order_id: paymentResponse.razorpay_order_id,
+            signature: paymentResponse.razorpay_signature
+        })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            localStorage.setItem('userPlan', planKey);
+            localStorage.setItem('adsUsed', '0'); // Reset usage
+            alert('🎉 Payment successful! Your plan has been upgraded.');
+            location.reload();
+        } else {
+            alert('Payment verification failed. Please contact support.');
+        }
+    }).catch(error => {
+        console.error('Payment verification error:', error);
+        alert('Payment verification failed. Please contact support.');
+    });
 }
