@@ -1,4 +1,6 @@
-// Authentication and User Management
+// Firebase Authentication and User Management
+import { auth, googleProvider, signInWithPopup, firebaseSignOut, onAuthStateChanged } from './firebase-config.js';
+
 let currentUser = null;
 
 // Initialize authentication when page loads
@@ -14,191 +16,28 @@ function initializeAuth() {
         currentUser = JSON.parse(userData);
         updateUIForLoggedInUser();
     }
-}
 
-// Google Sign-In
-function initGoogleAuth() {
-    // Get Google Client ID from config
-    if (!window.CONFIG || !window.CONFIG.GOOGLE_CLIENT_ID) {
-        console.error('Google Client ID not configured');
-        return;
-    }
-
-    console.log('Initializing Google Auth with Client ID:', window.CONFIG.GOOGLE_CLIENT_ID.substring(0, 20) + '...');
-
-    // Use Google Identity Services for popup-based sign-in
-    if (window.google && window.google.accounts) {
-        console.log('Using Google Identity Services');
-        try {
-            // Initialize for popup-based sign-in
-            window.google.accounts.id.initialize({
-                client_id: window.CONFIG.GOOGLE_CLIENT_ID,
-                callback: handleGoogleResponse,
-                auto_select: false,
-                cancel_on_tap_outside: false
-            });
-
-            console.log('Google Identity Services initialized successfully');
-
-        } catch (error) {
-            console.error('Google Identity Services initialization failed:', error);
+    // Listen for auth state changes
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log('User signed in:', user);
+            handleFirebaseUser(user);
+        } else {
+            console.log('User signed out');
+            currentUser = null;
+            localStorage.removeItem('userData');
         }
-    } else {
-        console.error('Google Identity Services not available');
-        setTimeout(initGoogleAuth, 1000); // Retry after 1 second
-    }
-}
-
-function fallbackToLegacyAuth() {
-    gapi.load('auth2', function() {
-        gapi.auth2.init({
-            client_id: window.CONFIG.GOOGLE_CLIENT_ID
-        }).then(function() {
-            console.log('Legacy Google Auth initialized');
-            const authInstance = gapi.auth2.getAuthInstance();
-
-            // Check if user is already signed in
-            if (authInstance.isSignedIn.get()) {
-                handleGoogleSignIn(authInstance.currentUser.get());
-            }
-        }).catch(function(error) {
-            console.error('Google Auth initialization failed:', error);
-        });
     });
 }
 
-// Handle new Google Identity Services response
-function handleGoogleResponse(response) {
-    try {
-        const responsePayload = decodeJwtResponse(response.credential);
-
-        const userData = {
-            id: responsePayload.sub,
-            name: responsePayload.name,
-            email: responsePayload.email,
-            picture: responsePayload.picture,
-            provider: 'google',
-            loginTime: new Date().toISOString(),
-            adsGenerated: 0,
-            subscriptionStatus: 'free',
-            usageCount: 0,
-            maxUsage: 3
-        };
-
-        saveUserData(userData);
-        updateUIForLoggedInUser();
-        closeAuthModal();
-
-    } catch (error) {
-        console.error('Error handling Google response:', error);
-        showError('Google sign-in failed. Please try again.');
-    }
-}
-
-// Decode JWT response from Google Identity Services
-function decodeJwtResponse(token) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-}
-
-function signInWithGoogle() {
-    console.log('Sign in with Google clicked');
-
-    if (!window.CONFIG || !window.CONFIG.GOOGLE_CLIENT_ID) {
-        console.error('Google Client ID not configured');
-        showError('Google sign-in is not configured properly.');
-        return;
-    }
-
-    // Try Google Identity Services first
-    if (window.google && window.google.accounts) {
-        try {
-            // Use renderButton for more reliable sign-in on Replit
-            const buttonContainer = document.createElement('div');
-            buttonContainer.id = 'google-signin-button-temp';
-            buttonContainer.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '×';
-            closeBtn.style.cssText = 'position: absolute; top: 5px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer;';
-            closeBtn.onclick = () => buttonContainer.remove();
-            
-            const title = document.createElement('div');
-            title.innerHTML = 'Sign in with Google';
-            title.style.cssText = 'margin-bottom: 15px; font-weight: bold; text-align: center;';
-            
-            const btnDiv = document.createElement('div');
-            btnDiv.id = 'google-signin-btn';
-            
-            buttonContainer.appendChild(closeBtn);
-            buttonContainer.appendChild(title);
-            buttonContainer.appendChild(btnDiv);
-            document.body.appendChild(buttonContainer);
-
-            window.google.accounts.id.renderButton(
-                btnDiv,
-                {
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'signin_with',
-                    width: '250'
-                }
-            );
-
-            // Set up the callback
-            window.google.accounts.id.initialize({
-                client_id: window.CONFIG.GOOGLE_CLIENT_ID,
-                callback: (response) => {
-                    console.log('Google sign-in successful');
-                    buttonContainer.remove();
-                    handleGoogleResponse(response);
-                },
-                auto_select: false
-            });
-
-        } catch (error) {
-            console.error('Google sign-in error:', error);
-            showError('Google sign-in failed. Please try again.');
-        }
-    } else {
-        console.error('Google authentication not available');
-        showError('Google sign-in is not available. Please refresh the page and try again.');
-    }
-}
-
-function fallbackSignIn() {
-    try {
-        const authInstance = gapi.auth2.getAuthInstance();
-        if (authInstance) {
-            authInstance.signIn().then(function(googleUser) {
-                handleGoogleSignIn(googleUser);
-                closeAuthModal();
-            }).catch(function(error) {
-                console.error('Google sign-in error:', error);
-                showError('Google sign-in failed. Please try again.');
-            });
-        } else {
-            console.error('Google Auth instance not available');
-            showError('Google sign-in is not ready. Please refresh the page and try again.');
-        }
-    } catch (error) {
-        console.error('Fallback sign-in error:', error);
-        showError('Google sign-in failed. Please try again.');
-    }
-}
-
-function handleGoogleSignIn(googleUser) {
-    const profile = googleUser.getBasicProfile();
+// Handle Firebase user data
+function handleFirebaseUser(user) {
     const userData = {
-        id: profile.getId(),
-        name: profile.getName(),
-        email: profile.getEmail(),
-        picture: profile.getImageUrl(),
-        provider: 'google',
+        id: user.uid,
+        name: user.displayName || 'User',
+        email: user.email,
+        picture: user.photoURL || '',
+        provider: 'firebase-google',
         loginTime: new Date().toISOString(),
         adsGenerated: 0,
         subscriptionStatus: 'free',
@@ -208,9 +47,52 @@ function handleGoogleSignIn(googleUser) {
 
     saveUserData(userData);
     updateUIForLoggedInUser();
+    closeAuthModal();
 }
 
+// Sign in with Google using Firebase
+async function signInWithGoogle() {
+    console.log('Firebase Google sign-in clicked');
 
+    try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+        console.log('Firebase sign-in successful:', user);
+
+        // Firebase will automatically trigger onAuthStateChanged
+        // which will handle the user data
+
+    } catch (error) {
+        console.error('Firebase sign-in error:', error);
+
+        // Handle specific error cases
+        if (error.code === 'auth/popup-closed-by-user') {
+            showError('Sign-in was cancelled. Please try again.');
+        } else if (error.code === 'auth/popup-blocked') {
+            showError('Popup was blocked by your browser. Please allow popups and try again.');
+        } else {
+            showError('Sign-in failed. Please try again.');
+        }
+    }
+}
+
+// Sign out function
+async function signOut() {
+    try {
+        await firebaseSignOut(auth);
+
+        currentUser = null;
+        localStorage.removeItem('userData');
+        localStorage.removeItem('savedAds');
+
+        // Reset UI
+        location.reload();
+
+    } catch (error) {
+        console.error('Sign-out error:', error);
+        showError('Failed to sign out. Please try again.');
+    }
+}
 
 // User Data Management
 function saveUserData(userData) {
@@ -362,20 +244,35 @@ function closeAuthModal() {
     }
 }
 
-function signOut() {
-    if (currentUser?.provider === 'google') {
-        const authInstance = gapi.auth2.getAuthInstance();
-        if (authInstance) {
-            authInstance.signOut();
-        }
+function showError(message) {
+    // Create or update error display
+    let errorDiv = document.getElementById('auth-error');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = 'auth-error';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 10000;
+            max-width: 300px;
+        `;
+        document.body.appendChild(errorDiv);
     }
 
-    currentUser = null;
-    localStorage.removeItem('userData');
-    localStorage.removeItem('savedAds');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
 
-    // Reset UI
-    location.reload();
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+    }, 5000);
 }
 
 // Saved Ads Management
@@ -460,50 +357,12 @@ function loadSavedAd(adId) {
     }
 }
 
-// Load auth libraries when page loads
-function loadAuthLibraries() {
-    // Load config first
-    const configScript = document.createElement('script');
-    configScript.src = '/config.js?t=' + Date.now();
-    configScript.onload = () => {
-        console.log('Config loaded:', window.CONFIG);
-        if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
-            console.log('Loading Google Auth libraries...');
-
-            // Load Google Identity Services only (modern approach)
-            const gisScript = document.createElement('script');
-            gisScript.src = 'https://accounts.google.com/gsi/client';
-            gisScript.async = true;
-            gisScript.defer = true;
-            gisScript.onload = () => {
-                console.log('Google Identity Services loaded');
-                // Wait longer for the library to fully initialize on Vercel
-                setTimeout(() => {
-                    // Check if the library is properly loaded
-                    if (window.google && window.google.accounts && window.google.accounts.id) {
-                        initGoogleAuth();
-                    } else {
-                        console.log('Google library not ready, retrying...');
-                        setTimeout(initGoogleAuth, 1000);
-                    }
-                }, 1000);
-            };
-            gisScript.onerror = (error) => {
-                console.error('Failed to load Google Identity Services:', error);
-                showError('Failed to load Google authentication. Please refresh the page.');
-            };
-            document.head.appendChild(gisScript);
-        } else {
-            console.error('Google Client ID not found in config');
-            showError('Google sign-in is not configured properly.');
-        }
-    };
-    configScript.onerror = (error) => {
-        console.error('Failed to load config:', error);
-        showError('Failed to load configuration. Please refresh the page.');
-    };
-    document.head.appendChild(configScript);
-}
-
-// Load auth libraries when page loads
-loadAuthLibraries();
+// Make functions available globally
+window.signInWithGoogle = signInWithGoogle;
+window.signOut = signOut;
+window.showLoginModal = showLoginModal;
+window.closeAuthModal = closeAuthModal;
+window.saveAd = saveAd;
+window.loadSavedAd = loadSavedAd;
+window.canGenerateAd = canGenerateAd;
+window.incrementAdUsage = incrementAdUsage;

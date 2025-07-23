@@ -9,8 +9,7 @@ import sys
 def load_env():
     env_vars = {
         'DEEPSEEK_API_KEY': os.getenv('DEEPSEEK_API_KEY', ''),
-        'DEEPAI_API_KEY': os.getenv('DEEPAI_API_KEY', ''),
-        'GOOGLE_CLIENT_ID': os.getenv('GOOGLE_CLIENT_ID', '')
+        'DEEPAI_API_KEY': os.getenv('DEEPAI_API_KEY', '')
     }
     return env_vars
 
@@ -45,13 +44,10 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if not deepai_key:
                 print("WARNING: DEEPAI_API_KEY is empty or not set in Replit Secrets")
 
-            google_client_id = env_vars.get('GOOGLE_CLIENT_ID', '')
-            
             config_content = f"""
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '{deepseek_key}',
-    DEEPAI_API_KEY: '{deepai_key}',
-    GOOGLE_CLIENT_ID: '{google_client_id}'
+    DEEPAI_API_KEY: '{deepai_key}'
 }};
 """
             self.send_response(200)
@@ -274,15 +270,14 @@ try:
         print("\n=== API KEYS STATUS ===")
         print(f"DEEPSEEK_API_KEY: {'✓ Loaded' if env_vars.get('DEEPSEEK_API_KEY') else '✗ Missing'}")
         print(f"DEEPAI_API_KEY: {'✓ Loaded' if env_vars.get('DEEPAI_API_KEY') else '✗ Missing'}")
-        print(f"GOOGLE_CLIENT_ID: {'✓ Loaded' if env_vars.get('GOOGLE_CLIENT_ID') else '✗ Missing'}")
+        
 
         missing_keys = []
         if not env_vars.get('DEEPSEEK_API_KEY'):
             missing_keys.append('DEEPSEEK_API_KEY')
         if not env_vars.get('DEEPAI_API_KEY'):
             missing_keys.append('DEEPAI_API_KEY')
-        if not env_vars.get('GOOGLE_CLIENT_ID'):
-            missing_keys.append('GOOGLE_CLIENT_ID')
+        
 
         if missing_keys:
             print(f"\n⚠️  WARNING: Missing keys: {', '.join(missing_keys)}")
@@ -290,7 +285,6 @@ try:
             print("1. Go to Tools → Secrets")
             print("2. Add DEEPSEEK_API_KEY with your DeepSeek API key")
             print("3. Add DEEPAI_API_KEY with your DeepAI API key")
-            print("4. Add GOOGLE_CLIENT_ID with your Google OAuth Client ID")
         else:
             print("\n✅ All API keys loaded successfully!")
 
