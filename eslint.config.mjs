@@ -7,9 +7,14 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      env: {
-        browser: true,
-        node: true
+      globals: {
+        console: true,
+        document: true,
+        window: true,
+        setTimeout: true,
+        clearTimeout: true,
+        setInterval: true,
+        clearInterval: true
       }
     },
     plugins: {
