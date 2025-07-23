@@ -444,8 +444,11 @@ function loadSavedAd(adId) {
 
 // Load auth libraries when page loads
 function loadAuthLibraries() {
-    // Wait for config to load before initializing Google Auth
-    const checkConfig = () => {
+    // Load config first
+    const configScript = document.createElement('script');
+    configScript.src = '/config.js?t=' + Date.now();
+    configScript.onload = () => {
+        console.log('Config loaded:', window.CONFIG);
         if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
             console.log('Loading Google Auth libraries...');
 
@@ -473,11 +476,15 @@ function loadAuthLibraries() {
             };
             document.head.appendChild(gisScript);
         } else {
-            console.log('Waiting for config to load...');
-            setTimeout(checkConfig, 200);
+            console.error('Google Client ID not found in config');
+            showError('Google sign-in is not configured properly.');
         }
     };
-    checkConfig();
+    configScript.onerror = (error) => {
+        console.error('Failed to load config:', error);
+        showError('Failed to load configuration. Please refresh the page.');
+    };
+    document.head.appendChild(configScript);
 }
 
 // Load auth libraries when page loads
