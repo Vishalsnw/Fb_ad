@@ -1,3 +1,4 @@
+
 import http.server
 import socketserver
 import os
@@ -16,6 +17,16 @@ def load_env():
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory="public", **kwargs)
+
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
 
     def do_GET(self):
         if self.path.startswith('/config.js'):
@@ -43,52 +54,10 @@ window.CONFIG = {{
             self.send_response(200)
             self.send_header('Content-type', 'application/javascript')
             self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(config_content.encode())
         else:
             super().do_GET()
-
-def find_free_port(start_port=5000):
-    """Find a free port starting from start_port"""
-    import socket
-    for port in range(start_port, start_port + 100):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(("0.0.0.0", port))
-                return port
-        except OSError:
-            continue
-    return None
-
-# Try to find a free port
-PORT = find_free_port(5000)
-if PORT is None:
-    print("ERROR: Could not find a free port")
-    sys.exit(1)
-
-Handler = CustomHTTPRequestHandler
-
-import http.server
-import socketserver
-import os
-import json
-import urllib.parse
-from urllib.parse import urlparse, parse_qs
-
-class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory="public", **kwargs)
-
-    def end_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        super().end_headers()
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.end_headers()
 
     def do_POST(self):
         if self.path == '/create-razorpay-order':
@@ -96,7 +65,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/verify-payment':
             self.handle_payment_verification()
         else:
-            super().do_POST()
+            self.send_response(404)
+            self.end_headers()
 
     def handle_razorpay_order(self):
         try:
@@ -125,6 +95,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode())
 
         except Exception as e:
+            print(f"Error in create-razorpay-order: {e}")
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
@@ -149,11 +120,32 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode())
 
         except Exception as e:
+            print(f"Error in verify-payment: {e}")
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             error_response = {'error': str(e), 'success': False}
             self.wfile.write(json.dumps(error_response).encode())
+
+def find_free_port(start_port=5000):
+    """Find a free port starting from start_port"""
+    import socket
+    for port in range(start_port, start_port + 100):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("0.0.0.0", port))
+                return port
+        except OSError:
+            continue
+    return None
+
+# Try to find a free port
+PORT = find_free_port(5000)
+if PORT is None:
+    print("ERROR: Could not find a free port")
+    sys.exit(1)
+
+Handler = CustomHTTPRequestHandler
 
 try:
     with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:

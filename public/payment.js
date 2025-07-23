@@ -19,19 +19,40 @@ const SUBSCRIPTION_PLANS = {
     },
     pro: {
         name: 'Pro',
-        price: 999, // ₹9.99 in paise
+        price: 59900, // ₹599 in paise
+        priceUSD: 799, // $7.99 in cents
         adsPerMonth: 100,
         features: ['100 ads per month', 'Premium templates', 'Priority support', 'Advanced analytics']
     },
     unlimited: {
         name: 'Unlimited',
-        price: 1999, // ₹19.99 in paise
+        price: 99900, // ₹999 in paise
+        priceUSD: 1299, // $12.99 in cents
         adsPerMonth: -1,
         features: ['Unlimited ads', 'All premium features', '24/7 support', 'Custom branding', 'API access']
     }
 };
 
+// Detect user's country/currency
+function getUserCurrency() {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isIndian = timezone.includes('Asia/Kolkata') || timezone.includes('Asia/Calcutta');
+    return isIndian ? 'INR' : 'USD';
+}
+
+function formatPrice(plan, currency = 'INR') {
+    if (plan.price === 0) return 'Free';
+    
+    if (currency === 'INR') {
+        return `₹${(plan.price / 100).toFixed(0)}/month`;
+    } else {
+        return `$${(plan.priceUSD / 100).toFixed(2)}/month`;
+    }
+}
+
 function setupPaymentModal() {
+    const userCurrency = getUserCurrency();
+    
     // Create payment modal HTML
     const modalHTML = `
         <div id="paymentModal" class="payment-modal" style="display: none;">
@@ -44,7 +65,7 @@ function setupPaymentModal() {
                             ${key === 'pro' ? '<div class="popular-badge">Most Popular</div>' : ''}
                             <h3>${plan.name}</h3>
                             <div class="price">
-                                ${plan.price === 0 ? 'Free' : `₹${(plan.price / 100).toFixed(2)}/month`}
+                                ${formatPrice(plan, userCurrency)}
                             </div>
                             <ul class="features">
                                 ${plan.features.map(feature => `<li>✅ ${feature}</li>`).join('')}
@@ -132,6 +153,13 @@ async function handleSubscription(planKey) {
     if (planKey === 'free') return;
     
     const plan = SUBSCRIPTION_PLANS[planKey];
+    const userCurrency = getUserCurrency();
+    const price = userCurrency === 'INR' ? plan.price : plan.priceUSD;
+    
+    if (userCurrency === 'USD') {
+        alert('USD payments will be available soon. Please contact support for international payments.');
+        return;
+    }
     
     try {
         // Create Razorpay order
@@ -143,7 +171,8 @@ async function handleSubscription(planKey) {
             body: JSON.stringify({
                 planKey,
                 planName: plan.name,
-                price: plan.price
+                price: price,
+                currency: userCurrency
             })
         });
         
@@ -157,8 +186,8 @@ async function handleSubscription(planKey) {
         // Initialize Razorpay payment
         const options = {
             key: RAZORPAY_KEY_ID,
-            amount: plan.price,
-            currency: 'INR',
+            amount: price,
+            currency: userCurrency,
             name: 'Facebook Ad Generator',
             description: `${plan.name} Plan Subscription`,
             order_id: orderData.order_id,
