@@ -1,3 +1,4 @@
+
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
@@ -280,8 +281,8 @@ function createImagePromptFromAdText(formData, textContent) {
     const adFormat = formData.adFormat || 'facebook-feed';
 
     // Extract key elements from the generated ad text
-    const headline = (adTextContent.headline || '').toLowerCase();
-    const adText = (adTextContent.adText || '').toLowerCase();
+    const headline = (textContent.headline || '').toLowerCase();
+    const adText = (textContent.adText || '').toLowerCase();
     const fullText = `${headline} ${adText}`;
 
     let productVisuals = '';
@@ -543,42 +544,6 @@ function copyAdText() {
         console.error('Failed to copy text: ', err);
         alert('Failed to copy text. Please try again.');
     });
-}
-
-function calculatePerformanceScore(textContent, formData) {
-    let score = 70; // Base score
-
-    if (textContent.headline) {
-        const headlineWords = textContent.headline.split(' ').length;
-        if (headlineWords >= 5 && headlineWords <= 10) score += 5;
-    }
-
-    if (textContent.adText && textContent.adText.length > 50) score += 5;
-    if (textContent.cta && textContent.cta.length > 0) score += 10;
-    if (formData.specialOffer) score += 10;
-
-    return Math.min(score, 100);
-}
-
-function displayPerformanceScore(score) {
-    const scoreColor = score >= 80 ? '#4CAF50' : score >= 60 ? '#FF9800' : '#F44336';
-    const scoreEmoji = score >= 80 ? '🎯' : score >= 60 ? '👍' : '⚠️';
-
-    const performanceHtml = `
-        <div class="performance-score" style="background: linear-gradient(135deg, ${scoreColor}15, ${scoreColor}05); border-left: 4px solid ${scoreColor}; padding: 15px; margin: 15px 0; border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <span style="font-size: 1.5rem;">${scoreEmoji}</span>
-                <span style="font-weight: 600; color: ${scoreColor};">Performance Score: ${score}%</span>
-            </div>
-            <div style="font-size: 0.9rem; color: #666;">
-                ${score >= 80 ? 'Excellent! This ad has high conversion potential.' : 
-                  score >= 60 ? 'Good ad! Consider adding more emotional triggers.' : 
-                  'Room for improvement. Try adding urgency or emotional appeal.'}
-            </div>
-        </div>
-    `;
-
-    document.querySelector('.ad-preview').insertAdjacentHTML('afterend', performanceHtml);
 }
 
 function generateVariations() {
