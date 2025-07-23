@@ -85,8 +85,8 @@ function setupLanguagePlaceholders() {
 
 function updatePlaceholderText(language) {
     const placeholders = {
-        'english': 'Describe your product or service...',
-        'hindi': 'अपने उत्पाद या सेवा का वर्णन करें...',
+        'English': 'Describe your product or service...',
+        'Hindi': 'अपने उत्पाद या सेवा का वर्णन करें...',
         'spanish': 'Describe tu producto o servicio...',
         'french': 'Décrivez votre produit ou service...'
     };
@@ -110,10 +110,10 @@ function getFormData() {
     return {
         productDescription: document.getElementById('productDescription').value,
         targetAudience: document.getElementById('targetAudience').value,
-        language: document.querySelector('input[name="language"]:checked')?.value || 'english',
-        adFormat: document.querySelector('input[name="adFormat"]:checked')?.value || 'facebook-feed',
-        tone: document.querySelector('input[name="tone"]:checked')?.value || 'Professional',
-        specialOffer: document.getElementById('specialOffer').value,
+        language: document.querySelector('input[name="language"]:checked')?.value || 'English',
+        adFormat: document.getElementById('adFormat').value || 'facebook-feed',
+        tone: document.getElementById('tone').value || 'Professional',
+        specialOffer: '', // This field doesn't exist in HTML
         competitorUrl: document.getElementById('competitorUrl').value,
         businessType: document.getElementById('businessType').value
     };
