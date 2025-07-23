@@ -107,6 +107,7 @@ function checkApiKeys() {
 }
 
 function getFormData() {
+    const productName = document.getElementById('productName');
     const productDesc = document.getElementById('productDescription');
     const targetAud = document.getElementById('targetAudience');
     const adFormat = document.getElementById('adFormat');
@@ -116,6 +117,7 @@ function getFormData() {
     const selectedLanguage = document.querySelector('input[name="language"]:checked');
     
     return {
+        productName: productName ? productName.value : '',
         productDescription: productDesc ? productDesc.value : '',
         targetAudience: targetAud ? targetAud.value : '',
         language: selectedLanguage ? selectedLanguage.value : 'English',
@@ -128,6 +130,10 @@ function getFormData() {
 }
 
 function validateForm(formData) {
+    if (!formData.productName.trim()) {
+        showError('Please enter your product name');
+        return false;
+    }
     if (!formData.productDescription.trim()) {
         showError('Please describe your product or service');
         return false;
@@ -264,6 +270,7 @@ async function generateImage(formData) {
 function createTextPrompt(formData) {
     return `Create a compelling ${formData.adFormat} advertisement in ${formData.language} with a ${formData.tone} tone.
 
+Product Name: ${formData.productName}
 Product/Service: ${formData.productDescription}
 Target Audience: ${formData.targetAudience}
 Business Type: ${formData.businessType || 'General'}
@@ -276,8 +283,21 @@ CTA: [Call to action]`;
 }
 
 function createImagePrompt(formData) {
-    // Create a very simple, safe prompt to avoid content filtering
-    return `Clean modern product advertisement design, minimalist style, professional layout, high quality, commercial ready, simple background`;
+    // Create a specific prompt based on the product but keep it safe
+    const productName = formData.productName || 'product';
+    const businessType = formData.businessType || 'business';
+    
+    // Create product-specific but safe descriptions
+    let productSpecific = '';
+    if (productName.toLowerCase().includes('agarbatti') || productName.toLowerCase().includes('incense')) {
+        productSpecific = 'traditional Indian incense sticks, aromatic, spiritual, temple style';
+    } else if (productName.toLowerCase().includes('gel') && businessType === 'Healthcare') {
+        productSpecific = 'cosmetic gel product, health and beauty, clean packaging';
+    } else {
+        productSpecific = `${productName} ${businessType} product, commercial quality`;
+    }
+    
+    return `Professional advertisement image for ${productSpecific}, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
 }
 
 function parseAdContent(content) {
