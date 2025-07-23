@@ -115,7 +115,7 @@ function getFormData() {
     const competitorUrl = document.getElementById('competitorUrl');
     const businessType = document.getElementById('businessType');
     const selectedLanguage = document.querySelector('input[name="language"]:checked');
-    
+
     return {
         productName: productName ? productName.value : '',
         productDescription: productDesc ? productDesc.value : '',
@@ -167,7 +167,7 @@ function handleFormSubmit(event) {
     // Generate text first, then use it to create better image
     generateAdText(formData).then(textResult => {
         console.log('✅ Text generation completed');
-        
+
         // Generate image using the actual ad content
         generateImageFromAdText(formData, textResult).then(imageResult => {
             console.log('✅ Image generation completed');
@@ -181,7 +181,7 @@ function handleFormSubmit(event) {
             setLoading(false);
             showError('Ad text generated successfully, but image generation failed. You can still use the text content.');
         });
-        
+
     }).catch(error => {
         console.error('❌ Text generation failed:', error);
         showError(`Failed to generate ad text: ${error.message}`);
@@ -330,7 +330,7 @@ function createImagePrompt(formData) {
     // Create a specific prompt based on the product but keep it safe
     const productName = formData.productName || 'product';
     const businessType = formData.businessType || 'business';
-    
+
     // Create product-specific but safe descriptions
     let productSpecific = '';
     if (productName.toLowerCase().includes('agarbatti') || productName.toLowerCase().includes('incense')) {
@@ -340,7 +340,7 @@ function createImagePrompt(formData) {
     } else {
         productSpecific = `${productName} ${businessType} product, commercial quality`;
     }
-    
+
     return `Professional advertisement image for ${productSpecific}, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
 }
 
@@ -349,25 +349,25 @@ function createImagePromptFromAdText(formData, adTextContent) {
     const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
     const adFormat = formData.adFormat || 'facebook-feed';
-    
+
     // Extract key elements from the generated ad text
     const headline = (adTextContent.headline || '').toLowerCase();
     const adText = (adTextContent.adText || '').toLowerCase();
     const fullText = `${headline} ${adText}`;
-    
+
     let productVisuals = '';
     let moodKeywords = '';
     let settingElements = '';
     let brandNameOverlay = '';
-    
+
     // Enhanced product detection - check both name and description
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
-    
+
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
         productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
         settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
         brandNameOverlay = `visible "${productName}" brand name prominently displayed on packaging, clear product labeling, readable brand text`;
-        
+
         // Analyze the emotional tone from ad text
         if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil') || fullText.includes('serenity')) {
             moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors';
@@ -382,7 +382,7 @@ function createImagePromptFromAdText(formData, adTextContent) {
         productVisuals = `elegant ${productName} gel bottle, modern cosmetic packaging, health and beauty product`;
         settingElements = 'clean spa-like setting, white marble background, professional beauty studio';
         brandNameOverlay = `clear "${productName}" brand name on product label, professional product branding, visible text on packaging`;
-        
+
         if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
             moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication';
         } else if (fullText.includes('growth') || fullText.includes('hair')) {
@@ -397,40 +397,40 @@ function createImagePromptFromAdText(formData, adTextContent) {
         brandNameOverlay = `prominent "${productName}" brand name clearly visible, professional product labeling, readable brand text`;
         moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready';
     }
-    
+
     // Build comprehensive prompt with brand name emphasis
     const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals} with ${brandNameOverlay}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, clear brand name visibility, suitable for ${formData.targetAudience} demographic, ${businessType} industry standards, marketing campaign ready`;
-    
+
     console.log('🎨 Created detailed prompt from ad content:', detailedPrompt);
     return detailedPrompt;
 }
 
 function parseAdContent(content) {
     console.log('📝 Parsing content:', content);
-    
+
     // Remove extra spaces and normalize the content
     const normalizedContent = content.replace(/\s+/g, ' ').trim();
-    
+
     // Try to extract content between ** markers first
     const headlineMatch = normalizedContent.match(/\*\*HEADLINE:\*\*\s*["']?([^"']*?)["']?\s*(?=\*\*|$)/s);
     const adTextMatch = normalizedContent.match(/\*\*AD_TEXT:\*\*\s*["']?(.*?)["']?\s*(?=\*\*CTA:|$)/s);
     const ctaMatch = normalizedContent.match(/\*\*CTA:\*\*\s*["']?([^"']*?)["']?\s*$/s);
-    
+
     let headline = headlineMatch ? headlineMatch[1].trim() : '';
     let adText = adTextMatch ? adTextMatch[1].trim() : '';
     let cta = ctaMatch ? ctaMatch[1].trim() : '';
-    
+
     // If the regex method didn't work, try line-by-line parsing as fallback
     if (!headline || !adText || !cta) {
         console.log('⚠️ Regex parsing incomplete, trying line-by-line method');
-        
+
         const lines = content.split('\n');
         let currentSection = '';
         let tempAdText = [];
-        
+
         lines.forEach(line => {
             const trimmedLine = line.trim();
-            
+
             if (trimmedLine.includes('HEADLINE:')) {
                 currentSection = 'headline';
                 headline = trimmedLine.replace(/\*?\*?HEADLINE:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
@@ -445,12 +445,12 @@ function parseAdContent(content) {
                 tempAdText.push(trimmedLine);
             }
         });
-        
+
         if (tempAdText.length > 0) {
             adText = tempAdText.join(' ').trim();
         }
     }
-    
+
     // Clean up any remaining formatting
     headline = headline.replace(/[\*"']/g, '').trim();
     adText = adText.replace(/[\*]/g, '').trim();
@@ -562,7 +562,7 @@ function updateFacebookPreview(textContent) {
     const textEl = document.getElementById('adText');
     const ctaEl = document.getElementById('adCta');
     const hashtagsEl = document.getElementById('adHashtags');
-    
+
     if (headlineEl) headlineEl.textContent = textContent.headline || 'No headline generated';
     if (textEl) textEl.textContent = textContent.adText || 'No ad text generated';
     if (ctaEl) ctaEl.textContent = textContent.cta || 'No CTA generated';
@@ -755,3 +755,75 @@ function useVariation(variationContent) {
 
     document.querySelector('.ad-preview').scrollIntoView({ behavior: 'smooth' });
 }
+try {
+        const imageUrl = await generateImage(formData);
+
+        if (imageUrl) {
+            const imageContainer = document.getElementById('imageContainer');
+            const adImage = document.getElementById('adImage');
+
+            adImage.src = imageUrl;
+            imageContainer.style.display = 'block';
+
+            // Show download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.style.display = 'inline-block';
+            downloadBtn.onclick = () => downloadImage(imageUrl);
+        } else {
+            console.log('📝 Image generation skipped due to content restrictions');
+        }
+    } catch (error) {
+        console.error('⚠️ Image generation failed:', error.message || error);
+        // Show a user-friendly message
+        const imageContainer = document.getElementById('imageContainer');
+        imageContainer.innerHTML = '<div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px; color: #666;">📸 Image generation temporarily unavailable. Your ad text is ready to use!</div>';
+        imageContainer.style.display = 'block';
+    }
+try {
+        const imageUrl = await generateImage(formData);
+
+        if (imageUrl) {
+            const imageContainer = document.getElementById('imageContainer');
+            const adImage = document.getElementById('adImage');
+
+            adImage.src = imageUrl;
+            imageContainer.style.display = 'block';
+
+            // Show download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.style.display = 'inline-block';
+            downloadBtn.onclick = () => downloadImage(imageUrl);
+        } else {
+            console.log('📝 Image generation skipped due to content restrictions');
+        }
+    } catch (error) {
+        console.error('⚠️ Image generation failed:', error.message || error);
+        // Show a user-friendly message
+        const imageContainer = document.getElementById('imageContainer');
+        imageContainer.innerHTML = '<div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px; color: #666;">📸 Image generation temporarily unavailable. Your ad text is ready to use!</div>';
+        imageContainer.style.display = 'block';
+    }
+} catch (error) {
+        console.error('❌ DeepAI API error:', error);
+
+        // Check if it's a content safety error
+        if (error.message && error.message.includes('unsafe content')) {
+            console.log('🎨 Content safety triggered, using fallback image approach');
+            // Return a placeholder or try a more generic prompt
+            return null; // This will be handled in the calling function
+        }
+
+        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
+    }
+} catch (error) {
+        console.error('❌ DeepAI API error:', error);
+
+        // Check if it's a content safety error
+        if (error.message && error.message.includes('unsafe content')) {
+            console.log('🎨 Content safety triggered, using fallback image approach');
+            // Return a placeholder or try a more generic prompt
+            return null; // This will be handled in the calling function
+        }
+
+        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
+    }

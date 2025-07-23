@@ -99,7 +99,10 @@ window.CONFIG = {{
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            error_response = {'error': str(e)}
+            error_response = {
+                'error': str(e),
+                'message': 'Failed to create payment order. Please try again.'
+            }
             self.wfile.write(json.dumps(error_response).encode())
 
     def handle_payment_verification(self):
@@ -124,7 +127,11 @@ window.CONFIG = {{
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            error_response = {'error': str(e), 'success': False}
+            error_response = {
+                'error': str(e),
+                'success': False,
+                'message': 'Payment verification failed. Please contact support.'
+            }
             self.wfile.write(json.dumps(error_response).encode())
 
 def find_free_port(start_port=5000):

@@ -1,6 +1,6 @@
 
 // Payment configuration
-const RAZORPAY_KEY_ID = 'rzp_test_your_key_here'; // Replace with your Razorpay key
+const RAZORPAY_KEY_ID = 'rzp_test_KjqxzuaAU2Xh8q'; // Test key for development
 let razorpay;
 
 // Initialize Razorpay when page loads
@@ -212,8 +212,8 @@ async function handleSubscription(planKey) {
         rzp.open();
         
     } catch (error) {
-        console.error('Payment error:', error);
-        alert('Payment failed. Please try again.');
+        console.error('Payment error:', error.message || error);
+        alert('Payment failed: ' + (error.message || 'Unknown error. Please try again.'));
     }
 }
 
@@ -242,7 +242,7 @@ function handlePaymentSuccess(planKey, paymentResponse) {
             alert('Payment verification failed. Please contact support.');
         }
     }).catch(error => {
-        console.error('Payment verification error:', error);
-        alert('Payment verification failed. Please contact support.');
+        console.error('Payment verification error:', error.message || error);
+        alert('Payment verification failed: ' + (error.message || 'Please contact support.'));
     });
 }
