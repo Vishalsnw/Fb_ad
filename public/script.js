@@ -351,13 +351,15 @@ function createImagePromptFromAdText(formData, adTextContent) {
     let productVisuals = '';
     let moodKeywords = '';
     let settingElements = '';
+    let brandNameOverlay = '';
     
     // Enhanced product detection - check both name and description
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
     
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
-        productVisuals = 'traditional incense sticks bundle, elegant packaging, premium incense display';
+        productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
         settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
+        brandNameOverlay = `visible "${productName}" brand name prominently displayed on packaging, clear product labeling, readable brand text`;
         
         // Analyze the emotional tone from ad text
         if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil') || fullText.includes('serenity')) {
@@ -370,8 +372,9 @@ function createImagePromptFromAdText(formData, adTextContent) {
             moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere';
         }
     } else if (productInfo.includes('gel') && businessType === 'Healthcare') {
-        productVisuals = 'elegant gel bottle, modern cosmetic packaging, health and beauty product';
+        productVisuals = `elegant ${productName} gel bottle, modern cosmetic packaging, health and beauty product`;
         settingElements = 'clean spa-like setting, white marble background, professional beauty studio';
+        brandNameOverlay = `clear "${productName}" brand name on product label, professional product branding, visible text on packaging`;
         
         if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
             moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication';
@@ -384,11 +387,12 @@ function createImagePromptFromAdText(formData, adTextContent) {
         // Generic product handling
         productVisuals = `${productName} product, professional ${businessType} packaging, commercial quality display`;
         settingElements = 'clean modern background, professional studio lighting, commercial photography setup';
+        brandNameOverlay = `prominent "${productName}" brand name clearly visible, professional product labeling, readable brand text`;
         moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready';
     }
     
-    // Build comprehensive prompt
-    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, suitable for ${formData.targetAudience} demographic, ${businessType} industry standards, marketing campaign ready`;
+    // Build comprehensive prompt with brand name emphasis
+    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals} with ${brandNameOverlay}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, clear brand name visibility, suitable for ${formData.targetAudience} demographic, ${businessType} industry standards, marketing campaign ready`;
     
     console.log('🎨 Created detailed prompt from ad content:', detailedPrompt);
     return detailedPrompt;
