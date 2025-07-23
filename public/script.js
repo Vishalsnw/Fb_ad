@@ -30,7 +30,9 @@ async function loadConfig() {
 
         // Check if Razorpay keys are loaded
         if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
-            console.warn('Razorpay keys not found in config');
+            console.warn('⚠️ Razorpay keys not found in config');
+        } else {
+            console.log('✅ Razorpay keys loaded in main script');
         }
 
     } catch (error) {

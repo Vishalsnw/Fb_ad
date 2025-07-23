@@ -4,14 +4,23 @@ let RAZORPAY_KEY_SECRET = '';
 let razorpay;
 
 // Load Razorpay keys from config
-document.addEventListener('DOMContentLoaded', function() {
+function loadRazorpayConfig() {
     if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID) {
         RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
         RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
-        console.log('Razorpay keys loaded from config');
+        console.log('✅ Razorpay keys loaded successfully');
+        console.log('RAZORPAY_KEY_ID loaded:', !!RAZORPAY_KEY_ID);
     } else {
-        console.error('Razorpay keys not found in config');
+        console.warn('⚠️ Razorpay keys not found in config - retrying...');
+        // Retry after a short delay
+        setTimeout(loadRazorpayConfig, 500);
     }
+}
+
+// Load config when available
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for config to be loaded
+    setTimeout(loadRazorpayConfig, 100);
 });
 
 // Initialize Razorpay when page loads
