@@ -325,10 +325,16 @@ function loadAuthLibraries() {
     // Wait for config to load before initializing Google Auth
     const checkConfig = () => {
         if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
-            // Load Google API
+            // Load Google Platform Library (includes auth2)
             const googleScript = document.createElement('script');
-            googleScript.src = 'https://apis.google.com/js/api.js';
-            googleScript.onload = initGoogleAuth;
+            googleScript.src = 'https://apis.google.com/js/platform.js';
+            googleScript.onload = () => {
+                // Also load the legacy gapi script for backward compatibility
+                const gapiScript = document.createElement('script');
+                gapiScript.src = 'https://apis.google.com/js/api.js';
+                gapiScript.onload = initGoogleAuth;
+                document.head.appendChild(gapiScript);
+            };
             document.head.appendChild(googleScript);
         } else {
             // Check again after a short delay
