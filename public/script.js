@@ -3,12 +3,14 @@ const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
 
 // Global variables
-let currentAdData = {};
-let currentImageUrl = '';
+let currentAdData = null;
+let currentImageUrl = null;
 let isGenerating = false;
 
 // Load configuration
 let CONFIG = {};
+let DEEPSEEK_API_KEY = '';
+let DEEPAI_API_KEY = '';
 
 async function loadConfig() {
     try {
@@ -19,9 +21,12 @@ async function loadConfig() {
         // Execute the config script
         eval(configScript);
 
+        DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
+        DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
+
         console.log('✅ API keys loaded successfully');
-        console.log('DEEPSEEK_API_KEY loaded:', !!CONFIG.DEEPSEEK_API_KEY);
-        console.log('DEEPAI_API_KEY loaded:', !!CONFIG.DEEPAI_API_KEY);
+        console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+        console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
 
         // Check if Razorpay keys are loaded
         if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
@@ -33,13 +38,6 @@ async function loadConfig() {
         showError('Failed to load configuration. Please refresh the page.');
     }
 }
-
-let DEEPSEEK_API_KEY = '';
-let DEEPAI_API_KEY = '';
-
-// Global variables
-let currentAdData = null;
-let currentImageUrl = null;
 
 // Load configuration when page loads
 document.addEventListener('DOMContentLoaded', function() {
