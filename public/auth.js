@@ -27,30 +27,26 @@ function initGoogleAuth() {
 
     console.log('Initializing Google Auth with Client ID:', window.CONFIG.GOOGLE_CLIENT_ID.substring(0, 20) + '...');
 
-    // Try new Google Identity Services first
+    // Use Google Identity Services for popup-based sign-in
     if (window.google && window.google.accounts) {
         console.log('Using Google Identity Services');
         try {
-            google.accounts.id.initialize({
+            // Initialize for popup-based sign-in
+            window.google.accounts.id.initialize({
                 client_id: window.CONFIG.GOOGLE_CLIENT_ID,
-                callback: handleGoogleResponse
+                callback: handleGoogleResponse,
+                auto_select: false,
+                cancel_on_tap_outside: false
             });
             
-            // Render the sign-in button
-            const loginButtons = document.querySelectorAll('[onclick="signInWithGoogle()"]');
-            loginButtons.forEach(button => {
-                button.style.display = 'block';
-            });
+            console.log('Google Identity Services initialized successfully');
             
         } catch (error) {
             console.error('Google Identity Services initialization failed:', error);
-            fallbackToLegacyAuth();
         }
-    } else if (window.gapi) {
-        console.log('Using legacy GAPI');
-        fallbackToLegacyAuth();
     } else {
-        console.error('No Google authentication library available');
+        console.error('Google Identity Services not available');
+        setTimeout(initGoogleAuth, 1000); // Retry after 1 second
     }
 }
 
@@ -113,26 +109,46 @@ function decodeJwtResponse(token) {
 function signInWithGoogle() {
     console.log('Sign in with Google clicked');
     
-    // Try new Google Identity Services first
+    if (!window.CONFIG || !window.CONFIG.GOOGLE_CLIENT_ID) {
+        console.error('Google Client ID not configured');
+        showError('Google sign-in is not configured properly.');
+        return;
+    }
+    
+    // Use Google Identity Services with popup
     if (window.google && window.google.accounts) {
         try {
-            google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    console.log('Google One Tap not displayed, showing account chooser');
-                    google.accounts.id.renderButton(
-                        document.createElement('div'),
-                        { theme: 'outline', size: 'large' }
-                    );
+            // Create a temporary callback for this sign-in attempt
+            const tempCallback = (response) => {
+                console.log('Google sign-in successful');
+                handleGoogleResponse(response);
+            };
+            
+            // Re-initialize with the callback for this session
+            window.google.accounts.id.initialize({
+                client_id: window.CONFIG.GOOGLE_CLIENT_ID,
+                callback: tempCallback,
+                auto_select: false
+            });
+            
+            // Show the popup
+            window.google.accounts.id.prompt((notification) => {
+                console.log('Prompt notification:', notification);
+                if (notification.isNotDisplayed()) {
+                    console.log('Prompt not displayed, showing manual sign-in');
+                    showError('Please allow popups for this site and try again.');
+                }
+                if (notification.isSkippedMoment()) {
+                    console.log('User skipped the prompt');
                 }
             });
+            
         } catch (error) {
-            console.error('Google Identity Services sign-in error:', error);
-            fallbackSignIn();
+            console.error('Google sign-in error:', error);
+            showError('Google sign-in failed. Please try again.');
         }
-    } else if (window.gapi && gapi.auth2) {
-        fallbackSignIn();
     } else {
-        console.error('No Google authentication available');
+        console.error('Google authentication not available');
         showError('Google sign-in is not available. Please refresh the page and try again.');
     }
 }
@@ -434,27 +450,19 @@ function loadAuthLibraries() {
         if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
             console.log('Loading Google Auth libraries...');
             
-            // Load Google Identity Services (new method)
+            // Load Google Identity Services only (modern approach)
             const gisScript = document.createElement('script');
             gisScript.src = 'https://accounts.google.com/gsi/client';
             gisScript.async = true;
             gisScript.defer = true;
             gisScript.onload = () => {
                 console.log('Google Identity Services loaded');
-                // Also load legacy gapi for compatibility
-                const gapiScript = document.createElement('script');
-                gapiScript.src = 'https://apis.google.com/js/api.js';
-                gapiScript.onload = () => {
-                    console.log('GAPI loaded');
-                    initGoogleAuth();
-                };
-                gapiScript.onerror = (error) => {
-                    console.error('Failed to load GAPI:', error);
-                };
-                document.head.appendChild(gapiScript);
+                // Wait a bit for the library to initialize
+                setTimeout(initGoogleAuth, 500);
             };
             gisScript.onerror = (error) => {
                 console.error('Failed to load Google Identity Services:', error);
+                showError('Failed to load Google authentication. Please refresh the page.');
             };
             document.head.appendChild(gisScript);
         } else {
