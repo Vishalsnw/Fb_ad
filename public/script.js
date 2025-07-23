@@ -107,15 +107,23 @@ function checkApiKeys() {
 }
 
 function getFormData() {
+    const productDesc = document.getElementById('productDescription');
+    const targetAud = document.getElementById('targetAudience');
+    const adFormat = document.getElementById('adFormat');
+    const tone = document.getElementById('tone');
+    const competitorUrl = document.getElementById('competitorUrl');
+    const businessType = document.getElementById('businessType');
+    const selectedLanguage = document.querySelector('input[name="language"]:checked');
+    
     return {
-        productDescription: document.getElementById('productDescription')?.value || '',
-        targetAudience: document.getElementById('targetAudience')?.value || '',
-        language: document.querySelector('input[name="language"]:checked')?.value || 'English',
-        adFormat: document.getElementById('adFormat')?.value || 'facebook-feed',
-        tone: document.getElementById('tone')?.value || 'Professional',
+        productDescription: productDesc ? productDesc.value : '',
+        targetAudience: targetAud ? targetAud.value : '',
+        language: selectedLanguage ? selectedLanguage.value : 'English',
+        adFormat: adFormat ? adFormat.value : 'facebook-feed',
+        tone: tone ? tone.value : 'Professional',
         specialOffer: '',
-        competitorUrl: document.getElementById('competitorUrl')?.value || '',
-        businessType: document.getElementById('businessType')?.value || ''
+        competitorUrl: competitorUrl ? competitorUrl.value : '',
+        businessType: businessType ? businessType.value : ''
     };
 }
 
@@ -144,16 +152,26 @@ function handleFormSubmit(event) {
 
     setLoading(true);
 
-    Promise.all([
-        generateAdText(formData),
-        generateImage(formData)
-    ]).then(([textResult, imageResult]) => {
-        console.log('✅ Generation completed successfully');
-        displayResults(textResult, imageResult);
-        setLoading(false);
+    // Generate text first, then try image
+    generateAdText(formData).then(textResult => {
+        console.log('✅ Text generation completed');
+        
+        // Try to generate image, but don't fail if it doesn't work
+        generateImage(formData).then(imageResult => {
+            console.log('✅ Image generation completed');
+            displayResults(textResult, imageResult);
+            setLoading(false);
+        }).catch(imageError => {
+            console.warn('⚠️ Image generation failed:', imageError);
+            // Still display results with text only
+            displayResults(textResult, null);
+            setLoading(false);
+            showError('Ad text generated successfully, but image generation failed. You can still use the text content.');
+        });
+        
     }).catch(error => {
-        console.error('❌ Generation failed:', error);
-        showError(`Failed to generate ad: ${error.message}`);
+        console.error('❌ Text generation failed:', error);
+        showError(`Failed to generate ad text: ${error.message}`);
         setLoading(false);
     });
 }
@@ -258,29 +276,44 @@ CTA: [Call to action]`;
 }
 
 function createImagePrompt(formData) {
-    // Create a safe, generic prompt for product advertising
-    const businessType = formData.businessType || 'business';
-    const adFormat = formData.adFormat || 'facebook-feed';
-    
-    return `Professional commercial advertisement design for ${businessType} product, suitable for ${adFormat}, modern minimalist style, high quality, clean background, product focused, marketing ready`;
+    // Create a very simple, safe prompt to avoid content filtering
+    return `Clean modern product advertisement design, minimalist style, professional layout, high quality, commercial ready, simple background`;
 }
 
 function parseAdContent(content) {
+    console.log('📝 Parsing content:', content);
+    
     const lines = content.split('\n');
     let headline = '';
     let adText = '';
     let cta = '';
 
     lines.forEach(line => {
-        if (line.includes('HEADLINE:')) {
-            headline = line.replace('HEADLINE:', '').trim();
-        } else if (line.includes('AD_TEXT:')) {
-            adText = line.replace('AD_TEXT:', '').trim();
-        } else if (line.includes('CTA:')) {
-            cta = line.replace('CTA:', '').trim();
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes('HEADLINE:')) {
+            headline = trimmedLine.replace(/\*?\*?HEADLINE:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
+        } else if (trimmedLine.includes('AD_TEXT:')) {
+            adText = trimmedLine.replace(/\*?\*?AD_TEXT:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
+        } else if (trimmedLine.includes('CTA:')) {
+            cta = trimmedLine.replace(/\*?\*?CTA:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
         }
     });
 
+    // If parsing failed, try to extract from the content differently
+    if (!headline || !adText || !cta) {
+        console.log('⚠️ Standard parsing failed, trying alternative method');
+        
+        // Try to find content between ** markers
+        const headlineMatch = content.match(/\*\*HEADLINE:\*\*\s*(.+?)(?=\*\*|$)/s);
+        const adTextMatch = content.match(/\*\*AD_TEXT:\*\*\s*(.+?)(?=\*\*|$)/s);
+        const ctaMatch = content.match(/\*\*CTA:\*\*\s*(.+?)(?=\*\*|$)/s);
+        
+        if (headlineMatch) headline = headlineMatch[1].trim().replace(/^["']|["']$/g, '');
+        if (adTextMatch) adText = adTextMatch[1].trim().replace(/^["']|["']$/g, '');
+        if (ctaMatch) cta = ctaMatch[1].trim().replace(/^["']|["']$/g, '');
+    }
+
+    console.log('✅ Parsed result:', { headline, adText, cta });
     return { headline, adText, cta };
 }
 
@@ -379,11 +412,15 @@ function updatePreviewHeading(adFormat) {
 }
 
 function updateFacebookPreview(textContent) {
-    document.getElementById('adHeadline').textContent = textContent.headline;
-    document.getElementById('adText').textContent = textContent.adText;
-    document.getElementById('adCta').textContent = textContent.cta;
-
-	document.getElementById('adHashtags').textContent = '';
+    const headlineEl = document.getElementById('adHeadline');
+    const textEl = document.getElementById('adText');
+    const ctaEl = document.getElementById('adCta');
+    const hashtagsEl = document.getElementById('adHashtags');
+    
+    if (headlineEl) headlineEl.textContent = textContent.headline || 'No headline generated';
+    if (textEl) textEl.textContent = textContent.adText || 'No ad text generated';
+    if (ctaEl) ctaEl.textContent = textContent.cta || 'No CTA generated';
+    if (hashtagsEl) hashtagsEl.textContent = '';
 }
 
 function updateInstagramStoryPreview(textContent) {
