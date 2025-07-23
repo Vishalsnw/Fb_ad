@@ -160,15 +160,14 @@ async function handleSubscription(planKey) {
         return;
     }
 
-    try {
-        // Create Razorpay order
-        function createRazorpayOrder(planKey, planName, price) {
     if (!currentUser) {
         showLoginModal();
         return;
     }
 
-    fetch('/create-razorpay-order', {
+    try {
+        // Create Razorpay order
+        const response = await fetch('/create-razorpay-order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -223,21 +222,24 @@ async function handleSubscription(planKey) {
 }
 
 // Payment success handler
-function handlePaymentSuccess(planKey, paymentResponse) {
-    // Verify payment on server side
-    fetch('/verify-payment', {
+async function handlePaymentSuccess(planKey, paymentResponse) {
+    try {
+        // Verify payment on server side
+        const response = await fetch('/verify-payment', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            planKey,
-            payment_id: paymentResponse.razorpay_payment_id,
-            order_id: paymentResponse.razorpay_order_id,
-            signature: paymentResponse.razorpay_signature
-        })
-    }).then(response => response.json())
-    .then(data => {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                planKey,
+                payment_id: paymentResponse.razorpay_payment_id,
+                order_id: paymentResponse.razorpay_order_id,
+                signature: paymentResponse.razorpay_signature
+            })
+        });
+
+        const data = await response.json();
+        
         if (data.success) {
             // Update user subscription status
             if (currentUser) {
@@ -252,8 +254,8 @@ function handlePaymentSuccess(planKey, paymentResponse) {
         } else {
             alert('Payment verification failed. Please contact support.');
         }
-    }).catch(error => {
+    } catch (error) {
         console.error('Payment verification error:', error.message || error);
         alert('Payment verification failed: ' + (error.message || 'Please contact support.'));
-    });
+    }
 }

@@ -256,28 +256,47 @@ async function generateImage(formData) {
     const formDataToSend = new FormData();
     formDataToSend.append('text', imagePrompt);
 
-    const response = await fetch('https://api.deepai.org/api/text2img', {
-        method: 'POST',
-        headers: {
-            'Api-Key': DEEPAI_API_KEY
-        },
-        body: formDataToSend
-    });
+    try {
+        const response = await fetch('https://api.deepai.org/api/text2img', {
+            method: 'POST',
+            headers: {
+                'Api-Key': DEEPAI_API_KEY
+            },
+            body: formDataToSend
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ DeepAI API error:', errorText);
-        throw new Error(`DeepAI API failed: ${response.status} - ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ DeepAI API error:', errorText);
+            
+            // Check if it's a content safety error
+            if (errorText.includes('unsafe content')) {
+                console.log('🎨 Content safety triggered, using fallback image approach');
+                return null; // This will be handled in the calling function
+            }
+            
+            throw new Error(`DeepAI API failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ DeepAI response:', data);
+
+        if (!data.output_url) {
+            throw new Error('No image URL returned from DeepAI');
+        }
+
+        return data.output_url;
+    } catch (error) {
+        console.error('❌ DeepAI API error:', error);
+
+        // Check if it's a content safety error
+        if (error.message && error.message.includes('unsafe content')) {
+            console.log('🎨 Content safety triggered, using fallback image approach');
+            return null; // This will be handled in the calling function
+        }
+
+        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
     }
-
-    const data = await response.json();
-    console.log('✅ DeepAI response:', data);
-
-    if (!data.output_url) {
-        throw new Error('No image URL returned from DeepAI');
-    }
-
-    return data.output_url;
 }
 
 async function generateImageFromAdText(formData, adTextContent) {
@@ -766,75 +785,3 @@ function useVariation(variationContent) {
 
     document.querySelector('.ad-preview').scrollIntoView({ behavior: 'smooth' });
 }
-try {
-        const imageUrl = await generateImage(formData);
-
-        if (imageUrl) {
-            const imageContainer = document.getElementById('imageContainer');
-            const adImage = document.getElementById('adImage');
-
-            adImage.src = imageUrl;
-            imageContainer.style.display = 'block';
-
-            // Show download button
-            const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.style.display = 'inline-block';
-            downloadBtn.onclick = () => downloadImage(imageUrl);
-        } else {
-            console.log('📝 Image generation skipped due to content restrictions');
-        }
-    } catch (error) {
-        console.error('⚠️ Image generation failed:', error.message || error);
-        // Show a user-friendly message
-        const imageContainer = document.getElementById('imageContainer');
-        imageContainer.innerHTML = '<div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px; color: #666;">📸 Image generation temporarily unavailable. Your ad text is ready to use!</div>';
-        imageContainer.style.display = 'block';
-    }
-try {
-        const imageUrl = await generateImage(formData);
-
-        if (imageUrl) {
-            const imageContainer = document.getElementById('imageContainer');
-            const adImage = document.getElementById('adImage');
-
-            adImage.src = imageUrl;
-            imageContainer.style.display = 'block';
-
-            // Show download button
-            const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.style.display = 'inline-block';
-            downloadBtn.onclick = () => downloadImage(imageUrl);
-        } else {
-            console.log('📝 Image generation skipped due to content restrictions');
-        }
-    } catch (error) {
-        console.error('⚠️ Image generation failed:', error.message || error);
-        // Show a user-friendly message
-        const imageContainer = document.getElementById('imageContainer');
-        imageContainer.innerHTML = '<div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px; color: #666;">📸 Image generation temporarily unavailable. Your ad text is ready to use!</div>';
-        imageContainer.style.display = 'block';
-    }
-} catch (error) {
-        console.error('❌ DeepAI API error:', error);
-
-        // Check if it's a content safety error
-        if (error.message && error.message.includes('unsafe content')) {
-            console.log('🎨 Content safety triggered, using fallback image approach');
-            // Return a placeholder or try a more generic prompt
-            return null; // This will be handled in the calling function
-        }
-
-        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
-    }
-} catch (error) {
-        console.error('❌ DeepAI API error:', error);
-
-        // Check if it's a content safety error
-        if (error.message && error.message.includes('unsafe content')) {
-            console.log('🎨 Content safety triggered, using fallback image approach');
-            // Return a placeholder or try a more generic prompt
-            return null; // This will be handled in the calling function
-        }
-
-        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
-    }
