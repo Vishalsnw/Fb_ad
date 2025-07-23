@@ -1,4 +1,3 @@
-
 // Payment configuration
 const RAZORPAY_KEY_ID = 'rzp_test_KjqxzuaAU2Xh8q'; // Test key for development
 let razorpay;
@@ -42,7 +41,7 @@ function getUserCurrency() {
 
 function formatPrice(plan, currency = 'INR') {
     if (plan.price === 0) return 'Free';
-    
+
     if (currency === 'INR') {
         return `₹${(plan.price / 100).toFixed(0)}/month`;
     } else {
@@ -52,7 +51,7 @@ function formatPrice(plan, currency = 'INR') {
 
 function setupPaymentModal() {
     const userCurrency = getUserCurrency();
-    
+
     // Create payment modal HTML
     const modalHTML = `
         <div id="paymentModal" class="payment-modal" style="display: none;">
@@ -81,13 +80,13 @@ function setupPaymentModal() {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Setup modal events
     const modal = document.getElementById('paymentModal');
     const closeBtn = document.querySelector('.payment-close');
-    
+
     closeBtn.onclick = () => modal.style.display = 'none';
     window.onclick = (event) => {
         if (event.target === modal) {
@@ -105,9 +104,9 @@ function checkUserSubscription() {
     const userPlan = localStorage.getItem('userPlan') || 'free';
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
-    
+
     updateUsageDisplay(userPlan, adsUsed, planLimits.adsPerMonth);
-    
+
     // Add usage info to header
     const header = document.querySelector('header');
     if (header && !document.querySelector('.usage-info')) {
@@ -135,35 +134,41 @@ function canGenerateAd() {
     const userPlan = localStorage.getItem('userPlan') || 'free';
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
-    
+
     if (planLimits.adsPerMonth === -1) return true; // Unlimited
-    
+
     return adsUsed < planLimits.adsPerMonth;
 }
 
 function incrementAdUsage() {
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     localStorage.setItem('adsUsed', (adsUsed + 1).toString());
-    
+
     const userPlan = localStorage.getItem('userPlan') || 'free';
     updateUsageDisplay(userPlan, adsUsed + 1, SUBSCRIPTION_PLANS[userPlan].adsPerMonth);
 }
 
 async function handleSubscription(planKey) {
     if (planKey === 'free') return;
-    
+
     const plan = SUBSCRIPTION_PLANS[planKey];
     const userCurrency = getUserCurrency();
     const price = userCurrency === 'INR' ? plan.price : plan.priceUSD;
-    
+
     if (userCurrency === 'USD') {
         alert('USD payments will be available soon. Please contact support for international payments.');
         return;
     }
-    
+
     try {
         // Create Razorpay order
-        const response = await fetch('/create-razorpay-order', {
+        function createRazorpayOrder(planKey, planName, price) {
+    if (!currentUser) {
+        showLoginModal();
+        return;
+    }
+
+    fetch('/create-razorpay-order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -175,14 +180,14 @@ async function handleSubscription(planKey) {
                 currency: userCurrency
             })
         });
-        
+
         const orderData = await response.json();
-        
+
         if (orderData.error) {
             alert('Error creating order: ' + orderData.error);
             return;
         }
-        
+
         // Initialize Razorpay payment
         const options = {
             key: RAZORPAY_KEY_ID,
@@ -207,10 +212,10 @@ async function handleSubscription(planKey) {
                 }
             }
         };
-        
+
         const rzp = new Razorpay(options);
         rzp.open();
-        
+
     } catch (error) {
         console.error('Payment error:', error.message || error);
         alert('Payment failed: ' + (error.message || 'Unknown error. Please try again.'));
@@ -234,9 +239,15 @@ function handlePaymentSuccess(planKey, paymentResponse) {
     }).then(response => response.json())
     .then(data => {
         if (data.success) {
-            localStorage.setItem('userPlan', planKey);
-            localStorage.setItem('adsUsed', '0'); // Reset usage
-            alert('🎉 Payment successful! Your plan has been upgraded.');
+            // Update user subscription status
+            if (currentUser) {
+                currentUser.subscriptionStatus = 'premium';
+                currentUser.maxUsage = Infinity;
+                saveUserData(currentUser);
+            }
+
+            // Update UI and redirect
+            alert('Payment successful! 🎉');
             location.reload();
         } else {
             alert('Payment verification failed. Please contact support.');

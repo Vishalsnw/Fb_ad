@@ -1,4 +1,3 @@
-
 import http.server
 import socketserver
 import os
@@ -64,6 +63,10 @@ window.CONFIG = {{
             self.handle_razorpay_order()
         elif self.path == '/verify-payment':
             self.handle_payment_verification()
+        elif self.path == '/sync-user-data':
+            self.handle_user_data_sync()
+        elif self.path == '/save-ad':
+            self.handle_save_ad()
         else:
             self.send_response(404)
             self.end_headers()
@@ -134,6 +137,110 @@ window.CONFIG = {{
             }
             self.wfile.write(json.dumps(error_response).encode())
 
+    def handle_user_data_sync(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            user_id = data.get('id')
+
+            # In a real implementation, you would save to a database
+            # For demo purposes, we'll just return the data with server-side info
+
+            # Load existing user data (in real app, from database)
+            user_data_file = f"user_data_{user_id}.json"
+            existing_data = {}
+
+            try:
+                if os.path.exists(user_data_file):
+                    with open(user_data_file, 'r') as f:
+                        existing_data = json.load(f)
+            except Exception:
+                pass
+
+            # Merge with new data
+            merged_data = {**existing_data, **data}
+
+            # Save updated data
+            try:
+                with open(user_data_file, 'w') as f:
+                    json.dump(merged_data, f)
+            except Exception as e:
+                print(f"Error saving user data: {e}")
+
+            response = {
+                'success': True,
+                'userData': merged_data
+            }
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+
+        except Exception as e:
+            print(f"Error in sync-user-data: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            error_response = {
+                'error': str(e),
+                'success': False
+            }
+            self.wfile.write(json.dumps(error_response).encode())
+
+    def handle_save_ad(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            user_id = data.get('userId')
+            ad_id = data.get('id')
+
+            # Save ad data (in real app, to database)
+            ads_data_file = f"user_ads_{user_id}.json"
+            existing_ads = []
+
+            try:
+                if os.path.exists(ads_data_file):
+                    with open(ads_data_file, 'r') as f:
+                        existing_ads = json.load(f)
+            except Exception:
+                pass
+
+            # Add new ad
+            existing_ads.insert(0, data)
+
+            # Keep only last 100 ads
+            existing_ads = existing_ads[:100]
+
+            # Save updated ads
+            try:
+                with open(ads_data_file, 'w') as f:
+                    json.dump(existing_ads, f)
+            except Exception as e:
+                print(f"Error saving ad data: {e}")
+
+            response = {'success': True, 'adId': ad_id}
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+
+        except Exception as e:
+            print(f"Error in save-ad: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            error_response = {
+                'error': str(e),
+                'success': False
+            }
+            self.wfile.write(json.dumps(error_response).encode())
+
 def find_free_port(start_port=5000):
     """Find a free port starting from start_port"""
     import socket
@@ -177,6 +284,8 @@ try:
         print("Payment endpoints available:")
         print("  POST /create-razorpay-order - Create Razorpay order")
         print("  POST /verify-payment - Verify Razorpay payment")
+        print("  POST /sync-user-data - Sync user data")
+        print("  POST /save-ad - Save ad")
         httpd.serve_forever()
 except Exception as e:
     print(f"ERROR starting server: {e}")

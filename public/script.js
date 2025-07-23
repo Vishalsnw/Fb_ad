@@ -151,6 +151,12 @@ function handleFormSubmit(event) {
     const formData = getFormData();
     if (!validateForm(formData)) return;
 
+    // Check if user is logged in
+    if (!currentUser) {
+        showLoginModal();
+        return;
+    }
+
     // Check if user can generate ads based on their plan
     if (!canGenerateAd()) {
         showPaymentModal();
@@ -500,6 +506,11 @@ function displayResults(textContent, imageUrl) {
 
     const performanceScore = calculatePerformanceScore(textContent, currentFormData);
     displayPerformanceScore(performanceScore);
+
+    // Save the generated ad
+    if (currentUser) {
+        saveAd(textContent, imageUrl);
+    }
 
     // Track successful ad generation
     incrementAdUsage();
