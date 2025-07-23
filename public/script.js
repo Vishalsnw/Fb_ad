@@ -108,14 +108,14 @@ function checkApiKeys() {
 
 function getFormData() {
     return {
-        productDescription: document.getElementById('productDescription').value,
-        targetAudience: document.getElementById('targetAudience').value,
+        productDescription: document.getElementById('productDescription')?.value || '',
+        targetAudience: document.getElementById('targetAudience')?.value || '',
         language: document.querySelector('input[name="language"]:checked')?.value || 'English',
-        adFormat: document.getElementById('adFormat').value || 'facebook-feed',
-        tone: document.getElementById('tone').value || 'Professional',
-        specialOffer: '', // This field doesn't exist in HTML
-        competitorUrl: document.getElementById('competitorUrl').value,
-        businessType: document.getElementById('businessType').value
+        adFormat: document.getElementById('adFormat')?.value || 'facebook-feed',
+        tone: document.getElementById('tone')?.value || 'Professional',
+        specialOffer: '',
+        competitorUrl: document.getElementById('competitorUrl')?.value || '',
+        businessType: document.getElementById('businessType')?.value || ''
     };
 }
 
@@ -258,7 +258,11 @@ CTA: [Call to action]`;
 }
 
 function createImagePrompt(formData) {
-    return `Professional advertisement image for ${formData.productDescription}, suitable for ${formData.adFormat}, targeting ${formData.targetAudience}, high quality, modern design, ${formData.businessType || 'business'} style`;
+    // Create a safe, generic prompt for product advertising
+    const businessType = formData.businessType || 'business';
+    const adFormat = formData.adFormat || 'facebook-feed';
+    
+    return `Professional commercial advertisement design for ${businessType} product, suitable for ${adFormat}, modern minimalist style, high quality, clean background, product focused, marketing ready`;
 }
 
 function parseAdContent(content) {
