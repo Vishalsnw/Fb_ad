@@ -339,79 +339,111 @@ function createImagePrompt(formData) {
 
 function createImagePromptFromAdText(formData, adTextContent) {
     const productName = formData.productName || 'product';
+    const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
     const adFormat = formData.adFormat || 'facebook-feed';
     
     // Extract key elements from the generated ad text
-    const headline = adTextContent.headline || '';
-    const adText = adTextContent.adText || '';
+    const headline = (adTextContent.headline || '').toLowerCase();
+    const adText = (adTextContent.adText || '').toLowerCase();
+    const fullText = `${headline} ${adText}`;
     
-    // Create visual elements based on the ad content theme
-    let visualTheme = '';
     let productVisuals = '';
     let moodKeywords = '';
+    let settingElements = '';
     
-    // Determine product visuals
-    if (productName.toLowerCase().includes('agarbatti') || productName.toLowerCase().includes('incense')) {
-        productVisuals = 'beautiful incense sticks, smoke wisps, traditional Indian setting, spiritual ambiance, temple elements';
-    } else if (productName.toLowerCase().includes('gel') && businessType === 'Healthcare') {
-        productVisuals = 'elegant cosmetic gel bottle, health and beauty product, clean modern packaging, spa-like setting';
+    // Enhanced product detection - check both name and description
+    const productInfo = `${productName} ${productDescription}`.toLowerCase();
+    
+    if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
+        productVisuals = 'traditional incense sticks bundle, elegant packaging, premium incense display';
+        settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
+        
+        // Analyze the emotional tone from ad text
+        if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil') || fullText.includes('serenity')) {
+            moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors';
+        } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing') || fullText.includes('sacred')) {
+            moodKeywords = 'divine golden light, spiritual energy, sacred blessing aura, heavenly atmosphere';
+        } else if (fullText.includes('home') || fullText.includes('family') || fullText.includes('love') || fullText.includes('heart')) {
+            moodKeywords = 'warm family home, loving atmosphere, cozy indoor setting, emotional warmth';
+        } else {
+            moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere';
+        }
+    } else if (productInfo.includes('gel') && businessType === 'Healthcare') {
+        productVisuals = 'elegant gel bottle, modern cosmetic packaging, health and beauty product';
+        settingElements = 'clean spa-like setting, white marble background, professional beauty studio';
+        
+        if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
+            moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication';
+        } else if (fullText.includes('growth') || fullText.includes('hair')) {
+            moodKeywords = 'healthy hair growth, natural beauty, feminine confidence, wellness focused';
+        } else {
+            moodKeywords = 'clean modern healthcare, professional beauty, wellness atmosphere';
+        }
     } else {
-        productVisuals = `${productName} product, ${businessType} style, professional product photography`;
+        // Generic product handling
+        productVisuals = `${productName} product, professional ${businessType} packaging, commercial quality display`;
+        settingElements = 'clean modern background, professional studio lighting, commercial photography setup';
+        moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready';
     }
     
-    // Extract mood from ad text
-    if (headline.toLowerCase().includes('peace') || adText.toLowerCase().includes('calm') || adText.toLowerCase().includes('tranquil')) {
-        moodKeywords = 'peaceful, serene, calming colors, soft lighting, zen atmosphere';
-    } else if (headline.toLowerCase().includes('love') || adText.toLowerCase().includes('heart') || adText.toLowerCase().includes('emotional')) {
-        moodKeywords = 'warm, emotional, loving atmosphere, golden lighting, heartwarming';
-    } else if (headline.toLowerCase().includes('divine') || adText.toLowerCase().includes('spiritual') || adText.toLowerCase().includes('blessing')) {
-        moodKeywords = 'divine, spiritual, golden light, sacred, peaceful, traditional';
-    } else if (headline.toLowerCase().includes('confidence') || adText.toLowerCase().includes('beauty') || adText.toLowerCase().includes('radiant')) {
-        moodKeywords = 'confident, beautiful, glowing, radiant, elegant, sophisticated';
-    } else {
-        moodKeywords = 'positive, uplifting, professional, clean, modern';
-    }
+    // Build comprehensive prompt
+    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, suitable for ${formData.targetAudience} demographic, ${businessType} industry standards, marketing campaign ready`;
     
-    // Combine elements for comprehensive prompt
-    const comprehensivePrompt = `Professional ${adFormat} advertisement image: ${productVisuals}. Visual mood: ${moodKeywords}. Commercial photography style, high quality, marketing ready, clean composition, ${businessType} industry standard, suitable for ${formData.targetAudience} audience`;
-    
-    console.log('🎨 Created enhanced prompt from ad content:', comprehensivePrompt);
-    return comprehensivePrompt;
+    console.log('🎨 Created detailed prompt from ad content:', detailedPrompt);
+    return detailedPrompt;
 }
 
 function parseAdContent(content) {
     console.log('📝 Parsing content:', content);
     
-    const lines = content.split('\n');
-    let headline = '';
-    let adText = '';
-    let cta = '';
-
-    lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine.includes('HEADLINE:')) {
-            headline = trimmedLine.replace(/\*?\*?HEADLINE:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-        } else if (trimmedLine.includes('AD_TEXT:')) {
-            adText = trimmedLine.replace(/\*?\*?AD_TEXT:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-        } else if (trimmedLine.includes('CTA:')) {
-            cta = trimmedLine.replace(/\*?\*?CTA:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
-        }
-    });
-
-    // If parsing failed, try to extract from the content differently
+    // Remove extra spaces and normalize the content
+    const normalizedContent = content.replace(/\s+/g, ' ').trim();
+    
+    // Try to extract content between ** markers first
+    const headlineMatch = normalizedContent.match(/\*\*HEADLINE:\*\*\s*["']?([^"']*?)["']?\s*(?=\*\*|$)/s);
+    const adTextMatch = normalizedContent.match(/\*\*AD_TEXT:\*\*\s*["']?(.*?)["']?\s*(?=\*\*CTA:|$)/s);
+    const ctaMatch = normalizedContent.match(/\*\*CTA:\*\*\s*["']?([^"']*?)["']?\s*$/s);
+    
+    let headline = headlineMatch ? headlineMatch[1].trim() : '';
+    let adText = adTextMatch ? adTextMatch[1].trim() : '';
+    let cta = ctaMatch ? ctaMatch[1].trim() : '';
+    
+    // If the regex method didn't work, try line-by-line parsing as fallback
     if (!headline || !adText || !cta) {
-        console.log('⚠️ Standard parsing failed, trying alternative method');
+        console.log('⚠️ Regex parsing incomplete, trying line-by-line method');
         
-        // Try to find content between ** markers
-        const headlineMatch = content.match(/\*\*HEADLINE:\*\*\s*(.+?)(?=\*\*|$)/s);
-        const adTextMatch = content.match(/\*\*AD_TEXT:\*\*\s*(.+?)(?=\*\*|$)/s);
-        const ctaMatch = content.match(/\*\*CTA:\*\*\s*(.+?)(?=\*\*|$)/s);
+        const lines = content.split('\n');
+        let currentSection = '';
+        let tempAdText = [];
         
-        if (headlineMatch) headline = headlineMatch[1].trim().replace(/^["']|["']$/g, '');
-        if (adTextMatch) adText = adTextMatch[1].trim().replace(/^["']|["']$/g, '');
-        if (ctaMatch) cta = ctaMatch[1].trim().replace(/^["']|["']$/g, '');
+        lines.forEach(line => {
+            const trimmedLine = line.trim();
+            
+            if (trimmedLine.includes('HEADLINE:')) {
+                currentSection = 'headline';
+                headline = trimmedLine.replace(/\*?\*?HEADLINE:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
+            } else if (trimmedLine.includes('AD_TEXT:')) {
+                currentSection = 'adText';
+                const textStart = trimmedLine.replace(/\*?\*?AD_TEXT:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
+                if (textStart) tempAdText.push(textStart);
+            } else if (trimmedLine.includes('CTA:')) {
+                currentSection = 'cta';
+                cta = trimmedLine.replace(/\*?\*?CTA:\*?\*?/g, '').trim().replace(/^["']|["']$/g, '');
+            } else if (trimmedLine && currentSection === 'adText' && !trimmedLine.includes('CTA:')) {
+                tempAdText.push(trimmedLine);
+            }
+        });
+        
+        if (tempAdText.length > 0) {
+            adText = tempAdText.join(' ').trim();
+        }
     }
+    
+    // Clean up any remaining formatting
+    headline = headline.replace(/[\*"']/g, '').trim();
+    adText = adText.replace(/[\*]/g, '').trim();
+    cta = cta.replace(/[\*"']/g, '').trim();
 
     console.log('✅ Parsed result:', { headline, adText, cta });
     return { headline, adText, cta };
