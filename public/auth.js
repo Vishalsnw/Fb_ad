@@ -1,4 +1,3 @@
-
 // Authentication and User Management
 let currentUser = null;
 
@@ -38,9 +37,9 @@ function initGoogleAuth() {
                 auto_select: false,
                 cancel_on_tap_outside: false
             });
-            
+
             console.log('Google Identity Services initialized successfully');
-            
+
         } catch (error) {
             console.error('Google Identity Services initialization failed:', error);
         }
@@ -57,7 +56,7 @@ function fallbackToLegacyAuth() {
         }).then(function() {
             console.log('Legacy Google Auth initialized');
             const authInstance = gapi.auth2.getAuthInstance();
-            
+
             // Check if user is already signed in
             if (authInstance.isSignedIn.get()) {
                 handleGoogleSignIn(authInstance.currentUser.get());
@@ -72,7 +71,7 @@ function fallbackToLegacyAuth() {
 function handleGoogleResponse(response) {
     try {
         const responsePayload = decodeJwtResponse(response.credential);
-        
+
         const userData = {
             id: responsePayload.sub,
             name: responsePayload.name,
@@ -85,11 +84,11 @@ function handleGoogleResponse(response) {
             usageCount: 0,
             maxUsage: 3
         };
-        
+
         saveUserData(userData);
         updateUIForLoggedInUser();
         closeAuthModal();
-        
+
     } catch (error) {
         console.error('Error handling Google response:', error);
         showError('Google sign-in failed. Please try again.');
@@ -108,13 +107,13 @@ function decodeJwtResponse(token) {
 
 function signInWithGoogle() {
     console.log('Sign in with Google clicked');
-    
+
     if (!window.CONFIG || !window.CONFIG.GOOGLE_CLIENT_ID) {
         console.error('Google Client ID not configured');
         showError('Google sign-in is not configured properly.');
         return;
     }
-    
+
     // Use Google Identity Services with popup
     if (window.google && window.google.accounts) {
         try {
@@ -123,14 +122,14 @@ function signInWithGoogle() {
                 console.log('Google sign-in successful');
                 handleGoogleResponse(response);
             };
-            
+
             // Re-initialize with the callback for this session
             window.google.accounts.id.initialize({
                 client_id: window.CONFIG.GOOGLE_CLIENT_ID,
                 callback: tempCallback,
                 auto_select: false
             });
-            
+
             // Show the popup
             window.google.accounts.id.prompt((notification) => {
                 console.log('Prompt notification:', notification);
@@ -142,7 +141,7 @@ function signInWithGoogle() {
                     console.log('User skipped the prompt');
                 }
             });
-            
+
         } catch (error) {
             console.error('Google sign-in error:', error);
             showError('Google sign-in failed. Please try again.');
@@ -188,7 +187,7 @@ function handleGoogleSignIn(googleUser) {
         usageCount: 0,
         maxUsage: 3
     };
-    
+
     saveUserData(userData);
     updateUIForLoggedInUser();
 }
@@ -199,7 +198,7 @@ function handleGoogleSignIn(googleUser) {
 function saveUserData(userData) {
     currentUser = userData;
     localStorage.setItem('userData', JSON.stringify(userData));
-    
+
     // Also sync with server
     syncUserDataWithServer(userData);
 }
@@ -222,7 +221,7 @@ async function syncUserDataWithServer(userData) {
             },
             body: JSON.stringify(userData)
         });
-        
+
         if (response.ok) {
             const serverData = await response.json();
             // Update local data with server data
@@ -239,17 +238,17 @@ function canGenerateAd() {
     if (!currentUser) {
         return false; // Must be logged in
     }
-    
+
     if (currentUser.subscriptionStatus === 'premium') {
         return true; // Unlimited for premium users
     }
-    
+
     return currentUser.usageCount < currentUser.maxUsage;
 }
 
 function incrementAdUsage() {
     if (!currentUser) return;
-    
+
     currentUser.usageCount += 1;
     currentUser.adsGenerated += 1;
     saveUserData(currentUser);
@@ -271,7 +270,7 @@ function updateUsageDisplay() {
 // UI Updates
 function updateUIForLoggedInUser() {
     if (!currentUser) return;
-    
+
     // Update user profile display
     const userProfile = document.getElementById('userProfile');
     if (userProfile) {
@@ -288,13 +287,13 @@ function updateUIForLoggedInUser() {
         `;
         userProfile.style.display = 'block';
     }
-    
+
     // Hide login buttons
     const loginSection = document.getElementById('loginSection');
     if (loginSection) {
         loginSection.style.display = 'none';
     }
-    
+
     // Show saved ads section
     loadSavedAds();
     updateUsageDisplay();
@@ -305,7 +304,7 @@ function showPaymentModal() {
         showLoginModal();
         return;
     }
-    
+
     // Your existing payment modal code
     const modal = document.getElementById('paymentModal');
     if (modal) {
@@ -333,7 +332,7 @@ function showLoginModal() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.style.display = 'block';
 }
@@ -352,11 +351,11 @@ function signOut() {
             authInstance.signOut();
         }
     }
-    
+
     currentUser = null;
     localStorage.removeItem('userData');
     localStorage.removeItem('savedAds');
-    
+
     // Reset UI
     location.reload();
 }
@@ -364,7 +363,7 @@ function signOut() {
 // Saved Ads Management
 function saveAd(adData, imageUrl) {
     if (!currentUser) return;
-    
+
     const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
     const adToSave = {
         id: Date.now(),
@@ -373,10 +372,10 @@ function saveAd(adData, imageUrl) {
         imageUrl,
         createdAt: new Date().toISOString()
     };
-    
+
     savedAds.unshift(adToSave);
     localStorage.setItem('savedAds', JSON.stringify(savedAds.slice(0, 50))); // Keep last 50 ads
-    
+
     // Sync with server
     syncAdWithServer(adToSave);
 }
@@ -397,10 +396,10 @@ async function syncAdWithServer(adData) {
 
 function loadSavedAds() {
     if (!currentUser) return;
-    
+
     const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
     const userAds = savedAds.filter(ad => ad.userId === currentUser.id);
-    
+
     const savedAdsContainer = document.getElementById('savedAdsContainer');
     if (savedAdsContainer && userAds.length > 0) {
         savedAdsContainer.innerHTML = `
@@ -425,7 +424,7 @@ function loadSavedAds() {
 function loadSavedAd(adId) {
     const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
     const ad = savedAds.find(a => a.id == adId);
-    
+
     if (ad) {
         // Load the ad data into the current preview
         currentAdData = {
@@ -434,22 +433,22 @@ function loadSavedAd(adId) {
             cta: ad.cta
         };
         currentImageUrl = ad.imageUrl;
-        
+
         const formData = getFormData();
         updateAdPreview(currentAdData, currentImageUrl, formData.adFormat);
-        
+
         document.getElementById('resultSection').style.display = 'block';
         document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
     }
 }
 
-// Initialize authentication libraries
+// Load auth libraries when page loads
 function loadAuthLibraries() {
     // Wait for config to load before initializing Google Auth
     const checkConfig = () => {
         if (window.CONFIG && window.CONFIG.GOOGLE_CLIENT_ID) {
             console.log('Loading Google Auth libraries...');
-            
+
             // Load Google Identity Services only (modern approach)
             const gisScript = document.createElement('script');
             gisScript.src = 'https://accounts.google.com/gsi/client';
@@ -457,8 +456,16 @@ function loadAuthLibraries() {
             gisScript.defer = true;
             gisScript.onload = () => {
                 console.log('Google Identity Services loaded');
-                // Wait a bit for the library to initialize
-                setTimeout(initGoogleAuth, 500);
+                // Wait longer for the library to fully initialize on Vercel
+                setTimeout(() => {
+                    // Check if the library is properly loaded
+                    if (window.google && window.google.accounts && window.google.accounts.id) {
+                        initGoogleAuth();
+                    } else {
+                        console.log('Google library not ready, retrying...');
+                        setTimeout(initGoogleAuth, 1000);
+                    }
+                }, 1000);
             };
             gisScript.onerror = (error) => {
                 console.error('Failed to load Google Identity Services:', error);
@@ -467,7 +474,7 @@ function loadAuthLibraries() {
             document.head.appendChild(gisScript);
         } else {
             console.log('Waiting for config to load...');
-            setTimeout(checkConfig, 100);
+            setTimeout(checkConfig, 200);
         }
     };
     checkConfig();
