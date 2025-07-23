@@ -130,7 +130,6 @@ async function handleFormSubmit(event) {
 
     // Check if user can generate ads based on their plan
     if (!canGenerateAd()) {
-        showPaymentModal();
         return;
     }
 
@@ -156,6 +155,9 @@ async function handleFormSubmit(event) {
             imageUrl: imageUrl,
             timestamp: new Date().toISOString()
         };
+
+        // Increment usage count
+        incrementAdUsage();
 
         // Save to user's ad history if logged in
         if (window.currentUser) {

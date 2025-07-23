@@ -158,7 +158,12 @@ function canGenerateAd() {
 
     if (planLimits.adsPerMonth === -1) return true; // Unlimited
 
-    return adsUsed < planLimits.adsPerMonth;
+    if (adsUsed >= planLimits.adsPerMonth) {
+        showPaymentModal();
+        return false;
+    }
+
+    return true;
 }
 
 function incrementAdUsage() {
