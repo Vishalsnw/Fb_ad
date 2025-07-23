@@ -114,32 +114,50 @@ function signInWithGoogle() {
         return;
     }
 
-    // Use Google Identity Services with popup
+    // Try Google Identity Services first
     if (window.google && window.google.accounts) {
         try {
-            // Create a temporary callback for this sign-in attempt
-            const tempCallback = (response) => {
-                console.log('Google sign-in successful');
-                handleGoogleResponse(response);
-            };
+            // Use renderButton for more reliable sign-in on Replit
+            const buttonContainer = document.createElement('div');
+            buttonContainer.id = 'google-signin-button-temp';
+            buttonContainer.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '×';
+            closeBtn.style.cssText = 'position: absolute; top: 5px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer;';
+            closeBtn.onclick = () => buttonContainer.remove();
+            
+            const title = document.createElement('div');
+            title.innerHTML = 'Sign in with Google';
+            title.style.cssText = 'margin-bottom: 15px; font-weight: bold; text-align: center;';
+            
+            const btnDiv = document.createElement('div');
+            btnDiv.id = 'google-signin-btn';
+            
+            buttonContainer.appendChild(closeBtn);
+            buttonContainer.appendChild(title);
+            buttonContainer.appendChild(btnDiv);
+            document.body.appendChild(buttonContainer);
 
-            // Re-initialize with the callback for this session
+            window.google.accounts.id.renderButton(
+                btnDiv,
+                {
+                    theme: 'outline',
+                    size: 'large',
+                    text: 'signin_with',
+                    width: '250'
+                }
+            );
+
+            // Set up the callback
             window.google.accounts.id.initialize({
                 client_id: window.CONFIG.GOOGLE_CLIENT_ID,
-                callback: tempCallback,
+                callback: (response) => {
+                    console.log('Google sign-in successful');
+                    buttonContainer.remove();
+                    handleGoogleResponse(response);
+                },
                 auto_select: false
-            });
-
-            // Show the popup
-            window.google.accounts.id.prompt((notification) => {
-                console.log('Prompt notification:', notification);
-                if (notification.isNotDisplayed()) {
-                    console.log('Prompt not displayed, showing manual sign-in');
-                    showError('Please allow popups for this site and try again.');
-                }
-                if (notification.isSkippedMoment()) {
-                    console.log('User skipped the prompt');
-                }
             });
 
         } catch (error) {
