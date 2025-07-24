@@ -20,8 +20,14 @@ function loadRazorpayConfig() {
         }
     } else {
         console.warn('⚠️ Razorpay keys not found in config - retrying...');
-        // Retry after a short delay
-        setTimeout(loadRazorpayConfig, 500);
+        // Retry after a short delay with max retries
+        if (!window.razorpayRetryCount) window.razorpayRetryCount = 0;
+        if (window.razorpayRetryCount < 10) {
+            window.razorpayRetryCount++;
+            setTimeout(loadRazorpayConfig, 500);
+        } else {
+            console.error('❌ Failed to load Razorpay keys after multiple retries');
+        }
     }
 }
 

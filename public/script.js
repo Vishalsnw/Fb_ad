@@ -17,23 +17,39 @@ async function loadConfig() {
     try {
         const timestamp = Date.now();
         const response = await fetch(`/config.js?t=${timestamp}`);
+        
+        if (!response.ok) {
+            throw new Error(`Config fetch failed: ${response.status}`);
+        }
+        
         const configScript = await response.text();
 
-        // Execute the config script
-        eval(configScript);
+        // Create a safe execution context
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = configScript;
+        document.head.appendChild(scriptElement);
+        document.head.removeChild(scriptElement);
 
-        DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
-        DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
+        // Wait a bit for CONFIG to be available
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        console.log('✅ API keys loaded successfully');
-        console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-        console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+        if (window.CONFIG) {
+            CONFIG = window.CONFIG;
+            DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
+            DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
 
-        // Check if Razorpay keys are loaded
-        if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
-            console.warn('⚠️ Razorpay keys not found in config');
+            console.log('✅ API keys loaded successfully');
+            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+
+            // Check if Razorpay keys are loaded
+            if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
+                console.warn('⚠️ Razorpay keys not found in config');
+            } else {
+                console.log('✅ Razorpay keys loaded in main script');
+            }
         } else {
-            console.log('✅ Razorpay keys loaded in main script');
+            throw new Error('CONFIG not available after loading');
         }
 
     } catch (error) {
@@ -77,15 +93,20 @@ function setupEventListeners() {
 }
 
 function setupLanguagePlaceholders() {
-    const languageSelect = document.getElementById('language');
-    const productNameInput = document.getElementById('productName');
-    const productDescInput = document.getElementById('productDescription');
-    const targetAudienceInput = document.getElementById('targetAudience');
-
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            updatePlaceholders(this.value);
+    const languageRadios = document.querySelectorAll('input[name="language"]');
+    
+    languageRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                updatePlaceholders(this.value);
+            }
         });
+    });
+    
+    // Set initial placeholders
+    const checkedRadio = document.querySelector('input[name="language"]:checked');
+    if (checkedRadio) {
+        updatePlaceholders(checkedRadio.value);
     }
 }
 
@@ -296,36 +317,36 @@ function createImagePromptFromAdText(formData, textContent) {
 
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
         productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
-        settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
-        textOverlayInstructions = `large white text overlay "${productName}" prominently displayed on dark background area, bold readable font, text positioned in upper third of image, additional smaller text "${headline.substring(0, 30)}..." below brand name, high contrast text, clear legible typography`;
+        settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements, dark background areas for text contrast';
+        textOverlayInstructions = `MANDATORY: Large bold white text "${productName}" with black outline stroke, positioned prominently on dark area of image, additional yellow text "${headline.substring(0, 25)}..." below brand name, maximum contrast for readability, professional advertising typography with drop shadows`;
 
         if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil')) {
-            moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors';
+            moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors, dark negative space for text';
         } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing')) {
-            moodKeywords = 'divine golden light, spiritual energy, sacred blessing aura, heavenly atmosphere';
+            moodKeywords = 'divine golden light, spiritual energy, sacred blessing aura, heavenly atmosphere, dark contrast areas';
         } else {
-            moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere';
+            moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere, text-friendly composition';
         }
     } else if (productInfo.includes('gel') && businessType === 'Healthcare') {
         productVisuals = `elegant ${productName} gel bottle, modern cosmetic packaging, health and beauty product`;
-        settingElements = 'clean spa-like setting, white marble background, professional beauty studio';
-        textOverlayInstructions = `bold dark text overlay "${productName}" prominently displayed on light background area, modern clean font, text positioned strategically for maximum visibility, subtitle text "${headline.substring(0, 25)}..." below main text, professional typography, high readability`;
+        settingElements = 'clean spa-like setting, white marble background, professional beauty studio, dedicated space for text overlay';
+        textOverlayInstructions = `MANDATORY: Bold black text "${productName}" with white outline on light background, positioned strategically for maximum visibility, blue subtitle text "${headline.substring(0, 25)}..." below main text, professional typography with high contrast, advertising poster style`;
 
         if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
-            moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication';
+            moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication, clean composition for text';
         } else {
-            moodKeywords = 'clean modern healthcare, professional beauty, wellness atmosphere';
+            moodKeywords = 'clean modern healthcare, professional beauty, wellness atmosphere, text-optimized layout';
         }
     } else {
         // Generic product handling with comprehensive text overlay
         productVisuals = `${productName} product, professional ${businessType} packaging, commercial quality display`;
-        settingElements = 'clean modern background, professional studio lighting, commercial photography setup';
-        textOverlayInstructions = `prominent text overlay "${productName}" in large bold letters, positioned for maximum impact and readability, complementary subtitle text from headline, professional advertising typography, high contrast colors for text visibility, text integrated naturally into the design`;
-        moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready';
+        settingElements = 'clean modern background, professional studio lighting, commercial photography setup, space reserved for text placement';
+        textOverlayInstructions = `MANDATORY: Prominent bold text "${productName}" in contrasting color (white on dark or black on light), positioned for maximum impact and readability, complementary colored subtitle from headline, professional advertising typography with outlines/shadows for visibility, text must be clearly readable`;
+        moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready, text-friendly composition';
     }
 
-    // Enhanced prompt with specific text overlay requirements
-    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals}. ${textOverlayInstructions}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. IMPORTANT: Include visible readable text overlays on the image, brand name must be clearly legible, advertising poster style with text elements, commercial photography quality, ${formData.adFormat} optimized format, text-rich advertising design`;
+    // Enhanced prompt with specific text overlay requirements - focusing on text visibility
+    const detailedPrompt = `Create a professional ${adFormat} advertisement image: ${productVisuals}. CRITICAL REQUIREMENT: ${textOverlayInstructions}. Setting: ${settingElements}. Mood: ${moodKeywords}. ESSENTIAL: The image MUST include clearly visible, readable text overlays with the brand name "${productName}" prominently displayed. Use high contrast colors (white text with black outlines on dark backgrounds, or black text with white outlines on light backgrounds). The text should be large, bold, and professionally designed like real advertising posters. Include advertising typography elements, text banners, and promotional text overlays. This is an advertisement poster that requires visible text elements.`;
 
     return detailedPrompt;
 }
@@ -463,16 +484,19 @@ function getFormData() {
     const targetAudience = document.getElementById('targetAudience');
     const businessType = document.getElementById('businessType');
     const specialOffer = document.getElementById('specialOffer');
-    const language = document.getElementById('language');
     const tone = document.getElementById('tone');
     const adFormat = document.getElementById('adFormat');
+    
+    // Get language from radio buttons
+    const languageRadio = document.querySelector('input[name="language"]:checked');
+    const language = languageRadio ? languageRadio.value : 'English';
 
     return {
         productName: productName ? productName.value : '',
         productDescription: productDescription ? productDescription.value : '',
         targetAudience: targetAudience ? targetAudience.value : '',
         specialOffer: specialOffer ? specialOffer.value : '',
-        language: language ? language.value : 'English',
+        language: language,
         tone: tone ? tone.value : 'professional',
         adFormat: adFormat ? adFormat.value : 'facebook-feed',
         businessType: businessType ? businessType.value : ''
