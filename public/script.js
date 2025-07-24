@@ -358,13 +358,31 @@ async function generateText(formData) {
         };
 
         try {
-            // Clean up the content first - remove markdown formatting artifacts
+            // Aggressive cleaning of AI response artifacts
             let cleanContent = content
                 .replace(/\*\*/g, '') // Remove ** markdown formatting
                 .replace(/\*\s*/g, '') // Remove * bullet points
                 .replace(/^\s*[-•]\s*/gm, '') // Remove bullet points
                 .replace(/commit message/gi, '') // Remove commit message artifacts
+                .replace(/analysis:/gi, '') // Remove analysis artifacts
+                .replace(/```/g, '') // Remove code block markers
+                .replace(/html/gi, '') // Remove html tags
+                .replace(/^\s*\*/gm, '') // Remove asterisks at start of lines
+                .replace(/\*+/g, '') // Remove all remaining asterisks
+                .replace(/�/g, '') // Remove strange unicode characters
                 .trim();
+
+            // Helper function to clean individual text pieces
+            function cleanText(text) {
+                if (!text) return '';
+                return text
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/^\s*[-•]\s*/, '')
+                    .replace(/[\[\]]/g, '')
+                    .replace(/�/g, '')
+                    .trim();
+            }
 
             // Try to extract structured content
             const headlineMatch = cleanContent.match(/HEADLINE:\s*(.+?)(?:\n|AD_TEXT:|$)/i);
@@ -372,35 +390,45 @@ async function generateText(formData) {
             const ctaMatch = cleanContent.match(/CTA:\s*(.+?)(?:\n|$)/i);
 
             if (headlineMatch) {
-                result.headline = headlineMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '');
+                result.headline = cleanText(headlineMatch[1]);
             } else {
                 // Fallback: use first line as headline
-                const lines = cleanContent.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim() && !line.toLowerCase().includes('analysis'));
                 if (lines.length > 0) {
-                    result.headline = lines[0].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '').substring(0, 100);
+                    result.headline = cleanText(lines[0]).substring(0, 100);
                 }
             }
 
             if (adTextMatch) {
-                result.adText = adTextMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '');
+                result.adText = cleanText(adTextMatch[1]);
             } else {
                 // Fallback: use middle part as ad text
-                const lines = cleanContent.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim() && !line.toLowerCase().includes('analysis'));
                 if (lines.length > 1) {
-                    result.adText = (lines.slice(1, -1).join(' ').trim() || lines[1]?.trim() || cleanContent.substring(0, 200))
-                        .replace(/\*\*/g, '').replace(/^\*\s*/, '');
+                    const middleText = lines.slice(1, -1).join(' ').trim() || lines[1]?.trim() || cleanContent.substring(0, 200);
+                    result.adText = cleanText(middleText);
                 }
             }
 
             if (ctaMatch) {
-                result.cta = ctaMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '').replace(/[\[\]]/g, '');
+                result.cta = cleanText(ctaMatch[1]).substring(0, 50);
             } else {
                 // Fallback: use last line or default
-                const lines = cleanContent.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim() && !line.toLowerCase().includes('analysis'));
                 if (lines.length > 2) {
-                    result.cta = (lines[lines.length - 1].trim().substring(0, 50) || 'Learn More')
-                        .replace(/\*\*/g, '').replace(/^\*\s*/, '').replace(/[\[\]]/g, '');
+                    result.cta = cleanText(lines[lines.length - 1]).substring(0, 50) || 'Learn More';
                 }
+            }
+
+            // Final validation - ensure we have content
+            if (!result.headline || result.headline.length < 3) {
+                result.headline = `${formData.productName} - Special Offer!`;
+            }
+            if (!result.adText || result.adText.length < 10) {
+                result.adText = `Discover amazing ${formData.productName}. Perfect for ${formData.targetAudience}. High quality and great value.`;
+            }
+            if (!result.cta || result.cta.length < 3) {
+                result.cta = 'Learn More';
             }
 
             console.log('✅ Text generated:', result);
@@ -539,12 +567,17 @@ Target Audience: ${formData.targetAudience}
 Business Type: ${formData.businessType || 'General'}
 Special Offer: ${formData.specialOffer || 'None'}
 
-IMPORTANT: Provide clean, direct text without any markdown formatting, asterisks, or special symbols. Do not include any explanatory text or commit messages.
+CRITICAL INSTRUCTIONS:
+- Write ONLY the ad content, no analysis or explanations
+- NO asterisks (*), NO markdown formatting, NO special symbols
+- NO prefixes like "commit message" or "analysis"
+- Use plain text only
+- Be direct and clear
 
-Please format the response exactly as:
-HEADLINE: [Write a catchy headline here]
-AD_TEXT: [Write the main advertisement copy here]
-CTA: [Write a clear call to action here]`;
+Format your response EXACTLY like this:
+HEADLINE: Your catchy headline here
+AD_TEXT: Your main advertisement copy here  
+CTA: Your call to action here`;
 }
 
 
