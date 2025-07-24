@@ -681,13 +681,56 @@ header p {
     background: #e0a800;
 }
 
+.loading {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
 .loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
     animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.loading-steps {
+    margin-top: 20px;
+}
+
+.loading-steps p {
+    margin: 8px 0;
+    color: #667eea;
+    font-weight: 500;
+    opacity: 0;
+    animation: fadeInSequence 2s ease-in-out infinite;
+}
+
+.loading-steps p:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.loading-steps p:nth-child(2) {
+    animation-delay: 0.7s;
+}
+
+.loading-steps p:nth-child(3) {
+    animation-delay: 1.4s;
 }
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInSequence {
+    0%, 66% { opacity: 0; }
+    33% { opacity: 1; }
 }
 
 /* Mobile Responsive */

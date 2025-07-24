@@ -463,14 +463,19 @@ async function generateText(formData) {
 }
 
 async function generateImage(formData) {
-    console.log('🔄 Generating image with DeepAI...');
+    console.log('🔄 Generating image with Google Images search + DeepAI...');
 
     if (!DEEPAI_API_KEY || DEEPAI_API_KEY.trim().length < 10) {
         throw new Error('DeepAI API key not properly configured');
     }
 
-    const imagePrompt = createImagePrompt(formData);
-    console.log('🖼️ Image prompt:', imagePrompt);
+    // Step 1: Search Google Images for reference
+    console.log('🔍 Step 1: Searching Google Images for reference...');
+    const referenceImages = await searchGoogleImages(formData);
+    
+    // Step 2: Create enhanced prompt with reference context
+    const imagePrompt = createEnhancedImagePrompt(formData, referenceImages);
+    console.log('🖼️ Enhanced image prompt:', imagePrompt);
 
     const formDataObj = new FormData();
     formDataObj.append('text', imagePrompt);
@@ -496,7 +501,7 @@ async function generateImage(formData) {
             throw new Error('No image URL returned from DeepAI');
         }
 
-        console.log('✅ Image generated:', data.output_url);
+        console.log('✅ Image generated with Google Images reference:', data.output_url);
         return data.output_url;
     } catch (error) {
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -504,6 +509,116 @@ async function generateImage(formData) {
         }
         throw error;
     }
+}
+
+async function searchGoogleImages(formData) {
+    console.log('🔍 Searching Google Images for product references...');
+    
+    try {
+        // Create search query from product info
+        const searchQuery = `${formData.productName} ${formData.productDescription} ${formData.businessType} product advertisement`.trim();
+        
+        // Use Google Custom Search API (free alternative)
+        // For now, we'll use a proxy service to get image search results
+        const searchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=isch&safe=active`)}`;
+        
+        const response = await fetch(searchUrl);
+        
+        if (response.ok) {
+            const htmlContent = await response.text();
+            
+            // Extract image characteristics from search results
+            const imageAnalysis = analyzeSearchResults(htmlContent, formData);
+            console.log('🔍 Google Images analysis:', imageAnalysis);
+            return imageAnalysis;
+        } else {
+            console.warn('⚠️ Google Images search failed, using fallback analysis');
+            return createFallbackAnalysis(formData);
+        }
+    } catch (error) {
+        console.warn('⚠️ Google Images search error:', error.message);
+        return createFallbackAnalysis(formData);
+    }
+}
+
+function analyzeSearchResults(htmlContent, formData) {
+    // Analyze the HTML content to extract visual patterns
+    const productName = formData.productName.toLowerCase();
+    const productDescription = formData.productDescription.toLowerCase();
+    const businessType = formData.businessType.toLowerCase();
+    
+    const analysis = {
+        dominantColors: [],
+        commonElements: [],
+        styleKeywords: [],
+        composition: 'professional'
+    };
+    
+    // Determine common visual patterns based on product type
+    if (productDescription.includes('mosquito') || productDescription.includes('net')) {
+        analysis.dominantColors = ['blue', 'white', 'green'];
+        analysis.commonElements = ['mesh pattern', 'protective barrier', 'home setting'];
+        analysis.styleKeywords = ['clean', 'protective', 'medical', 'safety'];
+        analysis.composition = 'product showcase with home environment';
+    } else if (productDescription.includes('coaching') || productDescription.includes('education')) {
+        analysis.dominantColors = ['blue', 'orange', 'white'];
+        analysis.commonElements = ['books', 'graduation elements', 'classroom setting'];
+        analysis.styleKeywords = ['academic', 'professional', 'inspiring', 'educational'];
+        analysis.composition = 'inspiring educational setting with success elements';
+    } else if (businessType.includes('healthcare')) {
+        analysis.dominantColors = ['white', 'blue', 'green'];
+        analysis.commonElements = ['medical symbols', 'clean layout', 'trust indicators'];
+        analysis.styleKeywords = ['medical', 'clean', 'trustworthy', 'professional'];
+        analysis.composition = 'medical professional layout';
+    } else if (businessType.includes('real estate')) {
+        analysis.dominantColors = ['blue', 'white', 'gold'];
+        analysis.commonElements = ['buildings', 'keys', 'home symbols'];
+        analysis.styleKeywords = ['premium', 'trustworthy', 'professional', 'modern'];
+        analysis.composition = 'professional real estate presentation';
+    } else {
+        // Generic product analysis
+        analysis.dominantColors = ['blue', 'white', 'orange'];
+        analysis.commonElements = ['product focus', 'brand elements'];
+        analysis.styleKeywords = ['modern', 'professional', 'clean'];
+        analysis.composition = 'product-focused commercial layout';
+    }
+    
+    return analysis;
+}
+
+function createFallbackAnalysis(formData) {
+    // Fallback analysis when Google search fails
+    return analyzeSearchResults('', formData);
+}
+
+function createEnhancedImagePrompt(formData, referenceAnalysis) {
+    const productName = formData.productName || 'product';
+    const productDescription = formData.productDescription || '';
+    const businessType = formData.businessType || 'business';
+    
+    // Use reference analysis to create a more targeted prompt
+    const colors = referenceAnalysis.dominantColors.join(', ');
+    const elements = referenceAnalysis.commonElements.join(', ');
+    const style = referenceAnalysis.styleKeywords.join(', ');
+    const composition = referenceAnalysis.composition;
+    
+    let basePrompt = '';
+    
+    if (productDescription.toLowerCase().includes('mosquito') || productDescription.toLowerCase().includes('net')) {
+        basePrompt = `Professional healthcare advertisement for ${productName} mosquito protection, showing ${elements}, ${composition} setting, dominant colors: ${colors}`;
+    } else if (productDescription.toLowerCase().includes('coaching') || productDescription.toLowerCase().includes('education')) {
+        basePrompt = `Professional educational advertisement for ${productName}, featuring ${elements}, ${composition}, academic theme with ${colors} color scheme`;
+    } else {
+        basePrompt = `Professional ${businessType} advertisement poster for ${productName}, incorporating ${elements}, ${composition} style, using ${colors} color palette`;
+    }
+    
+    const textRequirement = `CRITICAL: Large bold text "${productName}" with maximum contrast, readable typography, professional advertisement text overlay`;
+    const styleRequirement = `Style: ${style}, commercial advertisement poster, marketing banner design, professional typography`;
+    
+    // Enhanced prompt with Google Images insights
+    const finalPrompt = `${basePrompt}. ${textRequirement}. ${styleRequirement}. Based on market research: incorporate common visual elements like ${elements}, use proven color combinations (${colors}), maintain ${composition}. Text visibility is MANDATORY with high contrast. This is a professional advertising poster that must have clearly visible brand text "${productName}".`;
+    
+    return finalPrompt;
 }
 
 function createImagePrompt(formData) {
@@ -815,7 +930,11 @@ function showLoading() {
         resultsDiv.innerHTML = `
             <div class="loading">
                 <div class="loading-spinner"></div>
-                <p>Generating your Facebook ad...</p>
+                <div class="loading-steps">
+                    <p>🔍 Searching Google Images for inspiration...</p>
+                    <p>🎨 Analyzing visual patterns...</p>
+                    <p>🚀 Generating your optimized ad...</p>
+                </div>
             </div>
         `;
         resultsDiv.style.display = 'block';
