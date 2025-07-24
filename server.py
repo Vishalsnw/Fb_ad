@@ -92,22 +92,47 @@ window.CONFIG = {{
             plan_key = data.get('planKey')
             plan_name = data.get('planName')
             price = data.get('price')
+            currency = data.get('currency', 'INR')
+
+            print(f"Creating Razorpay order: {plan_key}, {plan_name}, {price} {currency}")
+
+            # Validate required fields
+            if not all([plan_key, plan_name, price]):
+                raise ValueError("Missing required fields: planKey, planName, or price")
 
             # In a real implementation, you would use Razorpay's API here
-            # For demo purposes, we'll return a mock order
+            # For demo purposes, we'll return a mock order with proper validation
             import time
-            order_id = f"order_{plan_key}_{int(time.time())}"
+            import random
+            
+            order_id = f"order_{plan_key}_{int(time.time())}_{random.randint(1000, 9999)}"
 
             response = {
                 'order_id': order_id,
                 'amount': price,
-                'currency': 'INR'
+                'currency': currency,
+                'status': 'created',
+                'planKey': plan_key,
+                'planName': plan_name
             }
+
+            print(f"✅ Razorpay order created: {order_id}")
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response).encode())
+
+        except ValueError as ve:
+            print(f"Validation error in create-razorpay-order: {ve}")
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            error_response = {
+                'error': str(ve),
+                'message': 'Invalid request data. Please check your input.'
+            }
+            self.wfile.write(json.dumps(error_response).encode())
 
         except Exception as e:
             print(f"Error in create-razorpay-order: {e}")

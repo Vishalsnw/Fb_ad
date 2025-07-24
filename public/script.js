@@ -281,56 +281,51 @@ function createImagePromptFromAdText(formData, textContent) {
     const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
     const adFormat = formData.adFormat || 'facebook-feed';
+    const headline = textContent.headline || '';
 
     // Extract key elements from the generated ad text
-    const headline = (textContent.headline || '').toLowerCase();
-    const adText = (textContent.adText || '').toLowerCase();
-    const fullText = `${headline} ${adText}`;
+    const fullText = `${headline} ${textContent.adText || ''}`.toLowerCase();
 
     let productVisuals = '';
     let moodKeywords = '';
     let settingElements = '';
-    let brandNameOverlay = '';
+    let textOverlayInstructions = '';
 
-    // Enhanced product detection
+    // Enhanced product detection with better text overlay instructions
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
 
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
         productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
         settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements';
-        brandNameOverlay = `clear "${productName}" brand name on product label, professional product branding, visible text on packaging`;
+        textOverlayInstructions = `large white text overlay "${productName}" prominently displayed on dark background area, bold readable font, text positioned in upper third of image, additional smaller text "${headline.substring(0, 30)}..." below brand name, high contrast text, clear legible typography`;
 
-        if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil') || fullText.includes('serenity')) {
+        if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil')) {
             moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors';
-        } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing') || fullText.includes('sacred')) {
+        } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing')) {
             moodKeywords = 'divine golden light, spiritual energy, sacred blessing aura, heavenly atmosphere';
-        } else if (fullText.includes('home') || fullText.includes('family') || fullText.includes('love') || fullText.includes('heart')) {
-            moodKeywords = 'warm family home, loving atmosphere, cozy indoor setting, emotional warmth';
         } else {
             moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere';
         }
     } else if (productInfo.includes('gel') && businessType === 'Healthcare') {
         productVisuals = `elegant ${productName} gel bottle, modern cosmetic packaging, health and beauty product`;
         settingElements = 'clean spa-like setting, white marble background, professional beauty studio';
-        brandNameOverlay = `clear "${productName}" brand name on product label, professional product branding, visible text on packaging`;
+        textOverlayInstructions = `bold dark text overlay "${productName}" prominently displayed on light background area, modern clean font, text positioned strategically for maximum visibility, subtitle text "${headline.substring(0, 25)}..." below main text, professional typography, high readability`;
 
         if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
             moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication';
-        } else if (fullText.includes('growth') || fullText.includes('hair')) {
-            moodKeywords = 'healthy hair growth, natural beauty, feminine confidence, wellness focused';
         } else {
             moodKeywords = 'clean modern healthcare, professional beauty, wellness atmosphere';
         }
     } else {
-        // Generic product handling
+        // Generic product handling with comprehensive text overlay
         productVisuals = `${productName} product, professional ${businessType} packaging, commercial quality display`;
         settingElements = 'clean modern background, professional studio lighting, commercial photography setup';
-        brandNameOverlay = `prominent "${productName}" brand name clearly visible, professional product labeling, readable brand text`;
+        textOverlayInstructions = `prominent text overlay "${productName}" in large bold letters, positioned for maximum impact and readability, complementary subtitle text from headline, professional advertising typography, high contrast colors for text visibility, text integrated naturally into the design`;
         moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready';
     }
 
-    // Build comprehensive prompt with brand name emphasis
-    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals} with ${brandNameOverlay}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. High-resolution commercial photography, professional advertising quality, clear brand name visible, modern commercial design, clean background, product focused, high quality, marketing ready, ${formData.adFormat} format`;
+    // Enhanced prompt with specific text overlay requirements
+    const detailedPrompt = `Professional ${adFormat} advertisement photograph: ${productVisuals}. ${textOverlayInstructions}. Setting: ${settingElements}. Mood and style: ${moodKeywords}. IMPORTANT: Include visible readable text overlays on the image, brand name must be clearly legible, advertising poster style with text elements, commercial photography quality, ${formData.adFormat} optimized format, text-rich advertising design`;
 
     return detailedPrompt;
 }
@@ -343,16 +338,30 @@ function displayResults(textContent, imageUrl, formData) {
     currentAdData = textContent;
     const performanceScore = calculatePerformanceScore(textContent, formData);
 
+    // Structure the ad text properly
+    const structuredHeadline = textContent.headline || 'Generated Headline';
+    const structuredAdText = formatAdText(textContent.adText || 'Generated ad text will appear here.');
+    const structuredCTA = textContent.cta || 'Learn More';
+
     resultsDiv.innerHTML = `
         <div class="ad-preview">
-            <div class="ad-image-container">
-                <img src="${imageUrl}" alt="Generated Ad" class="ad-image" />
+            <div class="ad-header">
+                <div class="profile-info">
+                    <div class="profile-pic">📘</div>
+                    <div class="profile-details">
+                        <div class="page-name">${formData.productName || 'Your Brand'}</div>
+                        <div class="sponsored">Sponsored</div>
+                    </div>
+                </div>
             </div>
             <div class="ad-content">
-                <h3 class="ad-headline">${textContent.headline || 'Generated Headline'}</h3>
-                <p class="ad-text">${textContent.adText || 'Generated ad text will appear here.'}</p>
-                <div class="ad-cta">
-                    <button class="cta-button">${textContent.cta || 'Learn More'}</button>
+                <div class="ad-headline">${structuredHeadline}</div>
+                <div class="ad-text">${structuredAdText}</div>
+                <div class="ad-image-container">
+                    <img src="${imageUrl}" alt="Generated Ad" class="ad-image" />
+                </div>
+                <div class="ad-cta-container">
+                    <button class="ad-cta">${structuredCTA}</button>
                 </div>
             </div>
         </div>
@@ -363,19 +372,43 @@ function displayResults(textContent, imageUrl, formData) {
             </div>
         </div>
         <div class="ad-actions">
-            <button id="downloadBtn" class="action-btn download-btn">Download Image</button>
-			<button class="copy-btn">Copy Text</button>
-            <button id="regenerateBtn" class="action-btn regenerate-btn">Regenerate</button>
+            <button id="downloadBtn" class="action-btn download-btn">📥 Download Image</button>
+            <button class="copy-btn">📋 Copy Text</button>
+            <button id="regenerateBtn" class="action-btn regenerate-btn">🔄 Regenerate</button>
+            <button id="variationsBtn" class="action-btn variations-btn">🎯 Generate Variations</button>
         </div>
     `;
 
     // Re-attach event listeners
     document.getElementById('downloadBtn').addEventListener('click', downloadImage);
     document.getElementById('regenerateBtn').addEventListener('click', regenerateAd);
-	document.querySelector('.copy-btn').addEventListener('click', copyAdText);
+    document.querySelector('.copy-btn').addEventListener('click', copyAdText);
+    document.getElementById('variationsBtn').addEventListener('click', generateVariations);
 
     resultsDiv.style.display = 'block';
     resultsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function formatAdText(text) {
+    // Structure ad text with proper formatting
+    if (!text) return 'Generated ad text will appear here.';
+    
+    // Split into sentences and format
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    if (sentences.length <= 1) return text;
+    
+    // Format as structured paragraphs
+    const formatted = sentences.map((sentence, index) => {
+        const trimmed = sentence.trim();
+        if (index === 0) {
+            return `<strong>${trimmed}.</strong>`;
+        } else if (index === sentences.length - 1) {
+            return `<em>${trimmed}!</em>`;
+        }
+        return `${trimmed}.`;
+    }).join('<br>');
+    
+    return formatted;
 }
 
 function calculatePerformanceScore(textContent, formData) {

@@ -140,37 +140,11 @@
             </div>
 
             <div class="result-section" id="resultSection" style="display: none;">
-                <h2>✨ Your Facebook Ad</h2>
-
-                <div class="ad-preview">
-                    <div class="ad-header">
-                        <div class="profile-info">
-                            <div class="profile-pic">📘</div>
-                            <div class="profile-details">
-                                <div class="page-name">Your Brand</div>
-                                <div class="sponsored">Sponsored</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ad-content">
-                        <div class="ad-headline" id="adHeadline"></div>
-                        <div class="ad-text" id="adText"></div>
-
-                        <div class="ad-image-container" id="imageContainer" style="display: none;">
-                            <img id="adImage" alt="Generated ad image">
-                        </div>
-
-                        <div class="ad-cta" id="adCta"></div>
-                        <div class="ad-hashtags" id="adHashtags"></div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="action-btn copy-btn" onclick="copyAdText()">📋 Copy Text</button>
-                    <button class="action-btn download-btn" id="downloadBtn" onclick="downloadImage()" style="display: none;">💾 Download Image</button>
-                    <button class="action-btn variations-btn" onclick="generateVariations()">🎯 Generate 3 Variations</button>
-                    <button class="action-btn regenerate-btn" onclick="regenerateAd()">🔄 Regenerate</button>
+                <div id="results" style="display: none;"></div>
+                
+                <div class="saved-ads-section" id="savedAdsSection" style="display: none;">
+                    <h3>📚 Your Recent Ads</h3>
+                    <div class="saved-ads-grid" id="savedAdsGrid"></div>
                 </div>
 
                 <div id="variationsSection" style="display: none; margin-top: 30px;">

@@ -10,11 +10,35 @@ function loadRazorpayConfig() {
         RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
         console.log('✅ Razorpay keys loaded successfully');
         console.log('RAZORPAY_KEY_ID loaded:', !!RAZORPAY_KEY_ID);
+        
+        // Verify Razorpay script is loaded
+        if (typeof Razorpay === 'undefined') {
+            console.error('❌ Razorpay script not loaded');
+            loadRazorpayScript();
+        } else {
+            console.log('✅ Razorpay script ready');
+        }
     } else {
         console.warn('⚠️ Razorpay keys not found in config - retrying...');
         // Retry after a short delay
         setTimeout(loadRazorpayConfig, 500);
     }
+}
+
+// Load Razorpay script dynamically if not available
+function loadRazorpayScript() {
+    if (document.getElementById('razorpay-script')) return;
+    
+    const script = document.createElement('script');
+    script.id = 'razorpay-script';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => {
+        console.log('✅ Razorpay script loaded dynamically');
+    };
+    script.onerror = () => {
+        console.error('❌ Failed to load Razorpay script');
+    };
+    document.head.appendChild(script);
 }
 
 // Load config when available
@@ -213,6 +237,19 @@ async function handleSubscription(planKey) {
             return;
         }
 
+        // Check if Razorpay is available
+        if (typeof Razorpay === 'undefined') {
+            console.error('❌ Razorpay not loaded');
+            alert('Payment system not ready. Please refresh the page and try again.');
+            return;
+        }
+
+        if (!RAZORPAY_KEY_ID) {
+            console.error('❌ Razorpay key not configured');
+            alert('Payment configuration error. Please contact support.');
+            return;
+        }
+
         // Initialize Razorpay payment
         const options = {
             key: RAZORPAY_KEY_ID,
@@ -222,24 +259,34 @@ async function handleSubscription(planKey) {
             description: `${plan.name} Plan Subscription`,
             order_id: orderData.order_id,
             handler: function(response) {
+                console.log('✅ Payment successful:', response);
                 handlePaymentSuccess(planKey, response);
             },
             prefill: {
-                name: 'User',
-                email: 'user@example.com'
+                name: currentUser?.displayName || 'User',
+                email: currentUser?.email || 'user@example.com'
             },
             theme: {
                 color: '#667eea'
             },
             modal: {
                 ondismiss: function() {
-                    console.log('Payment modal closed');
+                    console.log('💳 Payment modal closed by user');
                 }
             }
         };
 
-        const rzp = new Razorpay(options);
-        rzp.open();
+        try {
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                console.error('❌ Payment failed:', response.error);
+                alert(`Payment failed: ${response.error.description}`);
+            });
+            rzp.open();
+        } catch (error) {
+            console.error('❌ Error opening Razorpay:', error);
+            alert('Failed to open payment gateway. Please try again.');
+        }
 
     } catch (error) {
         console.error('Payment error:', error.message || error);
