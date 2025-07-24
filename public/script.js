@@ -1,7 +1,13 @@
 
+// Prevent multiple script loading
+if (window.adGeneratorLoaded) {
+    console.log('Ad Generator script already loaded, skipping...');
+} else {
+    window.adGeneratorLoaded = true;
+
 // API Configuration
-let DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-let DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
 
 // Global variables
 let currentAdData = null;
@@ -12,12 +18,6 @@ let isGenerating = false;
 let CONFIG = {};
 let DEEPSEEK_API_KEY = '';
 let DEEPAI_API_KEY = '';
-
-// Prevent multiple script loading
-if (window.scriptLoaded) {
-    console.log('Script already loaded, skipping...');
-} else {
-    window.scriptLoaded = true;
 
 async function loadConfig() {
     try {
@@ -36,39 +36,62 @@ async function loadConfig() {
         document.head.appendChild(scriptElement);
         document.head.removeChild(scriptElement);
 
-        // Wait a bit for CONFIG to be available
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for CONFIG to be available with retry
+        let retries = 0;
+        const maxRetries = 10;
+        
+        while (!window.CONFIG && retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
 
         if (window.CONFIG) {
             CONFIG = window.CONFIG;
             DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
             DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
 
-            console.log('✅ API keys loaded successfully');
-            console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-            console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+            if (DEEPSEEK_API_KEY && DEEPAI_API_KEY) {
+                console.log('✅ All API keys loaded successfully');
+                console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
+                console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
 
-            // Check if Razorpay keys are loaded
-            if (!CONFIG.RAZORPAY_KEY_ID || !CONFIG.RAZORPAY_KEY_SECRET) {
-                console.warn('⚠️ Razorpay keys not found in config');
+                // Check Razorpay keys
+                if (CONFIG.RAZORPAY_KEY_ID && CONFIG.RAZORPAY_KEY_SECRET) {
+                    console.log('✅ Razorpay keys loaded in main script');
+                } else {
+                    console.warn('⚠️ Razorpay keys not found in config');
+                }
+                
+                return true;
             } else {
-                console.log('✅ Razorpay keys loaded in main script');
+                throw new Error('API keys missing from config');
             }
         } else {
             throw new Error('CONFIG not available after loading');
         }
 
     } catch (error) {
-        console.error('Failed to load config:', error);
-        showError('Failed to load configuration. Please refresh the page.');
+        console.error('❌ Failed to load config:', error);
+        showError('Failed to load configuration. Please check your API keys and refresh the page.');
+        return false;
     }
 }
 
 // Load configuration when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadConfig();
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🔄 Page loaded, initializing...');
+    
+    // Setup UI first
     setupEventListeners();
     setupLanguagePlaceholders();
+    
+    // Then load config
+    const configLoaded = await loadConfig();
+    if (configLoaded) {
+        console.log('✅ Application initialized successfully');
+    } else {
+        console.error('❌ Failed to initialize application');
+    }
 });
 
 function setupEventListeners() {
@@ -144,23 +167,45 @@ function updatePlaceholders(language) {
 async function handleFormSubmit(event) {
     event.preventDefault();
 
+    // Prevent multiple submissions
+    if (isGenerating) {
+        console.log('⚠️ Ad generation already in progress');
+        return;
+    }
+
     const formData = getFormData();
     if (!validateForm(formData)) {
         return;
     }
 
-    if (!checkApiKeys()) return;
+    // Ensure API keys are loaded
+    if (!checkApiKeys()) {
+        console.log('🔄 API keys not ready, reloading config...');
+        const configLoaded = await loadConfig();
+        if (!configLoaded || !checkApiKeys()) {
+            showError('API keys not available. Please refresh the page and try again.');
+            return;
+        }
+    }
 
+    console.log('🚀 Starting ad generation with form data:', formData);
+    
+    isGenerating = true;
     showLoading();
 
     try {
         // Generate ad text first
+        console.log('🔄 Step 1: Generating text...');
         const textContent = await generateText(formData);
+        console.log('✅ Text generated:', textContent);
 
         // Generate image
+        console.log('🔄 Step 2: Generating image...');
         const imageUrl = await generateImage(formData);
+        console.log('✅ Image generated:', imageUrl);
 
         // Display results
+        console.log('🔄 Step 3: Displaying results...');
         displayResults(textContent, imageUrl, formData);
 
         // Save ad data
@@ -177,10 +222,13 @@ async function handleFormSubmit(event) {
             saveAdToHistory(currentAdData);
         }
 
+        console.log('✅ Ad generation completed successfully');
+
     } catch (error) {
-        console.error('Error generating ad:', error);
+        console.error('❌ Error generating ad:', error);
         showError('Failed to generate ad: ' + error.message);
     } finally {
+        isGenerating = false;
         hideLoading();
     }
 }
@@ -778,4 +826,5 @@ function setLoading(isLoading) {
 }
 
 // Close the script loading check
+console.log('✅ Ad Generator script fully loaded');
 }
