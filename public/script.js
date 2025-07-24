@@ -2,8 +2,9 @@
 // Prevent multiple script loading
 if (window.adGeneratorLoaded) {
     console.log('Ad Generator script already loaded, skipping...');
-} else {
-    window.adGeneratorLoaded = true;
+    return;
+}
+window.adGeneratorLoaded = true;
 
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -50,10 +51,15 @@ async function loadConfig() {
             DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
             DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
 
-            if (DEEPSEEK_API_KEY && DEEPAI_API_KEY) {
-                console.log('✅ All API keys loaded successfully');
-                console.log('DEEPSEEK_API_KEY loaded:', !!DEEPSEEK_API_KEY);
-                console.log('DEEPAI_API_KEY loaded:', !!DEEPAI_API_KEY);
+            // Validate keys are not empty strings
+            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 0;
+            const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 0;
+            
+            console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek);
+            console.log('DEEPAI_API_KEY loaded:', hasDeepAI);
+
+            if (hasDeepSeek && hasDeepAI) {
+                console.log('✅ All AI API keys loaded successfully');
 
                 // Check Razorpay keys
                 if (CONFIG.RAZORPAY_KEY_ID && CONFIG.RAZORPAY_KEY_SECRET) {
@@ -64,7 +70,10 @@ async function loadConfig() {
                 
                 return true;
             } else {
-                throw new Error('API keys missing from config');
+                const missingKeys = [];
+                if (!hasDeepSeek) missingKeys.push('DEEPSEEK_API_KEY');
+                if (!hasDeepAI) missingKeys.push('DEEPAI_API_KEY');
+                throw new Error(`Missing API keys: ${missingKeys.join(', ')}`);
             }
         } else {
             throw new Error('CONFIG not available after loading');
@@ -350,9 +359,15 @@ function createImagePrompt(formData) {
 }
 
 function checkApiKeys() {
-    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-        console.error('❌ API keys not loaded properly');
-        showError('API keys not configured. Please set up your environment variables.');
+    const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 0;
+    const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 0;
+    
+    if (!hasDeepSeek || !hasDeepAI) {
+        const missingKeys = [];
+        if (!hasDeepSeek) missingKeys.push('DEEPSEEK_API_KEY');
+        if (!hasDeepAI) missingKeys.push('DEEPAI_API_KEY');
+        console.error('❌ API keys not loaded properly:', missingKeys);
+        showError(`Missing API keys: ${missingKeys.join(', ')}. Please check your Replit Secrets.`);
         return false;
     }
     return true;
