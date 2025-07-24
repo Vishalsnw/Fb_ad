@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1753376416752",
+    "formData": {
+      "productName": "SteadyCore Max",
+      "productDescription": "Test",
+      "targetAudience": "Test",
+      "specialOffer": "",
+      "language": "English",
+      "tone": "Urgent",
+      "adFormat": "facebook-feed",
+      "businessType": "Healthcare"
+    },
+    "textContent": {
+      "headline": "Generated Headline",
+      "adText": "Generated ad text will appear here.",
+      "cta": "Learn More"
+    },
+    "imageUrl": "https://api.deepai.org/job-view-file/13a70630-41ce-4de1-982f-2196a01e5da0/outputs/output.jpg",
+    "timestamp": "2025-07-24T17:00:16.752Z"
+  }
+]
