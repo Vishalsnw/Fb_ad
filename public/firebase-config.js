@@ -290,7 +290,8 @@ function showError(message) {
 }
 
 function showLoginModal() {
-    if (!currentUser) {
+    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!user) {
         signIn();
     }
 }

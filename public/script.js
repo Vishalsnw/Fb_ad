@@ -226,8 +226,12 @@ async function handleFormSubmit(event) {
         };
 
         // Save to user's ad history if logged in
-        if (window.currentUser) {
-            saveAdToHistory(currentAdData);
+        if (typeof window.currentUser === 'function' && window.currentUser()) {
+            try {
+                saveAdToHistory(currentAdData);
+            } catch (saveError) {
+                console.error('❌ Failed to save ad to history:', saveError);
+            }
         }
 
         console.log('✅ Ad generation completed successfully');
@@ -701,7 +705,8 @@ function showError(message) {
 function saveAdToHistory(adData) {
     try {
         // Save to server if user is logged in
-        if (window.currentUser) {
+        const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+        if (currentUser) {
             fetch('/save-ad', {
                 method: 'POST',
                 headers: {
@@ -709,7 +714,7 @@ function saveAdToHistory(adData) {
                 },
                 body: JSON.stringify({
                     ...adData,
-                    userId: window.currentUser.uid
+                    userId: currentUser.uid
                 })
             }).catch(error => {
                 console.error('Failed to save ad to server:', error);

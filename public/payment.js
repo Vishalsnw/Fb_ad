@@ -1,15 +1,14 @@
 // Payment configuration
-let RAZORPAY_KEY_ID = '';
-let RAZORPAY_KEY_SECRET = '';
-let razorpay;
+window.RAZORPAY_KEY_ID = window.RAZORPAY_KEY_ID || '';
+window.RAZORPAY_KEY_SECRET = window.RAZORPAY_KEY_SECRET || '';
 
 // Load Razorpay keys from config
 function loadRazorpayConfig() {
     if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID && window.CONFIG.RAZORPAY_KEY_SECRET) {
-        RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
-        RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
+        window.RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
+        window.RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
         console.log('✅ Razorpay keys loaded successfully');
-        console.log('RAZORPAY_KEY_ID loaded:', !!RAZORPAY_KEY_ID);
+        console.log('RAZORPAY_KEY_ID loaded:', !!window.RAZORPAY_KEY_ID);
         
         // Verify Razorpay script is loaded
         if (typeof Razorpay === 'undefined') {
@@ -198,9 +197,6 @@ function canGenerateAd() {
     }
     
     return true;
-    }
-
-    return true;
 }
 
 function incrementAdUsage() {
@@ -223,7 +219,8 @@ async function handleSubscription(planKey) {
         return;
     }
 
-    if (!currentUser) {
+    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!user) {
         showLoginModal();
         return;
     }
@@ -257,7 +254,7 @@ async function handleSubscription(planKey) {
             return;
         }
 
-        if (!RAZORPAY_KEY_ID) {
+        if (!window.RAZORPAY_KEY_ID) {
             console.error('❌ Razorpay key not configured');
             alert('Payment configuration error. Please contact support.');
             return;
@@ -265,7 +262,7 @@ async function handleSubscription(planKey) {
 
         // Initialize Razorpay payment
         const options = {
-            key: RAZORPAY_KEY_ID,
+            key: window.RAZORPAY_KEY_ID,
             amount: price,
             currency: userCurrency,
             name: 'Facebook Ad Generator',
@@ -276,8 +273,8 @@ async function handleSubscription(planKey) {
                 handlePaymentSuccess(planKey, response);
             },
             prefill: {
-                name: currentUser?.displayName || 'User',
-                email: currentUser?.email || 'user@example.com'
+                name: user?.displayName || 'User',
+                email: user?.email || 'user@example.com'
             },
             theme: {
                 color: '#667eea'
@@ -328,10 +325,13 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
         
         if (data.success) {
             // Update user subscription status
-            if (currentUser) {
-                currentUser.subscriptionStatus = 'premium';
-                currentUser.maxUsage = Infinity;
-                saveUserData(currentUser);
+            const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+            if (user) {
+                user.subscriptionStatus = 'premium';
+                user.maxUsage = Infinity;
+                if (typeof saveUserData === 'function') {
+                    saveUserData(user);
+                }
             }
 
             // Update UI and redirect
