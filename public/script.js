@@ -2,9 +2,8 @@
 // Prevent multiple script loading
 if (window.adGeneratorLoaded) {
     console.log('Ad Generator script already loaded, skipping...');
-    return;
-}
-window.adGeneratorLoaded = true;
+} else {
+    window.adGeneratorLoaded = true;
 
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -52,11 +51,11 @@ async function loadConfig() {
             DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
 
             // Validate keys are not empty strings
-            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 0;
-            const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 0;
+            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 10; // API keys are longer than 10 chars
+            const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 10;
             
-            console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek);
-            console.log('DEEPAI_API_KEY loaded:', hasDeepAI);
+            console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek, DEEPSEEK_API_KEY ? `(${DEEPSEEK_API_KEY.length} chars)` : '(empty)');
+            console.log('DEEPAI_API_KEY loaded:', hasDeepAI, DEEPAI_API_KEY ? `(${DEEPAI_API_KEY.length} chars)` : '(empty)');
 
             if (hasDeepSeek && hasDeepAI) {
                 console.log('✅ All AI API keys loaded successfully');
@@ -245,8 +244,8 @@ async function handleFormSubmit(event) {
 async function generateText(formData) {
     console.log('🔄 Generating text with DeepSeek...');
 
-    if (!DEEPSEEK_API_KEY) {
-        throw new Error('DeepSeek API key not found');
+    if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.trim().length < 10) {
+        throw new Error('DeepSeek API key not properly configured');
     }
 
     const prompt = createTextPrompt(formData);
@@ -271,7 +270,9 @@ async function generateText(formData) {
     });
 
     if (!response.ok) {
-        throw new Error(`DeepSeek API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ DeepSeek API error:', errorText);
+        throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -298,8 +299,8 @@ async function generateText(formData) {
 async function generateImage(formData) {
     console.log('🔄 Generating image with DeepAI...');
 
-    if (!DEEPAI_API_KEY) {
-        throw new Error('DeepAI API key not found');
+    if (!DEEPAI_API_KEY || DEEPAI_API_KEY.trim().length < 10) {
+        throw new Error('DeepAI API key not properly configured');
     }
 
     const imagePrompt = createImagePrompt(formData);
@@ -317,7 +318,9 @@ async function generateImage(formData) {
     });
 
     if (!response.ok) {
-        throw new Error(`DeepAI API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ DeepAI API error:', errorText);
+        throw new Error(`DeepAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
