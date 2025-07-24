@@ -1,4 +1,3 @@
-
 {
   "name": "facebook-ad-generator",
   "version": "1.0.0",
@@ -9,6 +8,7 @@
     "build": "echo 'Static build complete'",
     "start": "python3 server.py"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "eslint-plugin-simple-import-sort": "^12.1.1"
+  }
 }
