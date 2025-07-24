@@ -236,49 +236,65 @@ async function generateText(formData) {
     const prompt = createTextPrompt(formData);
     console.log('📝 Text prompt:', prompt);
 
-    const response = await fetch(DEEPSEEK_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.7
-        })
-    });
+    try {
+        const response = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7
+            })
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ DeepSeek API error:', errorText);
-        throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-
-    // Parse the response
-    const lines = content.split('\n');
-    const result = {};
-
-    lines.forEach(line => {
-        if (line.startsWith('HEADLINE:')) {
-            result.headline = line.replace('HEADLINE:', '').trim();
-        } else if (line.startsWith('AD_TEXT:')) {
-            result.adText = line.replace('AD_TEXT:', '').trim();
-        } else if (line.startsWith('CTA:')) {
-            result.cta = line.replace('CTA:', '').trim();
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ DeepSeek API error:', errorText);
+            throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
         }
-    });
 
-    console.log('✅ Text generated:', result);
-    return result;
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from DeepSeek API');
+        }
+        
+        const content = data.choices[0].message.content;
+
+        // Parse the response
+        const lines = content.split('\n');
+        const result = {
+            headline: 'Generated Headline',
+            adText: 'Generated ad text will appear here.',
+            cta: 'Learn More'
+        };
+
+        lines.forEach(line => {
+            if (line.startsWith('HEADLINE:')) {
+                result.headline = line.replace('HEADLINE:', '').trim();
+            } else if (line.startsWith('AD_TEXT:')) {
+                result.adText = line.replace('AD_TEXT:', '').trim();
+            } else if (line.startsWith('CTA:')) {
+                result.cta = line.replace('CTA:', '').trim();
+            }
+        });
+
+        console.log('✅ Text generated:', result);
+        return result;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Network error: Unable to connect to DeepSeek API. Please check your internet connection.');
+        }
+        throw error;
+    }
 }
 
 async function generateImage(formData) {
@@ -294,28 +310,35 @@ async function generateImage(formData) {
     const formDataObj = new FormData();
     formDataObj.append('text', imagePrompt);
 
-    const response = await fetch('https://api.deepai.org/api/text2img', {
-        method: 'POST',
-        headers: {
-            'Api-Key': DEEPAI_API_KEY
-        },
-        body: formDataObj
-    });
+    try {
+        const response = await fetch('https://api.deepai.org/api/text2img', {
+            method: 'POST',
+            headers: {
+                'Api-Key': DEEPAI_API_KEY
+            },
+            body: formDataObj
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ DeepAI API error:', errorText);
-        throw new Error(`DeepAI API error: ${response.status} - ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ DeepAI API error:', errorText);
+            throw new Error(`DeepAI API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.output_url) {
+            throw new Error('No image URL returned from DeepAI');
+        }
+
+        console.log('✅ Image generated:', data.output_url);
+        return data.output_url;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Network error: Unable to connect to DeepAI API. Please check your internet connection.');
+        }
+        throw error;
     }
-
-    const data = await response.json();
-
-    if (!data.output_url) {
-        throw new Error('No image URL returned from DeepAI');
-    }
-
-    console.log('✅ Image generated:', data.output_url);
-    return data.output_url;
 }
 
 function createImagePrompt(formData) {
@@ -842,4 +865,3 @@ window.downloadImage = downloadImage;
 window.regenerateAd = regenerateAd;
 window.copyAdText = copyAdText;
 window.generateVariations = generateVariations;
-}

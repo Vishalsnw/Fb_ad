@@ -3,21 +3,55 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged,signInWithPopup, signOut as firebaseSignOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
-  authDomain: "adgenie-59adb.firebaseapp.com",
-  projectId: "adgenie-59adb",
-  storageBucket: "adgenie-59adb.firebasestorage.app",
-  messagingSenderId: "775764972429",
-  appId: "1:775764972429:web:2921b91eea1614a05863c4",
-  measurementId: "G-922RPB06J3"
-};
+// Firebase configuration - loaded from environment
+let firebaseConfig = {};
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// Load Firebase config from environment
+async function loadFirebaseConfig() {
+    try {
+        const response = await fetch('/config.js');
+        const configScript = await response.text();
+        
+        // Execute config script safely
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = configScript;
+        document.head.appendChild(scriptElement);
+        document.head.removeChild(scriptElement);
+        
+        if (window.CONFIG) {
+            firebaseConfig = {
+                apiKey: window.CONFIG.FIREBASE_API_KEY || "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
+                authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN || "adgenie-59adb.firebaseapp.com",
+                projectId: window.CONFIG.FIREBASE_PROJECT_ID || "adgenie-59adb",
+                storageBucket: window.CONFIG.FIREBASE_STORAGE_BUCKET || "adgenie-59adb.firebasestorage.app",
+                messagingSenderId: window.CONFIG.FIREBASE_MESSAGING_SENDER_ID || "775764972429",
+                appId: window.CONFIG.FIREBASE_APP_ID || "1:775764972429:web:2921b91eea1614a05863c4",
+                measurementId: window.CONFIG.FIREBASE_MEASUREMENT_ID || "G-922RPB06J3"
+            };
+        }
+    } catch (error) {
+        console.warn('Failed to load Firebase config from environment, using defaults');
+        firebaseConfig = {
+            apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
+            authDomain: "adgenie-59adb.firebaseapp.com",
+            projectId: "adgenie-59adb",
+            storageBucket: "adgenie-59adb.firebasestorage.app",
+            messagingSenderId: "775764972429",
+            appId: "1:775764972429:web:2921b91eea1614a05863c4",
+            measurementId: "G-922RPB06J3"
+        };
+    }
+}
+
+// Initialize Firebase after config loads
+let app, auth, provider;
+
+async function initializeFirebase() {
+    await loadFirebaseConfig();
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    provider = new GoogleAuthProvider();
+}
 
 // Global variables
 let currentUser = null;
@@ -264,7 +298,8 @@ async function syncAdWithServer(adData) {
 }
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    await initializeFirebase();
     initAuth();
 });
 
