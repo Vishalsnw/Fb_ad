@@ -2,8 +2,9 @@
 // Prevent multiple script loading
 if (window.adGeneratorLoaded) {
     console.log('Ad Generator script already loaded, skipping...');
-} else {
-    window.adGeneratorLoaded = true;
+    return;
+}
+window.adGeneratorLoaded = true;
 
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -105,28 +106,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 function setupEventListeners() {
     const form = document.getElementById('adForm');
     if (form) {
+        form.removeEventListener('submit', handleFormSubmit); // Remove existing
         form.addEventListener('submit', handleFormSubmit);
     }
 
-    const downloadBtn = document.getElementById('downloadBtn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadImage);
-    }
-
-    const regenerateBtn = document.getElementById('regenerateBtn');
-    if (regenerateBtn) {
-        regenerateBtn.addEventListener('click', regenerateAd);
-    }
-
-	const copyBtn = document.querySelector('.copy-btn');
-	if (copyBtn) {
-		copyBtn.addEventListener('click', copyAdText);
-	}
-
-    const variationsBtn = document.getElementById('variationsBtn');
-    if (variationsBtn) {
-        variationsBtn.addEventListener('click', generateVariations);
-    }
+    // Note: Download, regenerate, copy, and variations buttons are dynamically created
+    // Event listeners for these are attached in displayResults function
 }
 
 function setupLanguagePlaceholders() {
@@ -845,4 +830,16 @@ function setLoading(isLoading) {
 
 // Close the script loading check
 console.log('✅ Ad Generator script fully loaded');
+
+// Ensure currentUser is available globally
+if (typeof window.currentUser === 'undefined') {
+    window.currentUser = null;
+}
+
+// Export functions globally for HTML event handlers
+window.handleFormSubmit = handleFormSubmit;
+window.downloadImage = downloadImage;
+window.regenerateAd = regenerateAd;
+window.copyAdText = copyAdText;
+window.generateVariations = generateVariations;
 }

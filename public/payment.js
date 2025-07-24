@@ -5,7 +5,7 @@ let razorpay;
 
 // Load Razorpay keys from config
 function loadRazorpayConfig() {
-    if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID) {
+    if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID && window.CONFIG.RAZORPAY_KEY_SECRET) {
         RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
         RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
         console.log('✅ Razorpay keys loaded successfully');
@@ -18,16 +18,18 @@ function loadRazorpayConfig() {
         } else {
             console.log('✅ Razorpay script ready');
         }
+        return true;
     } else {
-        console.warn('⚠️ Razorpay keys not found in config - retrying...');
-        // Retry after a short delay with max retries
+        // Wait for config to load
         if (!window.razorpayRetryCount) window.razorpayRetryCount = 0;
-        if (window.razorpayRetryCount < 10) {
+        if (window.razorpayRetryCount < 20) {
             window.razorpayRetryCount++;
-            setTimeout(loadRazorpayConfig, 500);
+            setTimeout(loadRazorpayConfig, 200);
         } else {
-            console.error('❌ Failed to load Razorpay keys after multiple retries');
+            console.error('❌ Failed to load Razorpay keys - CONFIG not available');
+            console.log('Available CONFIG:', window.CONFIG);
         }
+        return false;
     }
 }
 

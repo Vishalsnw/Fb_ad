@@ -39,16 +39,16 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             razorpay_key_secret = env_vars.get('RAZORPAY_KEY_SECRET', '')
 
             # Debug: Print key status (without exposing actual keys)
-            print(f"DEEPSEEK_API_KEY loaded: {'Yes' if deepseek_key else 'No'}")
-            print(f"DEEPAI_API_KEY loaded: {'Yes' if deepai_key else 'No'}")
-            print(f"RAZORPAY_KEY_ID loaded: {'Yes' if razorpay_key_id else 'No'}")
-            print(f"RAZORPAY_KEY_SECRET loaded: {'Yes' if razorpay_key_secret else 'No'}")
+            print(f"DEEPSEEK_API_KEY loaded: {'Yes' if deepseek_key else 'No'} ({'Length: ' + str(len(deepseek_key)) if deepseek_key else 'Empty'})")
+            print(f"DEEPAI_API_KEY loaded: {'Yes' if deepai_key else 'No'} ({'Length: ' + str(len(deepai_key)) if deepai_key else 'Empty'})")
+            print(f"RAZORPAY_KEY_ID loaded: {'Yes' if razorpay_key_id else 'No'} ({'Length: ' + str(len(razorpay_key_id)) if razorpay_key_id else 'Empty'})")
+            print(f"RAZORPAY_KEY_SECRET loaded: {'Yes' if razorpay_key_secret else 'No'} ({'Length: ' + str(len(razorpay_key_secret)) if razorpay_key_secret else 'Empty'})")
 
             # Check if keys are actually available
-            if not deepseek_key:
-                print("WARNING: DEEPSEEK_API_KEY is empty or not set in Replit Secrets")
-            if not deepai_key:
-                print("WARNING: DEEPAI_API_KEY is empty or not set in Replit Secrets")
+            if not deepseek_key or len(deepseek_key.strip()) < 10:
+                print("WARNING: DEEPSEEK_API_KEY is empty, too short, or not set in Replit Secrets")
+            if not deepai_key or len(deepai_key.strip()) < 10:
+                print("WARNING: DEEPAI_API_KEY is empty, too short, or not set in Replit Secrets")
             if not razorpay_key_id:
                 print("WARNING: RAZORPAY_KEY_ID is empty or not set in Replit Secrets")
             if not razorpay_key_secret:
