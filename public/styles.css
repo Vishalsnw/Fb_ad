@@ -607,6 +607,29 @@ header p {
     text-decoration: none;
 }
 
+/* Ensure results section is visible */
+#results {
+    min-height: 200px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+#resultSection {
+    width: 100%;
+    margin-top: 30px;
+}
+
+.ad-preview {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: white;
+    max-width: 500px;
+    width: 100%;
+}
+
 .ad-hashtags {
     color: #1877f2;
     font-size: 0.9rem;

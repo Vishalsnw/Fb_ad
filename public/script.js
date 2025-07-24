@@ -370,6 +370,8 @@ async function generateText(formData) {
                 .replace(/^\s*\*/gm, '') // Remove asterisks at start of lines
                 .replace(/\*+/g, '') // Remove all remaining asterisks
                 .replace(/�/g, '') // Remove strange unicode characters
+                .replace(/\[|\]/g, '') // Remove square brackets
+                .replace(/🛡️|🔥|⚡|✨|💪|🎯|🚀/g, '') // Remove emojis that might break parsing
                 .trim();
 
             // Helper function to clean individual text pieces
@@ -381,6 +383,7 @@ async function generateText(formData) {
                     .replace(/^\s*[-•]\s*/, '')
                     .replace(/[\[\]]/g, '')
                     .replace(/�/g, '')
+                    .replace(/🛡️|🔥|⚡|✨|💪|🎯|🚀/g, '') // Remove problematic emojis
                     .trim();
             }
 
@@ -421,14 +424,16 @@ async function generateText(formData) {
             }
 
             // Final validation - ensure we have content
-            if (!result.headline || result.headline.length < 3) {
-                result.headline = `${formData.productName} - Special Offer!`;
+            if (!result.headline || result.headline.length < 3 || result.headline.includes('**')) {
+                result.headline = `🚀 ${formData.productName} - Limited Time Offer!`;
             }
-            if (!result.adText || result.adText.length < 10) {
-                result.adText = `Discover amazing ${formData.productName}. Perfect for ${formData.targetAudience}. High quality and great value.`;
+            if (!result.adText || result.adText.length < 10 || result.adText.includes('**')) {
+                const productName = formData.productName || 'our product';
+                const audience = formData.targetAudience || 'you';
+                result.adText = `Discover the amazing benefits of ${productName}! Perfect for ${audience}. Don't miss out on this incredible opportunity to transform your experience. High quality, proven results, and exceptional value guaranteed.`;
             }
-            if (!result.cta || result.cta.length < 3) {
-                result.cta = 'Learn More';
+            if (!result.cta || result.cta.length < 3 || result.cta.includes('**')) {
+                result.cta = 'Get Started Now';
             }
 
             console.log('✅ Text generated:', result);
@@ -569,12 +574,14 @@ Special Offer: ${formData.specialOffer || 'None'}
 
 CRITICAL INSTRUCTIONS:
 - Write ONLY the ad content, no analysis or explanations
-- NO asterisks (*), NO markdown formatting, NO special symbols
+- NO asterisks (*), NO markdown formatting, NO special symbols, NO emojis in structure
 - NO prefixes like "commit message" or "analysis"
-- Use plain text only
+- Use plain text only with simple punctuation
 - Be direct and clear
+- Do NOT use ** or * anywhere in your response
+- Write clean, readable text without any formatting markers
 
-Format your response EXACTLY like this:
+Format your response EXACTLY like this (no extra symbols):
 HEADLINE: Your catchy headline here
 AD_TEXT: Your main advertisement copy here  
 CTA: Your call to action here`;
@@ -583,8 +590,15 @@ CTA: Your call to action here`;
 
 
 function displayResults(textContent, imageUrl, formData) {
+    console.log('🖼️ Displaying results with:', { textContent, imageUrl });
+    
     const resultsDiv = document.getElementById('results');
-    if (!resultsDiv) return;
+    const resultSection = document.getElementById('resultSection');
+    
+    if (!resultsDiv) {
+        console.error('❌ Results div not found!');
+        return;
+    }
 
     currentImageUrl = imageUrl;
     currentAdData = textContent;
@@ -657,8 +671,21 @@ function displayResults(textContent, imageUrl, formData) {
     document.querySelector('.copy-btn').addEventListener('click', copyAdText);
     document.getElementById('variationsBtn').addEventListener('click', generateVariations);
 
+    // Make sure both the results div and result section are visible
     resultsDiv.style.display = 'block';
+    if (resultSection) {
+        resultSection.style.display = 'block';
+    }
+    
+    console.log('✅ Results displayed, scrolling into view');
     resultsDiv.scrollIntoView({ behavior: 'smooth' });
+    
+    // Debug: Log what's actually being displayed
+    console.log('📊 Final ad content being displayed:', {
+        headline: structuredHeadline,
+        adText: structuredAdText.substring(0, 100) + '...',
+        cta: structuredCTA
+    });
 }
 
 function formatAdText(text) {
