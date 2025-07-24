@@ -1,4 +1,3 @@
-
 // Import Firebase modules
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged,signInWithPopup, signOut as firebaseSignOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -11,23 +10,54 @@ async function loadFirebaseConfig() {
     try {
         const response = await fetch('/config.js');
         const configScript = await response.text();
-        
+
         // Execute config script safely
         const scriptElement = document.createElement('script');
         scriptElement.textContent = configScript;
         document.head.appendChild(scriptElement);
         document.head.removeChild(scriptElement);
-        
+
         if (window.CONFIG) {
-            firebaseConfig = {
-                apiKey: window.CONFIG.FIREBASE_API_KEY || "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
-                authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN || "adgenie-59adb.firebaseapp.com",
-                projectId: window.CONFIG.FIREBASE_PROJECT_ID || "adgenie-59adb",
-                storageBucket: window.CONFIG.FIREBASE_STORAGE_BUCKET || "adgenie-59adb.firebasestorage.app",
-                messagingSenderId: window.CONFIG.FIREBASE_MESSAGING_SENDER_ID || "775764972429",
-                appId: window.CONFIG.FIREBASE_APP_ID || "1:775764972429:web:2921b91eea1614a05863c4",
-                measurementId: window.CONFIG.FIREBASE_MEASUREMENT_ID || "G-922RPB06J3"
+            console.log('✅ Firebase config loaded from server');
+
+            // Make config values available globally if not already set
+            if (!window.GOOGLE_CLIENT_ID) {
+                window.GOOGLE_CLIENT_ID = window.CONFIG.GOOGLE_CLIENT_ID;
+            }
+            if (!window.RAZORPAY_KEY_ID) {
+                window.RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
+            }
+            if (!window.RAZORPAY_KEY_SECRET) {
+                window.RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
+            }
+
+            console.log('RAZORPAY_KEY_ID loaded:', !!window.RAZORPAY_KEY_ID);
+
+            if (window.RAZORPAY_KEY_ID && window.RAZORPAY_KEY_SECRET) {
+                console.log('✅ Razorpay keys loaded successfully');
+            }
+
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyDhz_lrY64kUqAF6nGqFWJJOKLzHUB0G_Q",
+                authDomain: "adgenie-59adb.firebaseapp.com",
+                projectId: "adgenie-59adb",
+                storageBucket: "adgenie-59adb.firebasestorage.app",
+                messagingSenderId: "775764972429",
+                appId: "1:775764972429:web:2921b91eea1614a05863c4",
+                measurementId: "G-922RPB06J3"
             };
+
+            // Initialize Firebase
+            if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase initialized');
+            }
+
+            return true;
+        } else {
+            console.error('❌ CONFIG not available from server');
+            return false;
         }
     } catch (error) {
         console.warn('Failed to load Firebase config from environment, using defaults');
@@ -70,7 +100,7 @@ function initAuth() {
                 adsGenerated: 0,
                 subscriptionStatus: 'free'
             };
-            
+
             // Load existing user data from localStorage
             const savedUser = localStorage.getItem('userData');
             if (savedUser) {
@@ -83,7 +113,7 @@ function initAuth() {
                     console.error('Error loading saved user data:', error);
                 }
             }
-            
+
             localStorage.setItem('userData', JSON.stringify(currentUser));
             updateAuthUI();
             syncUserData(currentUser);
@@ -165,7 +195,7 @@ function incrementAdUsage() {
 
     currentUser.usageCount += 1;
     currentUser.adsGenerated += 1;
-    
+
     if (currentUser) {
         saveUserData(currentUser);
     }

@@ -2,9 +2,9 @@
 // Prevent multiple script loading
 if (window.adGeneratorLoaded) {
     console.log('Ad Generator script already loaded, skipping...');
-    return;
+} else {
+    window.adGeneratorLoaded = true;
 }
-window.adGeneratorLoaded = true;
 
 // API Configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -687,6 +687,11 @@ function copyAdText() {
         console.error('Failed to copy text: ', err);
         alert('Failed to copy text. Please try again.');
     });
+}
+
+async function generateAdText(formData) {
+    // This is an alias for the main generateText function for variations
+    return await generateText(formData);
 }
 
 function generateVariations() {
