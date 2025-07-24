@@ -56,6 +56,13 @@ async function loadConfig() {
             DEEPSEEK_API_KEY = CONFIG.DEEPSEEK_API_KEY || '';
             DEEPAI_API_KEY = CONFIG.DEEPAI_API_KEY || '';
 
+            console.log('🔧 Raw config loaded:', {
+                hasDeepSeek: !!CONFIG.DEEPSEEK_API_KEY,
+                hasDeepAI: !!CONFIG.DEEPAI_API_KEY,
+                deepSeekLength: CONFIG.DEEPSEEK_API_KEY ? CONFIG.DEEPSEEK_API_KEY.length : 0,
+                deepAILength: CONFIG.DEEPAI_API_KEY ? CONFIG.DEEPAI_API_KEY.length : 0
+            });
+
             // Validate keys are not empty strings
             const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 10; // API keys are longer than 10 chars
             const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 10;
@@ -111,13 +118,30 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 function setupEventListeners() {
     const form = document.getElementById('adForm');
+    const generateButton = document.getElementById('generateButton');
+    
     if (form) {
         form.removeEventListener('submit', handleFormSubmit); // Remove existing
         form.addEventListener('submit', handleFormSubmit);
+        console.log('✅ Form submit event listener attached');
+    }
+
+    // Also attach to generate button directly
+    if (generateButton) {
+        generateButton.removeEventListener('click', handleGenerateClick);
+        generateButton.addEventListener('click', handleGenerateClick);
+        console.log('✅ Generate button click event listener attached');
     }
 
     // Note: Download, regenerate, copy, and variations buttons are dynamically created
     // Event listeners for these are attached in displayResults function
+}
+
+// Handle generate button click
+function handleGenerateClick(event) {
+    event.preventDefault();
+    console.log('🖱️ Generate button clicked');
+    handleFormSubmit(event);
 }
 
 function setupLanguagePlaceholders() {
@@ -175,7 +199,7 @@ async function handleFormSubmit(event) {
     }
 
     // Disable form submit button
-    const submitButton = document.querySelector('button[type="submit"]');
+    const submitButton = document.querySelector('button[type="submit"]') || document.getElementById('generateButton');
     if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'Generating...';
@@ -183,20 +207,43 @@ async function handleFormSubmit(event) {
 
     const formData = getFormData();
     if (!validateForm(formData)) {
+        // Re-enable submit button on validation failure
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Generate Ad';
+        }
         return;
     }
 
-    // Ensure API keys are loaded
-    if (!checkApiKeys()) {
-        console.log('🔄 API keys not ready, reloading config...');
-        const configLoaded = await loadConfig();
-        if (!configLoaded || !checkApiKeys()) {
-            showError('API keys not available. Please refresh the page and try again.');
+    // Ensure config is loaded first
+    if (!configLoaded) {
+        console.log('🔄 Loading configuration...');
+        const configLoadResult = await loadConfig();
+        if (!configLoadResult) {
+            showError('Failed to load configuration. Please check your API keys in Replit Secrets and refresh the page.');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Generate Ad';
+            }
             return;
         }
     }
 
+    // Validate API keys are properly loaded
+    if (!checkApiKeys()) {
+        showError('API keys not properly configured. Please check your Replit Secrets and refresh the page.');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Generate Ad';
+        }
+        return;
+    }
+
     console.log('🚀 Starting ad generation with form data:', formData);
+    console.log('🔑 Using API keys:', {
+        deepSeek: DEEPSEEK_API_KEY ? `${DEEPSEEK_API_KEY.substring(0, 10)}...` : 'MISSING',
+        deepAI: DEEPAI_API_KEY ? `${DEEPAI_API_KEY.substring(0, 10)}...` : 'MISSING'
+    });
     
     isGenerating = true;
     showLoading();
@@ -205,12 +252,20 @@ async function handleFormSubmit(event) {
         // Generate ad text first
         console.log('🔄 Step 1: Generating text...');
         const textContent = await generateText(formData);
-        console.log('✅ Text generated:', textContent);
+        console.log('✅ Text generated successfully:', textContent);
+
+        if (!textContent || !textContent.headline) {
+            throw new Error('Failed to generate valid text content');
+        }
 
         // Generate image
         console.log('🔄 Step 2: Generating image...');
         const imageUrl = await generateImage(formData);
-        console.log('✅ Image generated:', imageUrl);
+        console.log('✅ Image generated successfully:', imageUrl);
+
+        if (!imageUrl) {
+            throw new Error('Failed to generate image URL');
+        }
 
         // Display results
         console.log('🔄 Step 3: Displaying results...');
@@ -437,17 +492,29 @@ function createImagePrompt(formData) {
 }
 
 function checkApiKeys() {
-    const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 0;
-    const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 0;
+    console.log('🔍 Checking API keys...');
+    console.log('DEEPSEEK_API_KEY:', DEEPSEEK_API_KEY ? `Present (${DEEPSEEK_API_KEY.length} chars)` : 'Missing');
+    console.log('DEEPAI_API_KEY:', DEEPAI_API_KEY ? `Present (${DEEPAI_API_KEY.length} chars)` : 'Missing');
+    
+    const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 10;
+    const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 10;
     
     if (!hasDeepSeek || !hasDeepAI) {
         const missingKeys = [];
-        if (!hasDeepSeek) missingKeys.push('DEEPSEEK_API_KEY');
-        if (!hasDeepAI) missingKeys.push('DEEPAI_API_KEY');
-        console.error('❌ API keys not loaded properly:', missingKeys);
-        showError(`Missing API keys: ${missingKeys.join(', ')}. Please check your Replit Secrets.`);
+        if (!hasDeepSeek) {
+            missingKeys.push('DEEPSEEK_API_KEY');
+            console.error('❌ DEEPSEEK_API_KEY missing or invalid');
+        }
+        if (!hasDeepAI) {
+            missingKeys.push('DEEPAI_API_KEY');
+            console.error('❌ DEEPAI_API_KEY missing or invalid');
+        }
+        console.error('❌ API keys validation failed:', missingKeys);
+        showError(`Missing or invalid API keys: ${missingKeys.join(', ')}. Please add them in Replit Secrets.`);
         return false;
     }
+    
+    console.log('✅ All API keys validated successfully');
     return true;
 }
 

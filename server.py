@@ -36,10 +36,20 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def serve_config(self):
         """Serve configuration with environment variables"""
         try:
+            # Debug: Log environment variables (without exposing full keys)
+            deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
+            deepai_key = os.getenv("DEEPAI_API_KEY", "")
+            
+            print(f"🔑 DEEPSEEK_API_KEY: {'✅ Present' if deepseek_key else '❌ Missing'} ({len(deepseek_key)} chars)")
+            print(f"🔑 DEEPAI_API_KEY: {'✅ Present' if deepai_key else '❌ Missing'} ({len(deepai_key)} chars)")
+            
+            if not deepseek_key or not deepai_key:
+                print("❌ CRITICAL: Missing API keys! Please add them in Replit Secrets.")
+            
             config_js = f'''
 window.CONFIG = {{
-    DEEPSEEK_API_KEY: '{os.getenv("DEEPSEEK_API_KEY", "")}',
-    DEEPAI_API_KEY: '{os.getenv("DEEPAI_API_KEY", "")}',
+    DEEPSEEK_API_KEY: '{deepseek_key}',
+    DEEPAI_API_KEY: '{deepai_key}',
     GOOGLE_CLIENT_ID: '{os.getenv("GOOGLE_CLIENT_ID", "")}',
     RAZORPAY_KEY_ID: '{os.getenv("RAZORPAY_KEY_ID", "")}',
     RAZORPAY_KEY_SECRET: '{os.getenv("RAZORPAY_KEY_SECRET", "")}'
