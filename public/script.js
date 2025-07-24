@@ -358,38 +358,48 @@ async function generateText(formData) {
         };
 
         try {
+            // Clean up the content first - remove markdown formatting artifacts
+            let cleanContent = content
+                .replace(/\*\*/g, '') // Remove ** markdown formatting
+                .replace(/\*\s*/g, '') // Remove * bullet points
+                .replace(/^\s*[-•]\s*/gm, '') // Remove bullet points
+                .replace(/commit message/gi, '') // Remove commit message artifacts
+                .trim();
+
             // Try to extract structured content
-            const headlineMatch = content.match(/HEADLINE:\s*(.+?)(?:\n|AD_TEXT:|$)/i);
-            const adTextMatch = content.match(/AD_TEXT:\s*(.+?)(?:\n|CTA:|$)/i);
-            const ctaMatch = content.match(/CTA:\s*(.+?)(?:\n|$)/i);
+            const headlineMatch = cleanContent.match(/HEADLINE:\s*(.+?)(?:\n|AD_TEXT:|$)/i);
+            const adTextMatch = cleanContent.match(/AD_TEXT:\s*(.+?)(?:\n|CTA:|$)/i);
+            const ctaMatch = cleanContent.match(/CTA:\s*(.+?)(?:\n|$)/i);
 
             if (headlineMatch) {
-                result.headline = headlineMatch[1].trim();
+                result.headline = headlineMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '');
             } else {
                 // Fallback: use first line as headline
-                const lines = content.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim());
                 if (lines.length > 0) {
-                    result.headline = lines[0].trim().substring(0, 100);
+                    result.headline = lines[0].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '').substring(0, 100);
                 }
             }
 
             if (adTextMatch) {
-                result.adText = adTextMatch[1].trim();
+                result.adText = adTextMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '');
             } else {
                 // Fallback: use middle part as ad text
-                const lines = content.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim());
                 if (lines.length > 1) {
-                    result.adText = lines.slice(1, -1).join(' ').trim() || lines[1]?.trim() || content.substring(0, 200);
+                    result.adText = (lines.slice(1, -1).join(' ').trim() || lines[1]?.trim() || cleanContent.substring(0, 200))
+                        .replace(/\*\*/g, '').replace(/^\*\s*/, '');
                 }
             }
 
             if (ctaMatch) {
-                result.cta = ctaMatch[1].trim();
+                result.cta = ctaMatch[1].trim().replace(/\*\*/g, '').replace(/^\*\s*/, '').replace(/[\[\]]/g, '');
             } else {
                 // Fallback: use last line or default
-                const lines = content.split('\n').filter(line => line.trim());
+                const lines = cleanContent.split('\n').filter(line => line.trim());
                 if (lines.length > 2) {
-                    result.cta = lines[lines.length - 1].trim().substring(0, 30) || 'Learn More';
+                    result.cta = (lines[lines.length - 1].trim().substring(0, 50) || 'Learn More')
+                        .replace(/\*\*/g, '').replace(/^\*\s*/, '').replace(/[\[\]]/g, '');
                 }
             }
 
@@ -529,10 +539,12 @@ Target Audience: ${formData.targetAudience}
 Business Type: ${formData.businessType || 'General'}
 Special Offer: ${formData.specialOffer || 'None'}
 
-Please format the response as:
-HEADLINE: [Catchy headline]
-AD_TEXT: [Main ad copy]
-CTA: [Call to action]`;
+IMPORTANT: Provide clean, direct text without any markdown formatting, asterisks, or special symbols. Do not include any explanatory text or commit messages.
+
+Please format the response exactly as:
+HEADLINE: [Write a catchy headline here]
+AD_TEXT: [Write the main advertisement copy here]
+CTA: [Write a clear call to action here]`;
 }
 
 
