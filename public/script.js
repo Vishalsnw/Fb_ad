@@ -1,7 +1,7 @@
 
 // API Configuration
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
+let DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+let DEEPAI_API_URL = 'https://api.deepai.org/api/text2img';
 
 // Global variables
 let currentAdData = null;
@@ -12,6 +12,12 @@ let isGenerating = false;
 let CONFIG = {};
 let DEEPSEEK_API_KEY = '';
 let DEEPAI_API_KEY = '';
+
+// Prevent multiple script loading
+if (window.scriptLoaded) {
+    console.log('Script already loaded, skipping...');
+} else {
+    window.scriptLoaded = true;
 
 async function loadConfig() {
     try {
@@ -143,27 +149,16 @@ async function handleFormSubmit(event) {
         return;
     }
 
-    // Check if user is logged in
-    if (!currentUser) {
-        showLoginModal();
-        return;
-    }
-
-    // Check if user can generate ads based on their plan
-    if (!canGenerateAd()) {
-        return;
-    }
-
     if (!checkApiKeys()) return;
 
     showLoading();
 
     try {
         // Generate ad text first
-        const textContent = await generateAdText(formData);
+        const textContent = await generateText(formData);
 
-        // Generate image based on ad text
-        const imageUrl = await generateAdImage(formData, textContent);
+        // Generate image
+        const imageUrl = await generateImage(formData);
 
         // Display results
         displayResults(textContent, imageUrl, formData);
@@ -176,9 +171,6 @@ async function handleFormSubmit(event) {
             imageUrl: imageUrl,
             timestamp: new Date().toISOString()
         };
-
-        // Increment usage count
-        incrementAdUsage();
 
         // Save to user's ad history if logged in
         if (window.currentUser) {
@@ -193,21 +185,15 @@ async function handleFormSubmit(event) {
     }
 }
 
-function checkApiKeys() {
-    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
-        console.error('❌ API keys not loaded properly');
-        showError('API keys not configured. Please set up your environment variables.');
-        return false;
-    }
-    return true;
-}
+async function generateText(formData) {
+    console.log('🔄 Generating text with DeepSeek...');
 
-async function generateAdText(formData) {
     if (!DEEPSEEK_API_KEY) {
-        throw new Error('DeepSeek API key not configured');
+        throw new Error('DeepSeek API key not found');
     }
 
     const prompt = createTextPrompt(formData);
+    console.log('📝 Text prompt:', prompt);
 
     const response = await fetch(DEEPSEEK_API_URL, {
         method: 'POST',
@@ -248,15 +234,19 @@ async function generateAdText(formData) {
         }
     });
 
+    console.log('✅ Text generated:', result);
     return result;
 }
 
-async function generateAdImage(formData, textContent) {
+async function generateImage(formData) {
+    console.log('🔄 Generating image with DeepAI...');
+
     if (!DEEPAI_API_KEY) {
-        throw new Error('DeepAI API key not configured');
+        throw new Error('DeepAI API key not found');
     }
 
-    const imagePrompt = createImagePromptFromAdText(formData, textContent);
+    const imagePrompt = createImagePrompt(formData);
+    console.log('🖼️ Image prompt:', imagePrompt);
 
     const formDataObj = new FormData();
     formDataObj.append('text', imagePrompt);
@@ -279,32 +269,16 @@ async function generateAdImage(formData, textContent) {
         throw new Error('No image URL returned from DeepAI');
     }
 
+    console.log('✅ Image generated:', data.output_url);
     return data.output_url;
 }
 
-function createTextPrompt(formData) {
-    return `Create a compelling ${formData.adFormat} advertisement in ${formData.language} with a ${formData.tone} tone.
-
-Product Name: ${formData.productName}
-Product/Service: ${formData.productDescription}
-Target Audience: ${formData.targetAudience}
-Business Type: ${formData.businessType || 'General'}
-Special Offer: ${formData.specialOffer || 'None'}
-
-Please format the response as:
-HEADLINE: [Catchy headline]
-AD_TEXT: [Main ad copy]
-CTA: [Call to action]`;
-}
-
-function createImagePromptFromAdText(formData, textContent) {
+function createImagePrompt(formData) {
     const productName = formData.productName || 'product';
     const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
-    const adFormat = formData.adFormat || 'facebook-feed';
-    const headline = textContent.headline || '';
 
-    // Create a more focused prompt for text visibility
+    // Create a focused prompt for text visibility
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
     
     let basePrompt = '';
@@ -326,6 +300,34 @@ function createImagePromptFromAdText(formData, textContent) {
 
     return finalPrompt;
 }
+
+function checkApiKeys() {
+    if (!DEEPSEEK_API_KEY || !DEEPAI_API_KEY) {
+        console.error('❌ API keys not loaded properly');
+        showError('API keys not configured. Please set up your environment variables.');
+        return false;
+    }
+    return true;
+}
+
+
+
+function createTextPrompt(formData) {
+    return `Create a compelling ${formData.adFormat} advertisement in ${formData.language} with a ${formData.tone} tone.
+
+Product Name: ${formData.productName}
+Product/Service: ${formData.productDescription}
+Target Audience: ${formData.targetAudience}
+Business Type: ${formData.businessType || 'General'}
+Special Offer: ${formData.specialOffer || 'None'}
+
+Please format the response as:
+HEADLINE: [Catchy headline]
+AD_TEXT: [Main ad copy]
+CTA: [Call to action]`;
+}
+
+
 
 function displayResults(textContent, imageUrl, formData) {
     const resultsDiv = document.getElementById('results');
@@ -764,4 +766,16 @@ function updateWhatsAppStatusPreview(textContent) {
     updateFacebookPreview(textContent);
 	const adPreview = document.querySelector('.ad-preview');
     adPreview.className = 'ad-preview whatsapp-status-format';
+}
+
+// Add missing utility functions
+function setLoading(isLoading) {
+    if (isLoading) {
+        showLoading();
+    } else {
+        hideLoading();
+    }
+}
+
+// Close the script loading check
 }
