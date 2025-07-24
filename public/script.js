@@ -304,51 +304,27 @@ function createImagePromptFromAdText(formData, textContent) {
     const adFormat = formData.adFormat || 'facebook-feed';
     const headline = textContent.headline || '';
 
-    // Extract key elements from the generated ad text
-    const fullText = `${headline} ${textContent.adText || ''}`.toLowerCase();
-
-    let productVisuals = '';
-    let moodKeywords = '';
-    let settingElements = '';
-    let textOverlayInstructions = '';
-
-    // Enhanced product detection with better text overlay instructions
+    // Create a more focused prompt for text visibility
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
+    
+    let basePrompt = '';
+    let textRequirement = '';
 
     if (productInfo.includes('agarbatti') || productInfo.includes('incense')) {
-        productVisuals = `premium ${productName} incense sticks package, traditional agarbatti bundle, elegant Indian packaging design`;
-        settingElements = 'sacred temple setting, soft golden lighting, spiritual atmosphere, Sanskrit symbols, traditional Indian elements, dark background areas for text contrast';
-        textOverlayInstructions = `MANDATORY: Large bold white text "${productName}" with black outline stroke, positioned prominently on dark area of image, additional yellow text "${headline.substring(0, 25)}..." below brand name, maximum contrast for readability, professional advertising typography with drop shadows`;
-
-        if (fullText.includes('peace') || fullText.includes('calm') || fullText.includes('tranquil')) {
-            moodKeywords = 'peaceful zen atmosphere, soft warm lighting, meditative ambiance, calming colors, dark negative space for text';
-        } else if (fullText.includes('divine') || fullText.includes('spiritual') || fullText.includes('blessing')) {
-            moodKeywords = 'divine golden light, spiritual energy, sacred blessing aura, heavenly atmosphere, dark contrast areas';
-        } else {
-            moodKeywords = 'traditional spiritual setting, warm golden tones, peaceful atmosphere, text-friendly composition';
-        }
+        basePrompt = `Professional advertisement poster for ${productName} incense sticks, premium agarbatti packaging display, elegant Indian spiritual theme, golden temple background with soft lighting`;
+        textRequirement = `CRITICAL: Bold white text "${productName}" with black shadow overlay on dark areas, large readable font size, professional advertising text placement`;
     } else if (productInfo.includes('gel') && businessType === 'Healthcare') {
-        productVisuals = `elegant ${productName} gel bottle, modern cosmetic packaging, health and beauty product`;
-        settingElements = 'clean spa-like setting, white marble background, professional beauty studio, dedicated space for text overlay';
-        textOverlayInstructions = `MANDATORY: Bold black text "${productName}" with white outline on light background, positioned strategically for maximum visibility, blue subtitle text "${headline.substring(0, 25)}..." below main text, professional typography with high contrast, advertising poster style`;
-
-        if (fullText.includes('confidence') || fullText.includes('beauty') || fullText.includes('radiant')) {
-            moodKeywords = 'confident beauty, glowing skin, radiant appearance, elegant sophistication, clean composition for text';
-        } else {
-            moodKeywords = 'clean modern healthcare, professional beauty, wellness atmosphere, text-optimized layout';
-        }
+        basePrompt = `Professional healthcare advertisement for ${productName} gel, modern cosmetic product packaging, clean medical aesthetic, white and blue theme`;
+        textRequirement = `CRITICAL: Bold black text "${productName}" with white outline on clean background, medical advertisement typography style`;
     } else {
-        // Generic product handling with comprehensive text overlay
-        productVisuals = `${productName} product, professional ${businessType} packaging, commercial quality display`;
-        settingElements = 'clean modern background, professional studio lighting, commercial photography setup, space reserved for text placement';
-        textOverlayInstructions = `MANDATORY: Prominent bold text "${productName}" in contrasting color (white on dark or black on light), positioned for maximum impact and readability, complementary colored subtitle from headline, professional advertising typography with outlines/shadows for visibility, text must be clearly readable`;
-        moodKeywords = 'professional commercial style, modern design, clean aesthetic, marketing ready, text-friendly composition';
+        basePrompt = `Professional ${businessType} advertisement poster featuring ${productName}, commercial product photography, modern business aesthetic`;
+        textRequirement = `CRITICAL: Large bold text "${productName}" in high contrast colors, professional advertisement text overlay design`;
     }
 
-    // Enhanced prompt with specific text overlay requirements - focusing on text visibility
-    const detailedPrompt = `Create a professional ${adFormat} advertisement image: ${productVisuals}. CRITICAL REQUIREMENT: ${textOverlayInstructions}. Setting: ${settingElements}. Mood: ${moodKeywords}. ESSENTIAL: The image MUST include clearly visible, readable text overlays with the brand name "${productName}" prominently displayed. Use high contrast colors (white text with black outlines on dark backgrounds, or black text with white outlines on light backgrounds). The text should be large, bold, and professionally designed like real advertising posters. Include advertising typography elements, text banners, and promotional text overlays. This is an advertisement poster that requires visible text elements.`;
+    // Simplified but more effective prompt
+    const finalPrompt = `${basePrompt}. ${textRequirement}. Style: Commercial advertisement poster with clear readable text, professional typography, marketing poster design, advertisement banner style. Text visibility is MANDATORY - use maximum contrast for readability. This is an advertising poster that must have visible brand text "${productName}".`;
 
-    return detailedPrompt;
+    return finalPrompt;
 }
 
 function displayResults(textContent, imageUrl, formData) {
@@ -359,7 +335,7 @@ function displayResults(textContent, imageUrl, formData) {
     currentAdData = textContent;
     const performanceScore = calculatePerformanceScore(textContent, formData);
 
-    // Structure the ad text properly
+    // Structure the ad text with better formatting
     const structuredHeadline = textContent.headline || 'Generated Headline';
     const structuredAdText = formatAdText(textContent.adText || 'Generated ad text will appear here.');
     const structuredCTA = textContent.cta || 'Learn More';
@@ -376,10 +352,16 @@ function displayResults(textContent, imageUrl, formData) {
                 </div>
             </div>
             <div class="ad-content">
-                <div class="ad-headline">${structuredHeadline}</div>
-                <div class="ad-text">${structuredAdText}</div>
+                <div class="ad-text-section">
+                    <div class="ad-headline">${structuredHeadline}</div>
+                    <div class="ad-text">${structuredAdText}</div>
+                </div>
                 <div class="ad-image-container">
-                    <img src="${imageUrl}" alt="Generated Ad" class="ad-image" />
+                    <img src="${imageUrl}" alt="Generated Ad" class="ad-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                    <div class="image-error" style="display: none; padding: 20px; background: #f0f0f0; text-align: center; border-radius: 8px;">
+                        <p>🖼️ Image failed to load</p>
+                        <button onclick="location.reload()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                    </div>
                 </div>
                 <div class="ad-cta-container">
                     <button class="ad-cta">${structuredCTA}</button>
@@ -390,6 +372,20 @@ function displayResults(textContent, imageUrl, formData) {
             <div class="performance-score">
                 <span class="score-label">Performance Score:</span>
                 <span class="score-value">${performanceScore}/100</span>
+            </div>
+            <div class="ad-metrics">
+                <div class="metric">
+                    <span class="metric-label">Format:</span>
+                    <span class="metric-value">${formData.adFormat}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Language:</span>
+                    <span class="metric-value">${formData.language}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Tone:</span>
+                    <span class="metric-value">${formData.tone}</span>
+                </div>
             </div>
         </div>
         <div class="ad-actions">
@@ -411,23 +407,35 @@ function displayResults(textContent, imageUrl, formData) {
 }
 
 function formatAdText(text) {
-    // Structure ad text with proper formatting
     if (!text) return 'Generated ad text will appear here.';
     
-    // Split into sentences and format
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    if (sentences.length <= 1) return text;
+    // Clean up the text
+    let cleanText = text.trim();
     
-    // Format as structured paragraphs
+    // Remove any existing HTML tags
+    cleanText = cleanText.replace(/<[^>]*>/g, '');
+    
+    // Split into sentences
+    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    if (sentences.length <= 1) {
+        return `<p style="margin: 8px 0; line-height: 1.5;">${cleanText}</p>`;
+    }
+    
+    // Format with better structure
     const formatted = sentences.map((sentence, index) => {
         const trimmed = sentence.trim();
         if (index === 0) {
-            return `<strong>${trimmed}.</strong>`;
-        } else if (index === sentences.length - 1) {
-            return `<em>${trimmed}!</em>`;
+            // Main hook sentence
+            return `<p style="margin: 8px 0; font-weight: 600; font-size: 1.05em; color: #333;">${trimmed}.</p>`;
+        } else if (index === sentences.length - 1 && sentences.length > 2) {
+            // Call to action sentence
+            return `<p style="margin: 8px 0; font-style: italic; color: #667eea;">${trimmed}!</p>`;
+        } else {
+            // Supporting sentences
+            return `<p style="margin: 8px 0; line-height: 1.5; color: #555;">${trimmed}.</p>`;
         }
-        return `${trimmed}.`;
-    }).join('<br>');
+    }).join('');
     
     return formatted;
 }
