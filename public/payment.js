@@ -188,11 +188,16 @@ function canGenerateAd() {
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
 
-    if (planLimits.adsPerMonth === -1) return true; // Unlimited
+    if (planLimits.adsPerMonth === -1) {
+        return true; // Unlimited
+    }
 
     if (adsUsed >= planLimits.adsPerMonth) {
         showPaymentModal();
         return false;
+    }
+    
+    return true;
     }
 
     return true;

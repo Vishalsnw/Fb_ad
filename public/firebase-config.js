@@ -7,6 +7,8 @@ let firebaseConfig = {};
 
 // Load Firebase config from environment
 async function loadFirebaseConfig() {
+    let loadedFirebaseConfig = {};
+    
     try {
         const response = await fetch('/config.js');
         const configScript = await response.text();
@@ -38,7 +40,7 @@ async function loadFirebaseConfig() {
             }
 
             // Firebase configuration
-            const firebaseConfig = {
+            loadedFirebaseConfig = {
                 apiKey: "AIzaSyDhz_lrY64kUqAF6nGqFWJJOKLzHUB0G_Q",
                 authDomain: "adgenie-59adb.firebaseapp.com",
                 projectId: "adgenie-59adb",
@@ -48,12 +50,7 @@ async function loadFirebaseConfig() {
                 measurementId: "G-922RPB06J3"
             };
 
-            // Initialize Firebase
-            if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase initialized');
-            }
-
+            firebaseConfig = loadedFirebaseConfig;
             return true;
         } else {
             console.error('❌ CONFIG not available from server');
@@ -61,7 +58,7 @@ async function loadFirebaseConfig() {
         }
     } catch (error) {
         console.warn('Failed to load Firebase config from environment, using defaults');
-        firebaseConfig = {
+        loadedFirebaseConfig = {
             apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
             authDomain: "adgenie-59adb.firebaseapp.com",
             projectId: "adgenie-59adb",
@@ -70,6 +67,9 @@ async function loadFirebaseConfig() {
             appId: "1:775764972429:web:2921b91eea1614a05863c4",
             measurementId: "G-922RPB06J3"
         };
+        
+        firebaseConfig = loadedFirebaseConfig;
+        return true;
     }
 }
 

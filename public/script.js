@@ -19,8 +19,13 @@ let isGenerating = false;
 let CONFIG = {};
 let DEEPSEEK_API_KEY = '';
 let DEEPAI_API_KEY = '';
+let configLoaded = false;
 
 async function loadConfig() {
+    if (configLoaded) {
+        console.log('✅ Config already loaded, skipping...');
+        return true;
+    }
     try {
         const timestamp = Date.now();
         const response = await fetch(`/config.js?t=${timestamp}`);
@@ -68,6 +73,7 @@ async function loadConfig() {
                     console.warn('⚠️ Razorpay keys not found in config');
                 }
                 
+                configLoaded = true;
                 return true;
             } else {
                 const missingKeys = [];
@@ -158,12 +164,21 @@ function updatePlaceholders(language) {
 }
 
 async function handleFormSubmit(event) {
-    event.preventDefault();
+    if (event && event.preventDefault) {
+        event.preventDefault();
+    }
 
     // Prevent multiple submissions
     if (isGenerating) {
         console.log('⚠️ Ad generation already in progress');
         return;
+    }
+
+    // Disable form submit button
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Generating...';
     }
 
     const formData = getFormData();
@@ -223,6 +238,13 @@ async function handleFormSubmit(event) {
     } finally {
         isGenerating = false;
         hideLoading();
+        
+        // Re-enable form submit button
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Generate Ad';
+        }
     }
 }
 
@@ -269,26 +291,67 @@ async function generateText(formData) {
         
         const content = data.choices[0].message.content;
 
-        // Parse the response
-        const lines = content.split('\n');
+        // Parse the response more reliably
         const result = {
             headline: 'Generated Headline',
             adText: 'Generated ad text will appear here.',
             cta: 'Learn More'
         };
 
-        lines.forEach(line => {
-            if (line.startsWith('HEADLINE:')) {
-                result.headline = line.replace('HEADLINE:', '').trim();
-            } else if (line.startsWith('AD_TEXT:')) {
-                result.adText = line.replace('AD_TEXT:', '').trim();
-            } else if (line.startsWith('CTA:')) {
-                result.cta = line.replace('CTA:', '').trim();
-            }
-        });
+        try {
+            // Try to extract structured content
+            const headlineMatch = content.match(/HEADLINE:\s*(.+?)(?:\n|AD_TEXT:|$)/i);
+            const adTextMatch = content.match(/AD_TEXT:\s*(.+?)(?:\n|CTA:|$)/i);
+            const ctaMatch = content.match(/CTA:\s*(.+?)(?:\n|$)/i);
 
-        console.log('✅ Text generated:', result);
-        return result;
+            if (headlineMatch) {
+                result.headline = headlineMatch[1].trim();
+            } else {
+                // Fallback: use first line as headline
+                const lines = content.split('\n').filter(line => line.trim());
+                if (lines.length > 0) {
+                    result.headline = lines[0].trim().substring(0, 100);
+                }
+            }
+
+            if (adTextMatch) {
+                result.adText = adTextMatch[1].trim();
+            } else {
+                // Fallback: use middle part as ad text
+                const lines = content.split('\n').filter(line => line.trim());
+                if (lines.length > 1) {
+                    result.adText = lines.slice(1, -1).join(' ').trim() || lines[1]?.trim() || content.substring(0, 200);
+                }
+            }
+
+            if (ctaMatch) {
+                result.cta = ctaMatch[1].trim();
+            } else {
+                // Fallback: use last line or default
+                const lines = content.split('\n').filter(line => line.trim());
+                if (lines.length > 2) {
+                    result.cta = lines[lines.length - 1].trim().substring(0, 30) || 'Learn More';
+                }
+            }
+
+            console.log('✅ Text generated:', result);
+            return result;
+        } catch (parseError) {
+            console.error('❌ Error parsing API response:', parseError);
+            
+            // Fallback: return the raw content split into parts
+            const lines = content.split('\n').filter(line => line.trim());
+            if (lines.length >= 3) {
+                result.headline = lines[0].substring(0, 100);
+                result.adText = lines.slice(1, -1).join(' ').substring(0, 200);
+                result.cta = lines[lines.length - 1].substring(0, 30);
+            } else if (lines.length >= 1) {
+                result.headline = lines[0].substring(0, 100);
+                result.adText = content.substring(0, 200);
+            }
+            
+            return result;
+        }
     } catch (error) {
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
             throw new Error('Network error: Unable to connect to DeepSeek API. Please check your internet connection.');
