@@ -639,6 +639,7 @@ console.error('❌ Config loading error: {str(e)}');
         try:
             import urllib.request
             import urllib.parse
+            import random
 
             deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "")
             if not deepseek_api_key:
@@ -653,22 +654,50 @@ console.error('❌ Config loading error: {str(e)}');
             tone = form_data.get('tone', 'professional')
             ad_format = form_data.get('adFormat', 'facebook-feed')
 
-            prompt = f"""Create a compelling {ad_format} ad copy in {language} language with a {tone} tone.
+            # Add randomization for varied results
+            random_elements = [
+                "Create a unique and compelling",
+                "Design an engaging and persuasive",
+                "Generate a creative and attention-grabbing",
+                "Craft an irresistible and memorable"
+            ]
+            
+            call_to_action_styles = [
+                "with a strong call-to-action",
+                "that drives immediate action",
+                "encouraging quick response",
+                "with urgency and excitement"
+            ]
 
-Product: {product_name}
-Description: {product_description}
-Target Audience: {target_audience}
-Special Offer: {special_offer}
+            random_prompt_start = random.choice(random_elements)
+            random_cta_style = random.choice(call_to_action_styles)
+            
+            # Add timestamp to ensure uniqueness
+            import time
+            unique_seed = int(time.time() * 1000) % 10000
 
-Requirements:
-- Write in {language}
-- Use {tone} tone
-- Include emojis for engagement
-- Keep it concise and compelling
-- Include a clear call-to-action
-- Make it suitable for {ad_format}
+            prompt = f"""{random_prompt_start} {ad_format} advertisement in {language} with a {tone} tone.
 
-Generate only the ad copy text, no additional formatting or explanations."""
+Product Details:
+- Name: {product_name}
+- Description: {product_description}
+- Target Audience: {target_audience}
+- Special Offer: {special_offer}
+- Ad Format: {ad_format}
+
+Creative Requirements:
+- Write in {language} language
+- Maintain {tone} tone throughout
+- Include relevant emojis for engagement
+- Keep it between 50-80 words
+- {random_cta_style}
+- Make it platform-specific for {ad_format}
+- Be creative and avoid generic phrases
+- Focus on benefits and emotional appeal
+
+Unique seed: {unique_seed}
+
+Generate ONLY the final ad copy text, no explanations or formatting."""
 
             # Prepare API request
             url = "https://api.deepseek.com/v1/chat/completions"
@@ -680,10 +709,14 @@ Generate only the ad copy text, no additional formatting or explanations."""
             data = {
                 "model": "deepseek-chat",
                 "messages": [
+                    {"role": "system", "content": "You are a creative advertising copywriter who creates unique, engaging ad copy. Never repeat the same content. Always be creative and original."},
                     {"role": "user", "content": prompt}
                 ],
-                "max_tokens": 200,
-                "temperature": 0.7
+                "max_tokens": 150,
+                "temperature": 0.9,
+                "top_p": 0.9,
+                "frequency_penalty": 0.7,
+                "presence_penalty": 0.6
             }
 
             # Make API request
@@ -717,17 +750,45 @@ Generate only the ad copy text, no additional formatting or explanations."""
         try:
             import urllib.request
             import urllib.parse
+            import random
 
             deepai_api_key = os.getenv("DEEPAI_API_KEY", "")
             if not deepai_api_key:
                 return {"success": False, "error": "DeepAI API key not configured"}
 
-            # Create image prompt
+            # Create varied image prompt
             product_name = form_data.get('productName', '')
             product_description = form_data.get('productDescription', '')
             business_type = form_data.get('businessType', '')
+            ad_format = form_data.get('adFormat', 'facebook-feed')
 
-            image_prompt = f"Professional product advertisement photo of {product_name}, {product_description}, {business_type}, high quality, commercial photography, attractive lighting, clean background"
+            # Add variety to image generation
+            styles = [
+                "professional commercial photography",
+                "modern artistic product shot", 
+                "lifestyle product photography",
+                "premium brand advertisement"
+            ]
+            
+            backgrounds = [
+                "clean minimalist background",
+                "elegant gradient backdrop",
+                "soft natural lighting setup",
+                "premium studio environment"
+            ]
+            
+            qualities = [
+                "high resolution, sharp details",
+                "vibrant colors, excellent contrast",
+                "professional lighting, crisp quality",
+                "premium quality, commercial grade"
+            ]
+
+            selected_style = random.choice(styles)
+            selected_background = random.choice(backgrounds)
+            selected_quality = random.choice(qualities)
+
+            image_prompt = f"{selected_style} of {product_name}, {product_description}, {business_type}, {selected_background}, {selected_quality}, perfect for {ad_format} advertisement"
 
             # Prepare API request
             url = "https://api.deepai.org/api/text2img"
