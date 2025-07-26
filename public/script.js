@@ -462,6 +462,7 @@ async function handleFormSubmission(event) {
     }
 
     if (typeof window.canGenerateAd === 'function' && !window.canGenerateAd()) {
+        console.log('🚫 canGenerateAd returned false, showing payment modal');
         showPaymentModal();
         return;
     }

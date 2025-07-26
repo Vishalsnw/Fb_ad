@@ -6,6 +6,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import traceback
 import time
+from datetime import datetime # Import datetime
 
 class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -547,8 +548,11 @@ console.error('❌ Config loading error: {str(e)}');
                 print(f"📊 Retrieved user data for {uid}: {user_data.get('usageCount', 0)} ads used")
                 self._send_json_response(user_data, 200)
             else:
-                print(f"📊 No existing data for user {uid}, will create new")
-                self._send_json_response({"error": "User data not found"}, 404)
+                # If user doesn't exist, create initial data
+                initial_data = create_user_data(uid, "New User", f"user{uid}@example.com", "")
+                self._send_json_response(initial_data, 200) # Send back the data even though its new
+                print(f"📊 No existing data for user {uid}, created new user.")
+
         except Exception as e:
             print(f"❌ Error getting user data: {e}")
             self._send_json_response({"error": str(e)}, 500)
@@ -580,7 +584,7 @@ console.error('❌ Config loading error: {str(e)}');
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             print(f"📏 Content length: {content_length}")
-            
+
             if content_length == 0:
                 print("❌ No form data received")
                 self._send_json_response({"success": False, "error": "No form data received"}, 400)
@@ -596,7 +600,7 @@ console.error('❌ Config loading error: {str(e)}');
             print("🤖 Starting DeepSeek API call...")
             ad_copy_result = self.generate_ad_copy_with_deepseek(form_data)
             print(f"🤖 DeepSeek result: {ad_copy_result}")
-            
+
             if not ad_copy_result["success"]:
                 print(f"❌ DeepSeek failed: {ad_copy_result}")
                 self._send_json_response(ad_copy_result, 500)
@@ -606,7 +610,7 @@ console.error('❌ Config loading error: {str(e)}');
             print("🎨 Starting DeepAI API call...")
             image_result = self.generate_image_with_deepai(form_data)
             print(f"🎨 DeepAI result: {image_result}")
-            
+
             if not image_result["success"]:
                 # If image generation fails, continue with text-only ad
                 print(f"⚠️ Image generation failed: {image_result.get('error')}")
@@ -631,7 +635,7 @@ console.error('❌ Config loading error: {str(e)}');
             import traceback
             traceback.print_exc()
             self._send_json_response({"success": False, "error": str(e)}, 500)
-        
+
         print("=== AD GENERATION REQUEST END ===")
 
     def generate_ad_copy_with_deepseek(self, form_data):
@@ -661,7 +665,7 @@ console.error('❌ Config loading error: {str(e)}');
                 "Generate a creative and attention-grabbing",
                 "Craft an irresistible and memorable"
             ]
-            
+
             call_to_action_styles = [
                 "with a strong call-to-action",
                 "that drives immediate action",
@@ -671,7 +675,7 @@ console.error('❌ Config loading error: {str(e)}');
 
             random_prompt_start = random.choice(random_elements)
             random_cta_style = random.choice(call_to_action_styles)
-            
+
             # Add timestamp to ensure uniqueness
             import time
             unique_seed = int(time.time() * 1000) % 10000
@@ -721,11 +725,11 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
 
             # Make API request
             req = urllib.request.Request(url, data=json.dumps(data).encode(), headers=headers)
-            
+
             print(f"🤖 Calling DeepSeek API for ad copy generation...")
             with urllib.request.urlopen(req, timeout=30) as response:
                 result = json.loads(response.read().decode())
-                
+
                 if 'choices' in result and len(result['choices']) > 0:
                     ad_copy = result['choices'][0]['message']['content'].strip()
                     print(f"✅ DeepSeek API response received: {ad_copy[:50]}...")
@@ -769,14 +773,14 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
                 "lifestyle product photography",
                 "premium brand advertisement"
             ]
-            
+
             backgrounds = [
                 "clean minimalist background",
                 "elegant gradient backdrop",
                 "soft natural lighting setup",
                 "premium studio environment"
             ]
-            
+
             qualities = [
                 "high resolution, sharp details",
                 "vibrant colors, excellent contrast",
@@ -805,10 +809,10 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
             print(f"Image prompt: {image_prompt}")
 
             req = urllib.request.Request(url, data=data, headers=headers)
-            
+
             with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode())
-                
+
                 if 'output_url' in result:
                     image_url = result['output_url']
                     print(f"✅ DeepAI API image generated: {image_url}")
@@ -833,6 +837,20 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         super().end_headers()
+
+def create_user_data(uid, display_name, email, photo_url):
+    """Create initial user data structure"""
+    return {
+        'uid': uid,
+        'displayName': display_name,
+        'email': email,
+        'photoURL': photo_url,
+        'usageCount': 0,
+        'maxUsage': 4,  # Free users get 4 ads
+        'subscriptionStatus': 'free',
+        'createdAt': datetime.now().isoformat(),
+        'lastLoginAt': datetime.now().isoformat()
+    }
 
 def run_server():
     port = int(os.getenv('PORT', 5000))

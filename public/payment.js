@@ -271,8 +271,8 @@ function canGenerateAd() {
     console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
 
     // For premium/unlimited users
-    if (userPlan !== 'free' && planLimits && planLimits.adsPerMonth === -1) {
-        console.log('✅ Unlimited plan, allowing generation');
+    if (userPlan !== 'free' && planLimits && (planLimits.adsPerMonth === -1 || planLimits.adsPerMonth === 100)) {
+        console.log('✅ Premium/Unlimited plan, allowing generation');
         return true;
     }
 
