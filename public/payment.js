@@ -126,6 +126,18 @@ function setupPaymentModal() {
                                     ${key === 'free' ? 'disabled' : ''}>
                                 ${key === 'free' ? 'Current Plan' : 'Subscribe Now'}
                             </button>
+                            ${key !== 'free' ? `
+                                <div style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
+                                    <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: #666;">Quick Payment Option:</p>
+                                    <form>
+                                        <script 
+                                            src="https://checkout.razorpay.com/v1/payment-button.js" 
+                                            data-payment_button_id="pl_QxlifReO48GlM8" 
+                                            async>
+                                        </script>
+                                    </form>
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
