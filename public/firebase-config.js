@@ -32,12 +32,21 @@ async function initializeFirebase() {
         if (typeof firebase !== 'undefined') {
             firebase.initializeApp(firebaseConfig);
             console.log('✅ Firebase initialized');
+            
+            // Configure auth for development domain
+            if (currentDomain.includes('replit.dev')) {
+                console.log('🔧 Development environment detected - configuring auth');
+            }
+            
             setupAuthListener();
         } else {
             console.warn('Firebase SDK not loaded');
         }
     } catch (error) {
         console.error('Firebase initialization error:', error);
+        if (error.code === 'auth/invalid-api-key') {
+            showError('Invalid Firebase API key. Please check configuration.');
+        }
     }
 }
 
@@ -77,13 +86,21 @@ async function signIn() {
     }
 
     const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
+    
     try {
         const result = await firebase.auth().signInWithPopup(provider);
         console.log('✅ Sign in successful:', result.user.email);
     } catch (error) {
         console.error('Sign in error:', error);
         if (error.code === 'auth/unauthorized-domain') {
-            showError('Authentication domain not authorized. Please contact support.');
+            const currentDomain = window.location.hostname;
+            showError(`Domain "${currentDomain}" not authorized. Add this domain to Firebase Console > Authentication > Settings > Authorized domains.`);
+        } else if (error.code === 'auth/popup-blocked') {
+            showError('Popup blocked. Please allow popups for this site and try again.');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            console.log('User closed the popup');
         } else {
             showError('Sign in failed: ' + error.message);
         }

@@ -536,7 +536,7 @@ console.error('❌ Config loading error: {str(e)}');
         else:
             # For non-API endpoints, use default HTML error
             super().send_error(code, message)
-    
+
     def handle_get_user_data(self, uid):
         """Handles fetching user data based on UID"""
         try:
@@ -584,18 +584,18 @@ console.error('❌ Config loading error: {str(e)}');
 
             post_data = self.rfile.read(content_length)
             form_data = json.loads(post_data.decode('utf-8'))
-            
+
             print(f"🎨 Generating ad for: {form_data.get('productName', 'Unknown product')}")
-            
+
             # Mock response for now - replace with actual AI integration
             mock_response = {
                 "success": True,
                 "ad_copy": f"🌟 Discover {form_data.get('productName', 'our amazing product')}! {form_data.get('productDescription', 'Perfect for your needs.')} Perfect for {form_data.get('targetAudience', 'everyone')}. {form_data.get('specialOffer', 'Special offer available!')} Don't miss out!",
                 "image_url": "https://picsum.photos/600/400?random=" + str(hash(form_data.get('productName', 'default')))
             }
-            
+
             self._send_json_response(mock_response, 200)
-            
+
         except json.JSONDecodeError as e:
             print(f"❌ JSON decode error in ad generation: {e}")
             self._send_json_response({"success": False, "error": "Invalid JSON format"}, 400)
