@@ -812,6 +812,15 @@ function displayResults(result) {
 }
 
 // Copy to clipboard
+function copyAdText() {
+    if (!currentAdData) {
+        alert('No ad text to copy');
+        return;
+    }
+    
+    copyToClipboard(currentAdData, 'Ad text');
+}
+
 function copyToClipboard(text, type) {
     navigator.clipboard.writeText(text).then(() => {
         alert(`${type} copied to clipboard!`);
@@ -870,9 +879,17 @@ function calculatePerformanceScore(result, formData) {
 }
 
 // Download image
-function downloadImage(url, filename) {
+function downloadImage() {
+    if (!currentImageUrl) {
+        alert('No image to download');
+        return;
+    }
+    
+    const formData = collectFormData();
+    const filename = formData.productName ? formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'ad';
+    
     const link = document.createElement('a');
-    link.href = url;
+    link.href = currentImageUrl;
     link.download = `${filename}_ad_image.jpg`;
     document.body.appendChild(link);
     link.click();

@@ -23,6 +23,10 @@ async function initializeFirebase() {
         projectId: window.CONFIG.FIREBASE_PROJECT_ID
     };
 
+    // Add current domain to authorized domains list for development
+    const currentDomain = window.location.hostname;
+    console.log(`🔧  Current domain: ${currentDomain}`);
+
     try {
         // Initialize Firebase (assuming Firebase SDK is loaded)
         if (typeof firebase !== 'undefined') {
@@ -78,7 +82,11 @@ async function signIn() {
         console.log('✅ Sign in successful:', result.user.email);
     } catch (error) {
         console.error('Sign in error:', error);
-        showError('Sign in failed: ' + error.message);
+        if (error.code === 'auth/unauthorized-domain') {
+            showError('Authentication domain not authorized. Please contact support.');
+        } else {
+            showError('Sign in failed: ' + error.message);
+        }
     }
 }
 

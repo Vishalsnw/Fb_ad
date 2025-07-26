@@ -50,6 +50,8 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.handle_verify_payment()
         elif parsed_path.path == '/save-user-data': # Added new save user data endpoint
             self.handle_save_user_data()
+        elif parsed_path.path == '/generate-ad':
+            self.handle_generate_ad()
         else:
             # Send JSON error for unknown endpoints
             error_response = {
@@ -571,6 +573,35 @@ console.error('❌ Config loading error: {str(e)}');
         except Exception as e:
             print(f"❌ Error saving user data: {e}")
             self._send_json_response({"error": str(e)}, 500)
+
+    def handle_generate_ad(self):
+        """Handle ad generation requests"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self._send_json_response({"success": False, "error": "No form data received"}, 400)
+                return
+
+            post_data = self.rfile.read(content_length)
+            form_data = json.loads(post_data.decode('utf-8'))
+            
+            print(f"🎨 Generating ad for: {form_data.get('productName', 'Unknown product')}")
+            
+            # Mock response for now - replace with actual AI integration
+            mock_response = {
+                "success": True,
+                "ad_copy": f"🌟 Discover {form_data.get('productName', 'our amazing product')}! {form_data.get('productDescription', 'Perfect for your needs.')} Perfect for {form_data.get('targetAudience', 'everyone')}. {form_data.get('specialOffer', 'Special offer available!')} Don't miss out!",
+                "image_url": "https://picsum.photos/600/400?random=" + str(hash(form_data.get('productName', 'default')))
+            }
+            
+            self._send_json_response(mock_response, 200)
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON decode error in ad generation: {e}")
+            self._send_json_response({"success": False, "error": "Invalid JSON format"}, 400)
+        except Exception as e:
+            print(f"❌ Error generating ad: {e}")
+            self._send_json_response({"success": False, "error": str(e)}, 500)
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
