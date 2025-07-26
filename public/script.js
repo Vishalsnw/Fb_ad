@@ -106,11 +106,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Setup UI first
     setupEventListeners();
     setupLanguagePlaceholders();
+    setupCopyProtection();
     
     // Initialize usage display for anonymous users
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!currentUser) {
-        updateAnonymousUsageDisplay();
+        updateUsageDisplay();
     }
     
     // Then load config
@@ -121,6 +122,70 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('❌ Failed to initialize application');
     }
 });
+
+function setupCopyProtection() {
+    // Disable right-click context menu on ad preview
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Disable text selection on ad preview
+    document.addEventListener('selectstart', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Disable drag and drop on images
+    document.addEventListener('dragstart', function(e) {
+        if (e.target.closest('.ad-image')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Disable common keyboard shortcuts for screenshots and copying
+    document.addEventListener('keydown', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            // Disable Ctrl+A, Ctrl+C, Ctrl+S, Ctrl+P, PrintScreen, etc.
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 's' || e.key === 'p')) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.key === 'PrintScreen' || e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
+    
+    // Add screenshot detection
+    let isScreenshotAttempt = false;
+    document.addEventListener('keyup', function(e) {
+        if (e.key === 'PrintScreen') {
+            isScreenshotAttempt = true;
+            showScreenshotWarning();
+        }
+    });
+    
+    // Detect if page becomes hidden (possible screenshot)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isScreenshotAttempt) {
+            setTimeout(() => {
+                showScreenshotWarning();
+                isScreenshotAttempt = false;
+            }, 100);
+        }
+    });
+}
+
+function showScreenshotWarning() {
+    alert('⚠️ Screenshots are not allowed. Please use the download button to save your ad.');
+}
 
 function setupEventListeners() {
     const form = document.getElementById('adForm');
@@ -806,7 +871,6 @@ function displayResults(textContent, imageUrl, formData) {
             <button id="downloadBtn" class="action-btn download-btn">📥 Download Image</button>
             <button class="copy-btn">📋 Copy Text</button>
             <button id="regenerateBtn" class="action-btn regenerate-btn">🔄 Regenerate</button>
-            <button id="variationsBtn" class="action-btn variations-btn">🎯 Generate Variations</button>
         </div>
     `;
 
@@ -814,7 +878,6 @@ function displayResults(textContent, imageUrl, formData) {
     document.getElementById('downloadBtn').addEventListener('click', downloadImage);
     document.getElementById('regenerateBtn').addEventListener('click', regenerateAd);
     document.querySelector('.copy-btn').addEventListener('click', copyAdText);
-    document.getElementById('variationsBtn').addEventListener('click', generateVariations);
 
     // Make sure both the results div and result section are visible
     resultsDiv.style.display = 'block';
@@ -970,17 +1033,68 @@ function showLoading() {
     const resultsDiv = document.getElementById('results');
     if (resultsDiv) {
         resultsDiv.innerHTML = `
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <div class="loading-steps">
-                    <p>🔍 Searching Google Images for inspiration...</p>
-                    <p>🎨 Analyzing visual patterns...</p>
-                    <p>🚀 Generating your optimized ad...</p>
+            <div class="loading-3d">
+                <div class="loading-cube">
+                    <div class="cube-face front">🎨</div>
+                    <div class="cube-face back">🚀</div>
+                    <div class="cube-face right">💡</div>
+                    <div class="cube-face left">🔥</div>
+                    <div class="cube-face top">⭐</div>
+                    <div class="cube-face bottom">✨</div>
+                </div>
+                <div class="loading-text">
+                    <h3>Creating Your Perfect Ad</h3>
+                    <div class="loading-steps-3d">
+                        <div class="step-3d active">🔍 Analyzing your product...</div>
+                        <div class="step-3d">🎨 Designing visuals...</div>
+                        <div class="step-3d">✨ Crafting compelling copy...</div>
+                        <div class="step-3d">🚀 Finalizing your ad...</div>
+                    </div>
+                </div>
+                <div class="progress-ring">
+                    <svg class="progress-ring-svg" width="120" height="120">
+                        <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
+                    </svg>
+                    <div class="progress-text">0%</div>
                 </div>
             </div>
         `;
         resultsDiv.style.display = 'block';
+        startLoadingAnimation();
     }
+}
+
+function startLoadingAnimation() {
+    let progress = 0;
+    let stepIndex = 0;
+    const steps = document.querySelectorAll('.step-3d');
+    const progressText = document.querySelector('.progress-text');
+    const progressCircle = document.querySelector('.progress-ring-circle');
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress > 100) progress = 100;
+        
+        // Update progress ring
+        if (progressText) progressText.textContent = Math.round(progress) + '%';
+        if (progressCircle) {
+            const circumference = 2 * Math.PI * 54;
+            const offset = circumference - (progress / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+        }
+        
+        // Update steps
+        const newStepIndex = Math.floor((progress / 100) * steps.length);
+        if (newStepIndex > stepIndex && newStepIndex < steps.length) {
+            steps[stepIndex].classList.remove('active');
+            steps[newStepIndex].classList.add('active');
+            stepIndex = newStepIndex;
+        }
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+        }
+    }, 200);
 }
 
 function hideLoading() {
@@ -1371,13 +1485,22 @@ function checkUsageLimits() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     
     if (currentUser) {
-        // Logged in users - check subscription
-        if (typeof window.canGenerateAd === 'function') {
-            return window.canGenerateAd();
+        // Check if user has premium subscription
+        const userPlan = localStorage.getItem('userPlan') || 'free';
+        const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+        
+        if (userPlan === 'premium') {
+            return true; // Unlimited for premium users
         }
-        return true; // Allow if function not available
+        
+        // Free users get 5 ads after login
+        if (adsUsed >= 5) {
+            showPaymentModal();
+            return false;
+        }
+        
+        return true;
     } else {
-        // Should not reach here since we check login first
         showLoginRequiredModal();
         return false;
     }
@@ -1387,28 +1510,30 @@ function incrementUsageCount() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     
     if (currentUser) {
-        // Logged in users - use payment system tracking
-        if (typeof window.incrementAdUsage === 'function') {
-            window.incrementAdUsage();
+        const userPlan = localStorage.getItem('userPlan') || 'free';
+        
+        if (userPlan === 'free') {
+            const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+            localStorage.setItem('adsUsed', (adsUsed + 1).toString());
+            updateUsageDisplay();
         }
     }
-    // No anonymous tracking since login is required
 }
 
-function updateAnonymousUsageDisplay(usageCount = null) {
-    if (usageCount === null) {
-        usageCount = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
-    }
+function updateUsageDisplay() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     
-    const remaining = Math.max(0, 5 - usageCount);
+    if (!currentUser) return;
     
-    // Update or create usage display
-    let usageDisplay = document.getElementById('anonymousUsageDisplay');
+    const userPlan = localStorage.getItem('userPlan') || 'free';
+    const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+    
+    let usageDisplay = document.getElementById('usageDisplay');
     if (!usageDisplay) {
         const header = document.querySelector('header');
         if (header) {
             usageDisplay = document.createElement('div');
-            usageDisplay.id = 'anonymousUsageDisplay';
+            usageDisplay.id = 'usageDisplay';
             usageDisplay.style.cssText = `
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
@@ -1424,10 +1549,11 @@ function updateAnonymousUsageDisplay(usageCount = null) {
     }
     
     if (usageDisplay) {
-        if (remaining > 0) {
-            usageDisplay.innerHTML = `🎯 ${remaining} free ads remaining`;
+        if (userPlan === 'premium') {
+            usageDisplay.innerHTML = `⭐ Premium - Unlimited ads`;
         } else {
-            usageDisplay.innerHTML = `🔒 Free limit reached - <span style="text-decoration: underline; cursor: pointer;" onclick="showLoginRequiredModal()">Sign in for more</span>`;
+            const remaining = Math.max(0, 5 - adsUsed);
+            usageDisplay.innerHTML = `🎯 ${remaining}/5 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
         }
     }
 }
@@ -1516,10 +1642,107 @@ function signInForMore() {
     }
 }
 
+function showPaymentModal() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('paymentModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'paymentModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                max-width: 500px;
+                margin: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                color: white;
+            ">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
+                <h2 style="color: white; margin-bottom: 15px;">Upgrade to Premium!</h2>
+                <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
+                    You've reached your 5 free ads limit. Upgrade to Premium for unlimited ad generation!
+                </p>
+                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+                    <h3 style="color: white; margin-bottom: 15px;">Premium Features:</h3>
+                    <ul style="list-style: none; padding: 0; color: rgba(255,255,255,0.9);">
+                        <li>✨ Unlimited ad generations</li>
+                        <li>🎯 Advanced targeting options</li>
+                        <li>📈 Performance analytics</li>
+                        <li>🎨 Premium templates</li>
+                        <li>⚡ Priority support</li>
+                    </ul>
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="upgradeToPremium()" style="
+                        background: linear-gradient(135deg, #28a745, #20c997);
+                        color: white;
+                        border: none;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: transform 0.3s ease;
+                    ">💳 Upgrade Now - $9.99/month</button>
+                    <button onclick="closePaymentModal()" style="
+                        background: rgba(255,255,255,0.2);
+                        color: white;
+                        border: none;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 1.1rem;
+                        cursor: pointer;
+                    ">Maybe Later</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function upgradeToPremium() {
+    // Set user to premium (in real app, this would integrate with payment processor)
+    localStorage.setItem('userPlan', 'premium');
+    localStorage.setItem('adsUsed', '0');
+    
+    closePaymentModal();
+    updateUsageDisplay();
+    
+    alert('🎉 Welcome to Premium! You now have unlimited ad generation!');
+}
+
 // Make functions globally available
 window.closeLoginModal = closeLoginModal;
 window.signInForMore = signInForMore;
 window.showLoginRequiredModal = showLoginRequiredModal;
+window.showPaymentModal = showPaymentModal;
+window.closePaymentModal = closePaymentModal;
+window.upgradeToPremium = upgradeToPremium;
 
 // Helper functions for ad format styling
 function getAdFormatClass(adFormat) {
