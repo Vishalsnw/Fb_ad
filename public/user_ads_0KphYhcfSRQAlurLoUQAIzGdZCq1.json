@@ -1,5 +1,47 @@
 [
   {
+    "id": "1753553586111",
+    "formData": {
+      "productName": "SteadyCore Max",
+      "productDescription": "Test",
+      "targetAudience": "Young people",
+      "specialOffer": "",
+      "language": "English",
+      "tone": "Emotional",
+      "adFormat": "facebook-feed",
+      "businessType": "Retail"
+    },
+    "textContent": {
+      "headline": "Feel Strong, Stay Steady with SteadyCore Max",
+      "adText": "Life throws challenges your way every day. Don\u2019t let shaky moments hold you back. SteadyCore Max gives you the stability you need to tackle anything with confidence. Whether it\u2019s work, workouts, or just getting through the day, stand firm and own your moment. Try SteadyCore Max today and feel the difference.",
+      "cta": "Get yours now and stand strong!"
+    },
+    "imageUrl": "https://api.deepai.org/job-view-file/75bfd768-a4ea-4828-a92f-1dc03ee21354/outputs/output.jpg",
+    "timestamp": "2025-07-26T18:13:06.111Z",
+    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
+  },
+  {
+    "id": "1753553558386",
+    "formData": {
+      "productName": "SteadyCore Max",
+      "productDescription": "Test",
+      "targetAudience": "Young people",
+      "specialOffer": "",
+      "language": "English",
+      "tone": "Emotional",
+      "adFormat": "facebook-feed",
+      "businessType": "Retail"
+    },
+    "textContent": {
+      "headline": "Find Your Balance with SteadyCore Max",
+      "adText": "Life moves fast, and so do you. But sometimes, the world feels shaky\u2014like you're constantly trying to keep up. SteadyCore Max is here to help you stay grounded, no matter what comes your way. Designed for young people who refuse to slow down, it\u2019s the support you need to tackle every challenge with confidence. Don\u2019t let uncertainty hold you back. Stand firm. Move forward.",
+      "cta": "Try SteadyCore Max today and feel the difference."
+    },
+    "imageUrl": "https://api.deepai.org/job-view-file/b174b1eb-ca1b-4571-a6c0-3aa073529d0a/outputs/output.jpg",
+    "timestamp": "2025-07-26T18:12:38.386Z",
+    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
+  },
+  {
     "id": "1753552843827",
     "formData": {
       "productName": "SteadyCore Max",
@@ -39,48 +81,6 @@
     },
     "imageUrl": "https://api.deepai.org/job-view-file/d00b362e-bfba-4709-b72c-b8c433072e6d/outputs/output.jpg",
     "timestamp": "2025-07-26T16:28:04.653Z",
-    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
-  },
-  {
-    "id": "1753547267976",
-    "formData": {
-      "productName": "Manali s Kitchen",
-      "productDescription": "Resturant",
-      "targetAudience": "All",
-      "specialOffer": "",
-      "language": "English",
-      "tone": "Professional",
-      "adFormat": "facebook-feed",
-      "businessType": "Restaurant"
-    },
-    "textContent": {
-      "headline": "Experience Authentic Flavors at Manali's Kitchen",
-      "adText": "Discover the rich and vibrant tastes of traditional cuisine at Manali's Kitchen. Our menu is crafted with fresh, locally sourced ingredients to bring you a dining experience like no other. Whether you're craving comfort food or exploring new flavors, we have something for everyone. Visit us today and savor the essence of home-cooked meals with a professional touch.",
-      "cta": "Book your table now or stop by for a memorable mea"
-    },
-    "imageUrl": "https://api.deepai.org/job-view-file/66ee26fa-2faf-4c50-a75d-d7f580633043/outputs/output.jpg",
-    "timestamp": "2025-07-26T16:27:47.976Z",
-    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
-  },
-  {
-    "id": "1753546917925",
-    "formData": {
-      "productName": "SteadyCore Max",
-      "productDescription": "Tesg",
-      "targetAudience": "Tesg",
-      "specialOffer": "",
-      "language": "English",
-      "tone": "Emotional",
-      "adFormat": "facebook-feed",
-      "businessType": "Retail"
-    },
-    "textContent": {
-      "headline": "Feel Stronger, Move Freely with SteadyCore Max",
-      "adText": "Life is full of moments that demand strength and stability. With SteadyCore Max, you can trust your body to keep up, no matter what the day brings. Designed for those who refuse to slow down, this is the support you\u2019ve been waiting for. Don\u2019t let discomfort hold you back\u2014step into confidence with SteadyCore Max.",
-      "cta": "Shop now and experience the difference today."
-    },
-    "imageUrl": "https://api.deepai.org/job-view-file/a35d5352-fb57-4548-b890-4c71f31a7836/outputs/output.jpg",
-    "timestamp": "2025-07-26T16:21:57.925Z",
     "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
   }
 ]
