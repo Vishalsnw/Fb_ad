@@ -23,6 +23,15 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Max-Age', '86400')
+        self.end_headers()
+
     def do_POST(self):
         parsed_path = urlparse(self.path)
 
@@ -35,7 +44,16 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
         elif parsed_path.path == '/create-razorpay-order':
             self.handle_create_razorpay_order()
         else:
-            self.send_error(404, "Not Found")
+            # Send JSON error for unknown endpoints
+            error_response = {
+                "success": False,
+                "error": f"Endpoint not found: {parsed_path.path}"
+            }
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
 
     def serve_config(self):
         """Serve configuration with environment variables"""
@@ -121,102 +139,187 @@ window.CONFIG = {{
 
     def handle_verify_payment(self):
         """Handle payment verification and ensure JSON responses"""
+        response_data = {"success": False, "error": "Unknown error"}
+        status_code = 500
+        
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
-            try:
-                payment_data = json.loads(post_data.decode('utf-8'))
-                print("Payment data received:", payment_data)
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                response_data = {
+                    "success": False,
+                    "error": "No payment data received"
+                }
+                status_code = 400
+            else:
+                post_data = self.rfile.read(content_length)
                 
-                # Mock payment verification - in production, verify with Razorpay
-                plan_key = payment_data.get('planKey', 'pro')
-                payment_id = payment_data.get('payment_id')
-                order_id = payment_data.get('order_id')
-                
-                if payment_id and order_id:
-                    response_data = {
-                        "success": True, 
-                        "message": "Payment verified successfully",
-                        "planKey": plan_key,
-                        "payment_id": payment_id
-                    }
-                else:
+                try:
+                    payment_data = json.loads(post_data.decode('utf-8'))
+                    print("Payment data received:", payment_data)
+                    
+                    # Mock payment verification - in production, verify with Razorpay
+                    plan_key = payment_data.get('planKey', 'pro')
+                    payment_id = payment_data.get('payment_id')
+                    order_id = payment_data.get('order_id')
+                    signature = payment_data.get('signature')
+                    
+                    if payment_id and order_id and signature:
+                        # Simulate successful verification
+                        response_data = {
+                            "success": True, 
+                            "message": "Payment verified successfully",
+                            "planKey": plan_key,
+                            "payment_id": payment_id,
+                            "order_id": order_id
+                        }
+                        status_code = 200
+                    else:
+                        missing_fields = []
+                        if not payment_id: missing_fields.append('payment_id')
+                        if not order_id: missing_fields.append('order_id')
+                        if not signature: missing_fields.append('signature')
+                        
+                        response_data = {
+                            "success": False, 
+                            "error": f"Missing required payment details: {', '.join(missing_fields)}"
+                        }
+                        status_code = 400
+                        
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error: {e}")
+                    print(f"Raw data: {post_data.decode('utf-8')[:200]}")
                     response_data = {
                         "success": False, 
-                        "error": "Missing payment details"
+                        "error": "Invalid JSON format in request",
+                        "details": str(e)
                     }
-                    
-            except json.JSONDecodeError as e:
-                print(f"JSON decode error: {e}")
-                print(f"Raw data: {post_data.decode('utf-8')}")
-                response_data = {
-                    "success": False, 
-                    "error": "Invalid JSON format",
-                    "details": str(e)
-                }
-
-            # Always send JSON response
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(response_data).encode())
+                    status_code = 400
 
         except Exception as e:
             print(f"Payment verification error: {e}")
-            # Send JSON error response instead of HTML error
-            error_response = {
+            print(f"Exception type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
+            
+            response_data = {
                 "success": False,
                 "error": "Payment verification failed",
                 "details": str(e)
             }
-            
-            self.send_response(500)
+            status_code = 500
+
+        # Always send JSON response with proper headers
+        try:
+            self.send_response(status_code)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
-            self.wfile.write(json.dumps(error_response).encode())
+            
+            json_response = json.dumps(response_data, ensure_ascii=False)
+            self.wfile.write(json_response.encode('utf-8'))
+            print(f"Sent JSON response: {json_response}")
+            
+        except Exception as send_error:
+            print(f"Error sending response: {send_error}")
+            # Last resort - try to send basic error
+            try:
+                self.send_error(500, "Internal Server Error")
+            except:
+                pass
 
     def handle_create_razorpay_order(self):
         """Handle Razorpay order creation"""
+        response_data = {"success": False, "error": "Unknown error"}
+        status_code = 500
+        
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            order_data = json.loads(post_data.decode('utf-8'))
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                response_data = {
+                    "success": False,
+                    "error": "No order data received"
+                }
+                status_code = 400
+            else:
+                post_data = self.rfile.read(content_length)
+                
+                try:
+                    order_data = json.loads(post_data.decode('utf-8'))
+                    print(f"Creating order for: {order_data}")
 
-            print(f"Creating order for: {order_data}")
+                    # Validate required fields
+                    plan_key = order_data.get('planKey')
+                    price = order_data.get('price')
+                    currency = order_data.get('currency', 'INR')
+                    
+                    if not plan_key or not price:
+                        missing_fields = []
+                        if not plan_key: missing_fields.append('planKey')
+                        if not price: missing_fields.append('price')
+                        
+                        response_data = {
+                            "success": False,
+                            "error": f"Missing required fields: {', '.join(missing_fields)}"
+                        }
+                        status_code = 400
+                    else:
+                        # Mock order creation - return a fake order ID
+                        import uuid
+                        order_id = f"order_{uuid.uuid4().hex[:12]}"
 
-            # Mock order creation - return a fake order ID
-            import uuid
-            order_id = f"order_{uuid.uuid4().hex[:12]}"
-
-            response_data = {
-                "success": True,
-                "order_id": order_id,
-                "amount": order_data.get('price', 59900),
-                "currency": order_data.get('currency', 'INR')
-            }
-
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(response_data).encode())
+                        response_data = {
+                            "success": True,
+                            "order_id": order_id,
+                            "amount": int(price),
+                            "currency": currency,
+                            "planKey": plan_key
+                        }
+                        status_code = 200
+                        
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error in order creation: {e}")
+                    print(f"Raw data: {post_data.decode('utf-8')[:200]}")
+                    response_data = {
+                        "success": False,
+                        "error": "Invalid JSON format in order request",
+                        "details": str(e)
+                    }
+                    status_code = 400
 
         except Exception as e:
             print(f"Order creation error: {e}")
-            error_response = {
+            print(f"Exception type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
+            
+            response_data = {
                 "success": False,
                 "error": "Failed to create order",
                 "details": str(e)
             }
+            status_code = 500
 
-            self.send_response(500)
+        # Always send JSON response with proper headers
+        try:
+            self.send_response(status_code)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
-            self.wfile.write(json.dumps(error_response).encode())
+            
+            json_response = json.dumps(response_data, ensure_ascii=False)
+            self.wfile.write(json_response.encode('utf-8'))
+            print(f"Sent order response: {json_response}")
+            
+        except Exception as send_error:
+            print(f"Error sending order response: {send_error}")
+            try:
+                self.send_error(500, "Internal Server Error")
+            except:
+                pass
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')

@@ -347,22 +347,43 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
 
         let data;
         try {
+            // Check if response is OK first
+            if (!response.ok) {
+                console.error('Payment verification failed with status:', response.status);
+                const errorText = await response.text();
+                console.error('Error response text:', errorText);
+                throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}`);
+            }
+
             // Get response as text first to debug
             const responseText = await response.text();
             console.log('Payment verification raw response:', responseText);
             
             // Check if response starts with HTML (error page)
             if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
-                console.error('Received HTML instead of JSON:', responseText.substring(0, 100));
-                throw new Error('Server returned HTML error page instead of JSON');
+                console.error('Received HTML instead of JSON:', responseText.substring(0, 200));
+                throw new Error('Server returned HTML error page instead of JSON. Please check server logs.');
+            }
+            
+            // Check if response is empty
+            if (!responseText.trim()) {
+                throw new Error('Server returned empty response');
             }
             
             data = JSON.parse(responseText);
             console.log('Parsed payment data:', data);
+            
+            // Validate response structure
+            if (typeof data !== 'object' || data === null) {
+                throw new Error('Invalid response structure - not an object');
+            }
+            
         } catch (parseError) {
             console.error('Failed to parse payment response:', parseError);
-            console.error('Response text was:', responseText);
-            throw new Error(`Invalid response format: ${parseError.message}`);
+            if (typeof responseText !== 'undefined') {
+                console.error('Response text was:', responseText.substring(0, 500));
+            }
+            throw new Error(`Payment verification failed: ${parseError.message}`);
         }
         
         if (data.success) {
