@@ -34,18 +34,22 @@ function loadRazorpayConfig() {
 
 // Load Razorpay script dynamically if not available
 function loadRazorpayScript() {
-    if (document.getElementById('razorpay-script')) return;
+    if (document.getElementById('razorpay-script')) return Promise.resolve();
     
-    const script = document.createElement('script');
-    script.id = 'razorpay-script';
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => {
-        console.log('✅ Razorpay script loaded dynamically');
-    };
-    script.onerror = () => {
-        console.error('❌ Failed to load Razorpay script');
-    };
-    document.head.appendChild(script);
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.id = 'razorpay-script';
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => {
+            console.log('✅ Razorpay script loaded dynamically');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load Razorpay script');
+            reject(new Error('Failed to load Razorpay script'));
+        };
+        document.head.appendChild(script);
+    });
 }
 
 // Load Razorpay payment buttons - now inline in HTML
@@ -293,7 +297,15 @@ async function handleSubscription(planKey) {
         // Check if Razorpay is available
         if (typeof Razorpay === 'undefined') {
             console.error('❌ Razorpay not loaded');
-            alert('Payment system not ready. Please refresh the page and try again.');
+            // Try to load Razorpay script and retry
+            loadRazorpayScript();
+            setTimeout(() => {
+                if (typeof Razorpay !== 'undefined') {
+                    handleSubscription(planKey); // Retry
+                } else {
+                    alert('Payment system not ready. Please refresh the page and try again.');
+                }
+            }, 2000);
             return;
         }
 
@@ -305,13 +317,14 @@ async function handleSubscription(planKey) {
         
         // Log Razorpay key for debugging (first few characters only)
         console.log('🔧 Using Razorpay key:', window.RAZORPAY_KEY_ID.substring(0, 8) + '...');
+        console.log('🔧 Order data received:', orderData);
 
         // Initialize Razorpay payment
         const options = {
             key: window.RAZORPAY_KEY_ID,
-            amount: price,
-            currency: userCurrency,
-            name: 'Facebook Ad Generator',
+            amount: orderData.amount || price,
+            currency: orderData.currency || userCurrency,
+            name: 'AdGenie - Facebook Ad Generator',
             description: `${plan.name} Plan Subscription`,
             order_id: orderData.order_id,
             handler: function(response) {
@@ -329,6 +342,10 @@ async function handleSubscription(planKey) {
                 ondismiss: function() {
                     console.log('💳 Payment modal closed by user');
                 }
+            },
+            retry: {
+                enabled: true,
+                max_count: 3
             }
         };
 
@@ -346,14 +363,32 @@ async function handleSubscription(planKey) {
             rzp.on('payment.failed', function (response) {
                 console.error('❌ Payment failed:', response);
                 console.error('❌ Error details:', response.error);
+                console.error('❌ Full response:', JSON.stringify(response, null, 2));
                 
                 let errorMessage = 'Payment failed';
-                if (response.error && response.error.description) {
-                    errorMessage = response.error.description;
-                } else if (response.error && response.error.reason) {
-                    errorMessage = response.error.reason;
-                } else if (response.error && response.error.code) {
-                    errorMessage = `Error code: ${response.error.code}`;
+                if (response.error) {
+                    if (response.error.description) {
+                        errorMessage = response.error.description;
+                    } else if (response.error.reason) {
+                        errorMessage = response.error.reason;
+                    } else if (response.error.code) {
+                        errorMessage = `Error: ${response.error.code}`;
+                        // Add specific error code handling
+                        switch(response.error.code) {
+                            case 'BAD_REQUEST_ERROR':
+                                errorMessage = 'Invalid payment request. Please try again.';
+                                break;
+                            case 'GATEWAY_ERROR':
+                                errorMessage = 'Payment gateway error. Please try again.';
+                                break;
+                            case 'NETWORK_ERROR':
+                                errorMessage = 'Network error. Please check your connection.';
+                                break;
+                            case 'SERVER_ERROR':
+                                errorMessage = 'Server error. Please try again later.';
+                                break;
+                        }
+                    }
                 }
                 
                 // Show more user-friendly error messages
@@ -365,7 +400,7 @@ async function handleSubscription(planKey) {
                     errorMessage = 'Invalid card details. Please check and try again.';
                 }
                 
-                alert(`Payment failed: ${errorMessage}`);
+                alert(`Payment failed: ${errorMessage}\n\nIf this issue persists, please contact support.`);
             });
             
             console.log('🔧 Opening Razorpay checkout...');

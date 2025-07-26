@@ -431,14 +431,19 @@ window.CONFIG = {{
                     else:
                         # Mock order creation - return a fake order ID
                         import uuid
+                        import time
                         order_id = f"order_{uuid.uuid4().hex[:12]}"
+
+                        print(f"✅ Order created successfully: {order_id}")
+                        print(f"Amount: {price}, Currency: {currency}, Plan: {plan_key}")
 
                         response_data = {
                             "success": True,
                             "order_id": order_id,
                             "amount": int(price),
                             "currency": currency,
-                            "planKey": plan_key
+                            "planKey": plan_key,
+                            "created_at": int(time.time())
                         }
                         status_code = 200
 
