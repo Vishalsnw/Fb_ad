@@ -1,253 +1,143 @@
-// Import Firebase modules
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getAuth, GoogleAuthProvider, onAuthStateChanged,signInWithPopup, signOut as firebaseSignOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+// Firebase configuration and authentication
+let currentUser = null;
 
-// Firebase configuration - loaded from environment
+// Firebase configuration - will be loaded from config
 let firebaseConfig = {};
 
-// Load Firebase config from environment with retry mechanism
-async function loadFirebaseConfig(retryCount = 0) {
-    let loadedFirebaseConfig = {};
-    const maxRetries = 3;
-    
+// Initialize Firebase when config is loaded
+async function initializeFirebase() {
+    if (!window.CONFIG) {
+        console.log('Waiting for config to load...');
+        setTimeout(initializeFirebase, 100);
+        return;
+    }
+
+    if (!window.CONFIG.FIREBASE_API_KEY) {
+        console.warn('Firebase not configured - authentication disabled');
+        return;
+    }
+
+    firebaseConfig = {
+        apiKey: window.CONFIG.FIREBASE_API_KEY,
+        authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN,
+        projectId: window.CONFIG.FIREBASE_PROJECT_ID
+    };
+
     try {
-        const response = await fetch('/config.js?t=' + Date.now());
-        
-        if (!response.ok) {
-            throw new Error(`Config fetch failed: ${response.status}`);
-        }
-        
-        const configScript = await response.text();
-
-        // Execute config script safely
-        const scriptElement = document.createElement('script');
-        scriptElement.textContent = configScript;
-        document.head.appendChild(scriptElement);
-        document.head.removeChild(scriptElement);
-
-        if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
-            console.log('✅ Firebase config loaded from server');
-
-            // Make config values available globally if not already set
-            if (!window.GOOGLE_CLIENT_ID) {
-                window.GOOGLE_CLIENT_ID = window.CONFIG.GOOGLE_CLIENT_ID;
-            }
-            if (!window.RAZORPAY_KEY_ID) {
-                window.RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
-            }
-            if (!window.RAZORPAY_KEY_SECRET) {
-                window.RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
-            }
-
-            console.log('RAZORPAY_KEY_ID loaded:', !!window.RAZORPAY_KEY_ID);
-
-            if (window.RAZORPAY_KEY_ID && window.RAZORPAY_KEY_SECRET) {
-                console.log('✅ Razorpay keys loaded successfully');
-            } else {
-                console.warn('⚠️ Razorpay keys missing from config');
-            }
-
-            // Firebase configuration
-            loadedFirebaseConfig = {
-                apiKey: window.CONFIG.FIREBASE_API_KEY || "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
-                authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN || "adgenie-59adb.firebaseapp.com",
-                projectId: window.CONFIG.FIREBASE_PROJECT_ID || "adgenie-59adb",
-                storageBucket: "adgenie-59adb.firebasestorage.app",
-                messagingSenderId: "775764972429",
-                appId: "1:775764972429:web:2921b91eea1614a05863c4",
-                measurementId: "G-922RPB06J3"
-            };
-
-            firebaseConfig = loadedFirebaseConfig;
-            return true;
+        // Initialize Firebase (assuming Firebase SDK is loaded)
+        if (typeof firebase !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase initialized');
+            setupAuthListener();
         } else {
-            console.error('❌ CONFIG not available or empty from server');
-            
-            // Retry if we haven't exceeded max retries
-            if (retryCount < maxRetries) {
-                console.log(`🔄 Retrying config load (${retryCount + 1}/${maxRetries})...`);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-                return await loadFirebaseConfig(retryCount + 1);
-            }
-            
-            return false;
+            console.warn('Firebase SDK not loaded');
         }
     } catch (error) {
-        console.error('❌ Error loading config:', error);
-        
-        // Retry if we haven't exceeded max retries
-        if (retryCount < maxRetries) {
-            console.log(`🔄 Retrying config load after error (${retryCount + 1}/${maxRetries})...`);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-            return await loadFirebaseConfig(retryCount + 1);
-        }
-        
-        console.warn('Using default Firebase config after all retries failed');
-        loadedFirebaseConfig = {
-            apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
-            authDomain: "adgenie-59adb.firebaseapp.com",
-            projectId: "adgenie-59adb",
-            storageBucket: "adgenie-59adb.firebasestorage.app",
-            messagingSenderId: "775764972429",
-            appId: "1:775764972429:web:2921b91eea1614a05863c4",
-            measurementId: "G-922RPB06J3"
-        };
-        
-        firebaseConfig = loadedFirebaseConfig;
-        return true;
+        console.error('Firebase initialization error:', error);
     }
 }
 
-// Initialize Firebase after config loads
-let app, auth, provider;
+function setupAuthListener() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        console.warn('Firebase Auth not available');
+        return;
+    }
 
-async function initializeFirebase() {
-    await loadFirebaseConfig();
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    provider = new GoogleAuthProvider();
-}
-
-// Global variables
-let currentUser = null;
-
-// Initialize auth system
-function initAuth() {
-    onAuthStateChanged(auth, (user) => {
+    firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
-            // Initialize user with default values
             currentUser = {
                 uid: user.uid,
-                email: user.email,
                 displayName: user.displayName,
+                email: user.email,
                 photoURL: user.photoURL,
                 usageCount: 0,
-                maxUsage: 4, // Free users get 4 ads
-                adsGenerated: 0,
+                maxUsage: 4,
                 subscriptionStatus: 'free'
             };
 
-            // Load user data from server instead of localStorage
-            loadUserDataFromServer(user.uid);
-            
-            // Hide anonymous usage display when user logs in
-            const anonymousDisplay = document.getElementById('anonymousUsageDisplay');
-            if (anonymousDisplay) {
-                anonymousDisplay.style.display = 'none';
-            }
-            
-            // Close login modal if open
-            const loginModal = document.getElementById('loginRequiredModal');
-            if (loginModal) {
-                loginModal.style.display = 'none';
-            }
-            
+            console.log('✅ User signed in:', currentUser.email);
+            await loadUserDataFromServer(user.uid);
             updateAuthUI();
-            syncUserData(currentUser);
-            
-            // Show upgrade prompt for new users
-            if (typeof window.checkAndShowUpgradePrompt === 'function') {
-                window.checkAndShowUpgradePrompt();
-            }
-            
-            console.log('✅ User signed in:', user.email);
         } else {
             currentUser = null;
-            
-            // Show anonymous usage display when user logs out
-            if (typeof window.updateAnonymousUsageDisplay === 'function') {
-                window.updateAnonymousUsageDisplay();
-            }
-            
+            console.log('User signed out');
             updateAuthUI();
-            console.log('👋 User signed out');
         }
     });
 }
 
-// Sign in with Google
 async function signIn() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        console.error('Firebase Auth not available');
+        return;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
-        console.log('User signed in:', result.user);
+        const result = await firebase.auth().signInWithPopup(provider);
+        console.log('✅ Sign in successful:', result.user.email);
     } catch (error) {
-        console.error('Sign-in error:', error);
-        showError('Failed to sign in. Please try again.');
+        console.error('Sign in error:', error);
+        showError('Sign in failed: ' + error.message);
     }
 }
 
-// Sign out user
 async function signOut() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        console.error('Firebase Auth not available');
+        return;
+    }
+
     try {
-        await firebaseSignOut(auth);
-        console.log('User signed out');
+        await firebase.auth().signOut();
+        console.log('✅ Sign out successful');
     } catch (error) {
-        console.error('Sign-out error:', error);
-        showError('Failed to sign out. Please try again.');
+        console.error('Sign out error:', error);
     }
 }
 
-// Update UI based on auth state
 function updateAuthUI() {
-    const authButton = document.getElementById('authButton');
+    const signInBtn = document.getElementById('signInBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
     const userInfo = document.getElementById('userInfo');
 
     if (currentUser) {
-        if (authButton) {
-            authButton.textContent = 'Sign Out';
-            authButton.onclick = signOut;
-        }
+        if (signInBtn) signInBtn.style.display = 'none';
+        if (signOutBtn) signOutBtn.style.display = 'block';
         if (userInfo) {
-            userInfo.style.display = 'block';
             userInfo.innerHTML = `
-                <div class="user-profile">
-                    <img src="${currentUser.photoURL || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23667eea"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="16">${(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}</text></svg>'}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-                    <span>Welcome, ${currentUser.displayName || currentUser.email}!</span>
-                </div>
+                <img src="${currentUser.photoURL}" alt="User" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
+                <span>${currentUser.displayName}</span>
             `;
+            userInfo.style.display = 'flex';
         }
-        updateUsageDisplay();
     } else {
-        if (authButton) {
-            authButton.textContent = 'Sign In with Google';
-            authButton.onclick = signIn;
-        }
-        if (userInfo) {
-            userInfo.style.display = 'none';
-        }
+        if (signInBtn) signInBtn.style.display = 'block';
+        if (signOutBtn) signOutBtn.style.display = 'none';
+        if (userInfo) userInfo.style.display = 'none';
     }
+
+    updateUsageDisplay();
 }
 
-// Usage tracking functions
 function canGenerateAd() {
-    if (!currentUser) {
-        return false;
-    }
-    if (currentUser.subscriptionStatus === 'premium') {
-        return true;
-    }
+    if (!currentUser) return false;
+
+    if (currentUser.subscriptionStatus === 'premium') return true;
+
     return currentUser.usageCount < currentUser.maxUsage;
 }
 
 function incrementAdUsage() {
-    if (!currentUser) return;
+    if (!currentUser) return false;
 
-    currentUser.usageCount += 1;
-    currentUser.adsGenerated += 1;
+    if (currentUser.subscriptionStatus === 'premium') return false;
 
-    // Save updated usage to server immediately
+    currentUser.usageCount++;
     saveUserDataToServer(currentUser);
     updateUsageDisplay();
 
-    // Check if user reached limit
-    if (currentUser.subscriptionStatus === 'free' && currentUser.usageCount >= 4) {
-        console.log('🚫 User reached free plan limit, showing payment modal');
-        setTimeout(() => {
-            if (typeof window.showPaymentModal === 'function') {
-                window.showPaymentModal();
-            }
-        }, 2000);
-    }
+    return currentUser.usageCount >= currentUser.maxUsage;
 }
 
 function updateUsageDisplay() {
@@ -376,7 +266,6 @@ function saveAd(adData, imageUrl) {
 
     savedAds.unshift(adToSave);
     localStorage.setItem('savedAds', JSON.stringify(savedAds.slice(0, 50)));
-    syncAdWithServer(adToSave);
 }
 
 async function syncAdWithServer(adData) {
@@ -393,18 +282,14 @@ async function syncAdWithServer(adData) {
     }
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', async function() {
-    await initializeFirebase();
-    initAuth();
-});
-
-// Export for global access
+// Make functions globally available
 window.currentUser = () => currentUser;
 window.signIn = signIn;
 window.signOut = signOut;
-window.updateAuthUI = updateAuthUI;
 window.canGenerateAd = canGenerateAd;
 window.incrementAdUsage = incrementAdUsage;
-window.saveAd = saveAd;
+window.saveUserData = saveUserData;
 window.showLoginModal = showLoginModal;
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', initializeFirebase);

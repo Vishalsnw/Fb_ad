@@ -85,7 +85,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             print(f"🔑 FIREBASE_PROJECT_ID: {'✅ Present' if firebase_project_id else '❌ Missing'} ({len(firebase_project_id)} chars)")
 
             # Check for missing critical keys
-missing_keys = []
+            missing_keys = []
             if not deepseek_key:
                 missing_keys.append('DEEPSEEK_API_KEY')
             if not deepai_key:
