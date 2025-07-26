@@ -273,7 +273,7 @@ async function handleSubscription(planKey) {
 
     try {
         // Create Razorpay order
-        const response = await fetch('/create-razorpay-order', {
+        const response = await fetch('/api/create-razorpay-order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -385,7 +385,7 @@ async function handleSubscription(planKey) {
 async function handlePaymentSuccess(planKey, paymentResponse) {
     try {
         // Verify payment on server side
-        const response = await fetch('/verify-payment', {
+        const response = await fetch('/api/verify-payment', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
