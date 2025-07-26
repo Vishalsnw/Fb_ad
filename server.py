@@ -576,9 +576,13 @@ console.error('❌ Config loading error: {str(e)}');
 
     def handle_generate_ad(self):
         """Handle ad generation requests using real AI APIs"""
+        print("=== AD GENERATION REQUEST START ===")
         try:
             content_length = int(self.headers.get('Content-Length', 0))
+            print(f"📏 Content length: {content_length}")
+            
             if content_length == 0:
+                print("❌ No form data received")
                 self._send_json_response({"success": False, "error": "No form data received"}, 400)
                 return
 
@@ -586,15 +590,23 @@ console.error('❌ Config loading error: {str(e)}');
             form_data = json.loads(post_data.decode('utf-8'))
 
             print(f"🎨 Generating ad for: {form_data.get('productName', 'Unknown product')}")
+            print(f"📝 Form data received: {form_data}")
 
             # Generate ad copy using DeepSeek API
+            print("🤖 Starting DeepSeek API call...")
             ad_copy_result = self.generate_ad_copy_with_deepseek(form_data)
+            print(f"🤖 DeepSeek result: {ad_copy_result}")
+            
             if not ad_copy_result["success"]:
+                print(f"❌ DeepSeek failed: {ad_copy_result}")
                 self._send_json_response(ad_copy_result, 500)
                 return
 
             # Generate image using DeepAI API
+            print("🎨 Starting DeepAI API call...")
             image_result = self.generate_image_with_deepai(form_data)
+            print(f"🎨 DeepAI result: {image_result}")
+            
             if not image_result["success"]:
                 # If image generation fails, continue with text-only ad
                 print(f"⚠️ Image generation failed: {image_result.get('error')}")
@@ -608,6 +620,7 @@ console.error('❌ Config loading error: {str(e)}');
                 "image_url": image_url
             }
 
+            print(f"✅ Final response: {response}")
             self._send_json_response(response, 200)
 
         except json.JSONDecodeError as e:
@@ -615,7 +628,11 @@ console.error('❌ Config loading error: {str(e)}');
             self._send_json_response({"success": False, "error": "Invalid JSON format"}, 400)
         except Exception as e:
             print(f"❌ Error generating ad: {e}")
+            import traceback
+            traceback.print_exc()
             self._send_json_response({"success": False, "error": str(e)}, 500)
+        
+        print("=== AD GENERATION REQUEST END ===")
 
     def generate_ad_copy_with_deepseek(self, form_data):
         """Generate ad copy using DeepSeek API"""

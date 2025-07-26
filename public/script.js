@@ -87,14 +87,14 @@ async function loadConfig() {
                 const missingKeys = [];
                 if (!hasDeepSeek) missingKeys.push('DEEPSEEK_API_KEY');
                 if (!hasDeepAI) missingKeys.push('DEEPAI_API_KEY');
-                
+
                 console.error('❌ Missing API keys:', missingKeys);
                 console.log('🔧 To fix this:');
                 console.log('   1. Go to Secrets tab in Replit (left sidebar)');
                 console.log('   2. Add DEEPSEEK_API_KEY with your DeepSeek API key');
                 console.log('   3. Add DEEPAI_API_KEY with your DeepAI API key');
                 console.log('   4. Refresh the page');
-                
+
                 // Show user-friendly error
                 showError(`
                     Missing API Keys: ${missingKeys.join(', ')}<br><br>
@@ -105,7 +105,7 @@ async function loadConfig() {
                     4. Refresh this page<br><br>
                     <a href="#" onclick="location.reload()" style="color: #667eea; text-decoration: underline;">Click here to refresh</a>
                 `);
-                
+
                 throw new Error(`Missing API keys: ${missingKeys.join(', ')}`);
             }
         } else {
@@ -645,170 +645,84 @@ function showError(message) {
 // Generate ad using API
 async function generateAd(formData) {
     try {
+        console.log('🚀 Sending request to /generate-ad with data:', formData);
+
         const response = await fetch('/generate-ad', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify(formData)
         });
 
+        console.log('📡 Response status:', response.status);
+
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ HTTP error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log('✅ API Response received:', result);
+
+        if (!result.success) {
+            console.error('❌ API returned error:', result.error);
+            throw new Error(result.error || 'Failed to generate ad');
+        }
+
+        return result;
     } catch (error) {
-        console.error('API Error:', error);
-        return {
-            success: false,
-            error: error.message
-        };
+        console.error('❌ Ad generation error:', error);
+        throw error;
     }
 }
 
-// Display results
-function displayResults(result) {
-    console.log('🖼️ Displaying results with:', { result });
+async function displayResults(result) {
+    console.log('🖼️ Displaying results with:', {result});
 
     const resultsDiv = document.getElementById('results');
-    const resultSection = document.getElementById('resultSection');
-
     if (!resultsDiv) {
-        console.error('❌ Results div not found!');
+        console.error('Results div not found');
         return;
     }
 
-    if (!result || !result.success) {
-        console.error('❌ Invalid result data:', result);
-        showError(result && result.error ? result.error : 'Failed to generate ad.');
-        return;
-    }
+    if (result && result.success) {
+        const adText = result.ad_copy || 'Ad copy not available';
+        const imageUrl = result.image_url || 'https://picsum.photos/600/400?random=1';
 
-    currentImageUrl = result.image_url || null;
-    currentAdData = result.ad_copy || null;
-    const performanceScore = calculatePerformanceScore(result, collectFormData());
+        console.log('📊 Final ad content being displayed:', {
+            adText: adText.substring(0, 50) + '...',
+            imageUrl: imageUrl.substring(0, 50) + '...'
+        });
 
-    // Structure the ad text with better formatting
-    const structuredHeadline = 'Generated Headline'; // Assuming headline is not directly returned
-    const structuredAdText = formatAdText(result.ad_copy || 'Generated ad text will appear here.');
-    const structuredCTA = 'Learn More'; // Assuming CTA is not directly returned
-
-    resultsDiv.innerHTML = `
-        <div class="ad-preview ${getAdFormatClass(collectFormData().adFormat)}">
-            <div class="ad-header">
-                <div class="profile-info">
-                    <div class="profile-pic">${getFormatIcon(collectFormData().adFormat)}</div>
-                    <div class="profile-details">
-                        <div class="page-name">${collectFormData().productName || 'Your Brand'}</div>
-                        <div class="sponsored">${getFormatLabel(collectFormData().adFormat)}</div>
+        resultsDiv.innerHTML = `
+            <div class="ad-result">
+                <h3>✨ Your AI-Generated Ad</h3>
+                <div class="ad-content">
+                    <div class="ad-image">
+                        <img src="${imageUrl}" alt="Generated Ad Image" onerror="this.src='https://picsum.photos/600/400?random=fallback'">
+                    </div>
+                    <div class="ad-text">
+                        <p style="margin: 8px 0; font-weight: 600; font-size: 1.05em; color: #333;">${adText}</p>
                     </div>
                 </div>
-            </div>
-            <div class="ad-content">
-                <div class="ad-text-section">
-                    <div class="ad-headline">${structuredHeadline}</div>
-                    <div class="ad-text">${structuredAdText}</div>
-                </div>
-                <div class="ad-image-container">
-                    <img src="${currentImageUrl}" alt="Generated Ad" class="ad-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-                    <div class="image-error" style="display: none; padding: 20px; background: #f0f0f0; text-align: center; border-radius: 8px;">
-                        <p>🖼️ Image failed to load</p>
-                        <button onclick="location.reload()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
-                    </div>
-                </div>
-                <div class="ad-cta-container">
-                    <button class="ad-cta">${structuredCTA}</button>
+                <div class="ad-actions">
+                    <button onclick="downloadAd()" class="download-btn">📥 Download Ad</button>
+                    <button onclick="copyAdText()" class="copy-btn">📋 Copy Text</button>
+                    <button onclick="generateNewAd()" class="new-ad-btn">🔄 Generate Another</button>
                 </div>
             </div>
-        </div>
-        <div class="ad-stats">
-            <div class="performance-score">
-                <span class="score-label">Performance Score:</span>
-                <span class="score-value">${performanceScore}/100</span>
+        `;
+    } else {
+        resultsDiv.innerHTML = `
+            <div class="error-message">
+                <h3>❌ Error Generating Ad</h3>
+                <p>${result?.error || 'Unknown error occurred'}</p>
+                <button onclick="generateNewAd()" class="retry-btn">🔄 Try Again</button>
             </div>
-            <div class="ad-metrics">
-                <div class="metric">
-                    <span class="metric-label">Format:</span>
-                    <span class="metric-value">${collectFormData().adFormat}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Language:</span>
-                    <span class="metric-value">${collectFormData().language}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Tone:</span>
-                    <span class="metric-value">${collectFormData().tone}</span>
-                </div>
-            </div>
-        </div>
-        <div class="ad-actions">
-            <button id="downloadBtn" class="action-btn download-btn">📥 Download Image</button>
-            <button class="copy-btn">📋 Copy Text</button>
-            <button id="regenerateBtn" class="action-btn regenerate-btn">🔄 Regenerate</button>
-        </div>
-    `;
-
-    // Re-attach event listeners
-    const downloadBtn = document.getElementById('downloadBtn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadImage);
+        `;
     }
-
-    const regenerateBtn = document.getElementById('regenerateBtn');
-    if (regenerateBtn) {
-        regenerateBtn.addEventListener('click', regenerateAd);
-    }
-    
-    const copyBtn = document.querySelector('.copy-btn');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', copyAdText);
-    }
-
-    // Make sure both the results div and result section are visible
-    resultsDiv.style.display = 'block';
-    if (resultSection) {
-        resultSection.style.display = 'block';
-    }
-
-    console.log('📊 Final ad content being displayed:', {
-        adText: result.ad_copy.substring(0, 100) + '...',
-    });
-
-    console.log('✅ Ad generation completed successfully');
-    resultsDiv.scrollIntoView({ behavior: 'smooth' });
-
-    // Increment usage count after successful generation and check limits
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (currentUser) {
-        // Increment usage count first
-        const currentAdsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-        const newAdsUsed = currentAdsUsed + 1;
-        localStorage.setItem('adsUsed', newAdsUsed.toString());
-        
-        console.log(`📊 Usage updated: ${newAdsUsed}/4 ads used`);
-        
-        // Update usage display
-        updateUsageDisplay();
-        
-        // Check if user has reached limit after increment
-        const userPlan = localStorage.getItem('userPlan') || 'free';
-        
-        console.log(`🔍 Checking limits: plan=${userPlan}, adsUsed=${newAdsUsed}`);
-        
-        if (userPlan === 'free' && newAdsUsed >= 4) {
-            console.log('🚫 User has reached limit, showing payment modal');
-            // Show payment modal after successful generation
-            setTimeout(() => {
-                showPaymentModal();
-            }, 2000); // Show after 2 seconds to let user see the result
-        }
-    }
-
-    // Debug: Log what's actually being displayed
-    console.log('📊 Final ad content being displayed:', {
-        adText: structuredAdText.substring(0, 100) + '...',
-    });
 }
 
 // Copy to clipboard
@@ -817,7 +731,7 @@ function copyAdText() {
         alert('No ad text to copy');
         return;
     }
-    
+
     copyToClipboard(currentAdData, 'Ad text');
 }
 
@@ -884,10 +798,10 @@ function downloadImage() {
         alert('No image to download');
         return;
     }
-    
+
     const formData = collectFormData();
     const filename = formData.productName ? formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'ad';
-    
+
     const link = document.createElement('a');
     link.href = currentImageUrl;
     link.download = `${filename}_ad_image.jpg`;
@@ -980,7 +894,7 @@ function incrementUsageCount() {
         // Use Firebase-based increment function
         window.incrementAdUsage();
         console.log(`📊 Usage incremented via Firebase: ${currentUser.usageCount}/${currentUser.maxUsage} ads used`);
-        
+
         // Check if limit reached
         if (currentUser.subscriptionStatus === 'free' && currentUser.usageCount >= 4) {
             console.log('🚫 Usage limit reached via Firebase, payment required');
