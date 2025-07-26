@@ -20,7 +20,8 @@ async function initializeFirebase() {
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
         authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN,
-        projectId: window.CONFIG.FIREBASE_PROJECT_ID
+        projectId: window.CONFIG.FIREBASE_PROJECT_ID,
+        appId: window.CONFIG.FIREBASE_APP_ID || "1:123456789:web:abcdef123456"
     };
 
     // Add current domain to authorized domains list for development
@@ -31,7 +32,14 @@ async function initializeFirebase() {
         // Initialize Firebase (assuming Firebase SDK is loaded)
         if (typeof firebase !== 'undefined') {
             firebase.initializeApp(firebaseConfig);
-            console.log('✅ Firebase initialized');
+            
+            // Initialize Firestore
+            if (firebase.firestore) {
+                window.db = firebase.firestore();
+                console.log('✅ Firebase and Firestore initialized');
+            } else {
+                console.warn('Firestore not available');
+            }
 
             // Configure auth for development domain
             if (currentDomain.includes('replit.dev')) {
@@ -192,22 +200,32 @@ function updateUsageDisplay() {
     }
 }
 
-// User data management - Firebase-based
+// User data management - Firebase Firestore based
 async function loadUserDataFromServer(uid) {
     try {
-        const response = await fetch(`/get-user-data/${uid}`);
-        if (response.ok) {
-            const serverData = await response.json();
+        if (!window.db) {
+            console.warn('Firestore not initialized, falling back to local storage');
+            return;
+        }
+
+        const userDoc = await window.db.collection('users').doc(uid).get();
+        
+        if (userDoc.exists) {
+            const serverData = userDoc.data();
             currentUser = { ...currentUser, ...serverData };
-            console.log('✅ User data loaded from server:', currentUser);
-            updateAuthUI();
-            updateUsageDisplay();
+            console.log('✅ User data loaded from Firestore:', currentUser);
         } else {
-            // New user - save default data to server
+            // New user - create default data
+            console.log('📝 New user detected, creating default data');
+            currentUser.createdAt = new Date().toISOString();
+            currentUser.lastLoginAt = new Date().toISOString();
             await saveUserDataToServer(currentUser);
         }
+        
+        updateAuthUI();
+        updateUsageDisplay();
     } catch (error) {
-        console.error('Failed to load user data:', error);
+        console.error('Failed to load user data from Firestore:', error);
         // Use default values on error
         updateAuthUI();
         updateUsageDisplay();
@@ -216,21 +234,20 @@ async function loadUserDataFromServer(uid) {
 
 async function saveUserDataToServer(userData) {
     try {
-        const response = await fetch('/save-user-data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(userData)
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ User data saved to server:', result);
-            return result;
+        if (!window.db) {
+            console.warn('Firestore not initialized, cannot save user data');
+            return;
         }
+
+        // Update lastLoginAt
+        userData.lastLoginAt = new Date().toISOString();
+        
+        await window.db.collection('users').doc(userData.uid).set(userData, { merge: true });
+        console.log('✅ User data saved to Firestore:', userData);
+        return userData;
     } catch (error) {
-        console.error('Failed to save user data:', error);
+        console.error('Failed to save user data to Firestore:', error);
+        throw error;
     }
 }
 
@@ -276,34 +293,52 @@ function showLoginModal() {
     }
 }
 
-// Saved ads management
-function saveAd(adData, imageUrl) {
-    if (!currentUser) return;
+// Saved ads management - Firebase Firestore
+async function saveAd(adData, imageUrl) {
+    if (!currentUser || !window.db) return;
 
-    const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
     const adToSave = {
-        id: Date.now(),
+        id: Date.now().toString(),
         userId: currentUser.uid,
         ...adData,
         imageUrl,
         createdAt: new Date().toISOString()
     };
 
-    savedAds.unshift(adToSave);
-    localStorage.setItem('savedAds', JSON.stringify(savedAds.slice(0, 50)));
+    try {
+        // Save to Firestore
+        await window.db.collection('ads').doc(adToSave.id).set(adToSave);
+        console.log('✅ Ad saved to Firestore:', adToSave.id);
+        
+        // Also keep in localStorage as backup
+        const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
+        savedAds.unshift(adToSave);
+        localStorage.setItem('savedAds', JSON.stringify(savedAds.slice(0, 50)));
+    } catch (error) {
+        console.error('Failed to save ad to Firestore:', error);
+    }
 }
 
-async function syncAdWithServer(adData) {
+async function loadUserAds(uid) {
+    if (!window.db) return [];
+    
     try {
-        await fetch('/save-ad', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(adData)
+        const adsSnapshot = await window.db.collection('ads')
+            .where('userId', '==', uid)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+            
+        const ads = [];
+        adsSnapshot.forEach(doc => {
+            ads.push({ id: doc.id, ...doc.data() });
         });
+        
+        console.log(`✅ Loaded ${ads.length} ads from Firestore`);
+        return ads;
     } catch (error) {
-        console.error('Failed to sync ad with server:', error);
+        console.error('Failed to load ads from Firestore:', error);
+        return [];
     }
 }
 

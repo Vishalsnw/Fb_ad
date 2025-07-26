@@ -77,6 +77,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             firebase_api_key = os.getenv("FIREBASE_API_KEY", "")
             firebase_auth_domain = os.getenv("FIREBASE_AUTH_DOMAIN", "")
             firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "")
+            firebase_app_id = os.getenv("FIREBASE_APP_ID", "")
 
             print(f"🔑 DEEPSEEK_API_KEY: {'✅ Present' if deepseek_key else '❌ Missing'} ({len(deepseek_key)} chars)")
             print(f"🔑 DEEPAI_API_KEY: {'✅ Present' if deepai_key else '❌ Missing'} ({len(deepai_key)} chars)")
@@ -86,6 +87,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             print(f"🔑 FIREBASE_API_KEY: {'✅ Present' if firebase_api_key else '❌ Missing'} ({len(firebase_api_key)} chars)")
             print(f"🔑 FIREBASE_AUTH_DOMAIN: {'✅ Present' if firebase_auth_domain else '❌ Missing'} ({len(firebase_auth_domain)} chars)")
             print(f"🔑 FIREBASE_PROJECT_ID: {'✅ Present' if firebase_project_id else '❌ Missing'} ({len(firebase_project_id)} chars)")
+            print(f"🔑 FIREBASE_APP_ID: {'✅ Present' if firebase_app_id else '❌ Missing'} ({len(firebase_app_id)} chars)")
 
             # Check for missing critical keys
             missing_keys = []
@@ -111,6 +113,7 @@ window.CONFIG = {{
     FIREBASE_API_KEY: '{firebase_api_key}',
     FIREBASE_AUTH_DOMAIN: '{firebase_auth_domain}',
     FIREBASE_PROJECT_ID: '{firebase_project_id}',
+    FIREBASE_APP_ID: '{firebase_app_id}',
     SHOW_3D_EARLY: true,
     MISSING_KEYS: {str(missing_keys).replace("'", '"')}
 }};
@@ -161,6 +164,7 @@ console.error('❌ Config loading error: {str(e)}');
                 "firebase_api_key": bool(os.getenv("FIREBASE_API_KEY", "")),
                 "firebase_auth_domain": bool(os.getenv("FIREBASE_AUTH_DOMAIN", "")),
                 "firebase_project_id": bool(os.getenv("FIREBASE_PROJECT_ID", "")),
+                "firebase_app_id": bool(os.getenv("FIREBASE_APP_ID", "")),
                 "timestamp": int(time.time()) if 'time' in globals() else None
             }
 
