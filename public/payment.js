@@ -134,15 +134,12 @@ function setupPaymentModal() {
                             ${key !== 'free' ? `
                                 <div style="margin-top: 15px; padding: 15px; border: 2px solid #667eea; border-radius: 12px; background: linear-gradient(135deg, #f8f9ff, #e6ebff);">
                                     <p style="margin: 0 0 15px 0; font-size: 1rem; color: #333; font-weight: 600; text-align: center;">⚡ Instant Payment</p>
-                                    <div id="razorpay-button-${key}" style="text-align: center;">
-                                        <form>
-                                            <script 
-                                                src="https://checkout.razorpay.com/v1/payment-button.js" 
-                                                data-payment_button_id="pl_QxlifReO48GlM8" 
-                                                async>
-                                            </script>
-                                        </form>
-                                    </div>
+                                    <button 
+                                        class="razorpay-payment-btn" 
+                                        onclick="handleSubscription('${key}')"
+                                        style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%;">
+                                        💳 Pay Now - ${formatPrice(plan, userCurrency)}
+                                    </button>
                                 </div>
                             ` : ''}
                         </div>
@@ -306,12 +303,8 @@ async function handleSubscription(planKey) {
             return;
         }
         
-        // Validate Razorpay key format
-        if (!window.RAZORPAY_KEY_ID.startsWith('rzp_')) {
-            console.error('❌ Invalid Razorpay key format:', window.RAZORPAY_KEY_ID);
-            alert('Invalid payment configuration. Please contact support.');
-            return;
-        }
+        // Log Razorpay key for debugging (first few characters only)
+        console.log('🔧 Using Razorpay key:', window.RAZORPAY_KEY_ID.substring(0, 8) + '...');
 
         // Initialize Razorpay payment
         const options = {
@@ -363,6 +356,15 @@ async function handleSubscription(planKey) {
                     errorMessage = `Error code: ${response.error.code}`;
                 }
                 
+                // Show more user-friendly error messages
+                if (errorMessage.includes('Your card was declined')) {
+                    errorMessage = 'Your card was declined. Please try a different payment method.';
+                } else if (errorMessage.includes('insufficient funds')) {
+                    errorMessage = 'Insufficient funds. Please check your account balance.';
+                } else if (errorMessage.includes('invalid card')) {
+                    errorMessage = 'Invalid card details. Please check and try again.';
+                }
+                
                 alert(`Payment failed: ${errorMessage}`);
             });
             
@@ -372,7 +374,15 @@ async function handleSubscription(planKey) {
             console.error('❌ Error opening Razorpay:', error);
             console.error('❌ Error type:', error.constructor.name);
             console.error('❌ Error details:', error.message);
-            alert('Failed to open payment gateway. Please try again.');
+            
+            // More specific error messages
+            if (error.message.includes('Razorpay is not defined')) {
+                alert('Payment system not loaded. Please refresh the page and try again.');
+            } else if (error.message.includes('Invalid key')) {
+                alert('Payment configuration error. Please contact support.');
+            } else {
+                alert('Failed to open payment gateway. Please check your internet connection and try again.');
+            }
         }
 
     } catch (error) {

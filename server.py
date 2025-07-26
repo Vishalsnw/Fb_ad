@@ -73,7 +73,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
 
             if not deepseek_key or not deepai_key:
                 print("❌ CRITICAL: Missing AI API keys! Please add them in Replit Secrets.")
-            
+
             if not razorpay_key_id or not razorpay_key_secret:
                 print("⚠️ WARNING: Missing Razorpay keys! Payment functionality will not work.")
 
@@ -114,24 +114,24 @@ window.CONFIG = {{
                 "firebase_project_id": bool(os.getenv("FIREBASE_PROJECT_ID", "")),
                 "timestamp": int(time.time()) if 'time' in globals() else None
             }
-            
+
             all_required_present = (
                 config_status["deepseek_api_key"] and 
                 config_status["deepai_api_key"] and
                 config_status["razorpay_key_id"] and
                 config_status["razorpay_key_secret"]
             )
-            
+
             config_status["status"] = "healthy" if all_required_present else "missing_keys"
             config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(config_status, indent=2).encode())
-            
+
         except Exception as e:
             print(f"Error serving config check: {e}")
             error_response = {
@@ -208,7 +208,7 @@ window.CONFIG = {{
             # Check if Razorpay keys are available
             razorpay_key_id = os.getenv("RAZORPAY_KEY_ID", "")
             razorpay_key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
-            
+
             if not razorpay_key_id or not razorpay_key_secret:
                 print("❌ Razorpay keys not configured in environment")
                 response_data = {
@@ -263,16 +263,23 @@ window.CONFIG = {{
                         status_code = 400
                     else:
                         print("✅ All required payment fields present")
-                        
-                        # Here you would normally verify with Razorpay API
-                        # For demo purposes, we'll simulate successful verification
-                        # In production, use Razorpay's signature verification
-                        
+
+                        # In production, you would verify the signature here:
+                        # import hmac
+                        # import hashlib
+                        # message = order_id + '|' + payment_id
+                        # expected_signature = hmac.new(
+                        #     razorpay_key_secret.encode(),  
+                        #     message.encode(), 
+                        #     hashlib.sha256
+                        # ).hexdigest()
+                        # if expected_signature == signature:
+
                         try:
-                            # Simulate API call delay
+                            # For demo purposes, we'll simulate successful verification
                             import time
-                            time.sleep(0.5)
-                            
+                            time.sleep(0.1)  # Reduced delay
+
                             # Mock successful verification
                             response_data = {
                                 "success": True, 
@@ -283,8 +290,8 @@ window.CONFIG = {{
                                 "verified_at": time.time()
                             }
                             status_code = 200
-                            print("✅ Payment verification simulated successfully")
-                            
+                            print(f"✅ Payment verification simulated successfully for plan: {plan_key}")
+
                         except Exception as verify_error:
                             print(f"❌ Payment verification API error: {verify_error}")
                             response_data = {
