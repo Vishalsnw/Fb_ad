@@ -481,14 +481,21 @@ async function handleFormSubmission(event) {
         const result = await generateAd(formData);
 
         if (result.success) {
-            // Increment usage count
-            if (typeof window.incrementAdUsage === 'function') {
+            // Increment usage count and check if limit reached
+            const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+            if (user && typeof window.incrementAdUsage === 'function') {
                 const limitReached = window.incrementAdUsage();
+                console.log(`📊 Usage incremented, limit reached: ${limitReached}`);
+
+                // Show payment modal immediately when limit is reached (after 4th ad)
                 if (limitReached) {
-                    // Show upgrade modal after successful generation
-                    setTimeout(() => showPaymentModal(), 2000);
+                    setTimeout(() => {
+                        console.log('💳 Showing payment modal after reaching limit');
+                        showPaymentModal();
+                    }, 2000);
                 }
             } else {
+                // Fallback for local storage
                 adsUsed++;
                 saveUserData();
                 updateUsageDisplay();
@@ -858,13 +865,13 @@ function getFormData() {
 
 function showPaymentModal() {
     console.log('💳 Attempting to show payment modal...');
-    
+
     // First try the global function
     if (typeof window.showPaymentModal === 'function') {
         window.showPaymentModal();
         return;
     }
-    
+
     // Fallback: Show modal manually
     let modal = document.getElementById('paymentModal');
     if (modal) {
@@ -886,7 +893,7 @@ function showPaymentModal() {
             justify-content: center;
             z-index: 10000;
         `;
-        
+
         upgradePrompt.innerHTML = `
             <div style="
                 background: white;
@@ -925,7 +932,7 @@ function showPaymentModal() {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(upgradePrompt);
     }
 }

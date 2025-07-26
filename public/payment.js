@@ -235,7 +235,10 @@ function updateUsageDisplay(plan, used, limit) {
 
 function canGenerateAd() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!currentUser) return false; // Anonymous users handled separately
+    if (!currentUser) {
+        console.log('🚫 No user logged in');
+        return false; // Anonymous users handled separately
+    }
     
     const userPlan = currentUser.subscriptionStatus || 'free';
     const adsUsed = currentUser.usageCount || 0;
@@ -243,19 +246,19 @@ function canGenerateAd() {
 
     console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
 
-    if (planLimits && planLimits.adsPerMonth === -1) {
+    // For premium/unlimited users
+    if (userPlan !== 'free' && planLimits && planLimits.adsPerMonth === -1) {
         console.log('✅ Unlimited plan, allowing generation');
-        return true; // Unlimited
+        return true;
     }
 
     // For free users, check if they've reached the limit (4 ads)
-    if (adsUsed >= 4) {
-        console.log('🚫 User has reached free plan limit, showing payment modal');
-        showPaymentModal();
-        return false;
+    if (adsUsed >= 4 && userPlan === 'free') {
+        console.log('🚫 User has reached free plan limit (4 ads), blocking generation');
+        return false; // Don't show modal here, let calling function handle it
     }
     
-    console.log(`✅ Can generate: ${adsUsed}/4 ads used`);
+    console.log(`✅ Can generate: ${adsUsed}/4 ads used (free plan)`);
     return true;
 }
 
