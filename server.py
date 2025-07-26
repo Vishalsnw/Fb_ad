@@ -39,10 +39,10 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.handle_save_ad()
         elif parsed_path.path == '/sync-user-data':
             self.handle_sync_user_data()
-        elif parsed_path.path == '/verify-payment':
-            self.handle_verify_payment()
-        elif parsed_path.path == '/create-razorpay-order':
+        elif parsed_path.path == '/api/create-razorpay-order':
             self.handle_create_razorpay_order()
+        elif parsed_path.path == '/api/verify-payment':
+            self.handle_verify_payment()
         else:
             # Send JSON error for unknown endpoints
             error_response = {
@@ -143,14 +143,14 @@ window.CONFIG = {{
         print(f"Method: {self.command}")
         print(f"Path: {self.path}")
         print(f"Headers: {dict(self.headers)}")
-        
+
         response_data = {"success": False, "error": "Unknown error"}
         status_code = 500
-        
+
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             print(f"Content-Length: {content_length}")
-            
+
             if content_length == 0:
                 print("❌ No payment data received")
                 response_data = {
@@ -162,19 +162,19 @@ window.CONFIG = {{
                 post_data = self.rfile.read(content_length)
                 print(f"Raw post data length: {len(post_data)}")
                 print(f"Raw post data: {post_data}")
-                
+
                 try:
                     payment_data = json.loads(post_data.decode('utf-8'))
                     print("✅ Payment data successfully parsed:", payment_data)
-                    
+
                     # Mock payment verification - in production, verify with Razorpay
                     plan_key = payment_data.get('planKey', 'pro')
                     payment_id = payment_data.get('payment_id')
                     order_id = payment_data.get('order_id')
                     signature = payment_data.get('signature')
-                    
+
                     print(f"Payment details - planKey: {plan_key}, payment_id: {payment_id}, order_id: {order_id}, signature: {signature}")
-                    
+
                     if payment_id and order_id and signature:
                         print("✅ All required payment fields present")
                         # Simulate successful verification
@@ -191,14 +191,14 @@ window.CONFIG = {{
                         if not payment_id: missing_fields.append('payment_id')
                         if not order_id: missing_fields.append('order_id')
                         if not signature: missing_fields.append('signature')
-                        
+
                         print(f"❌ Missing payment fields: {missing_fields}")
                         response_data = {
                             "success": False, 
                             "error": f"Missing required payment details: {', '.join(missing_fields)}"
                         }
                         status_code = 400
-                        
+
                 except json.JSONDecodeError as e:
                     print(f"❌ JSON decode error: {e}")
                     print(f"Failed to decode: {post_data}")
@@ -224,7 +224,7 @@ window.CONFIG = {{
         print(f"Final response data: {response_data}")
         print(f"Final status code: {status_code}")
         print("=== PAYMENT VERIFICATION END ===")
-        
+
         # Always send JSON response - override the default error handling
         self._send_json_response(response_data, status_code)
 
@@ -233,13 +233,13 @@ window.CONFIG = {{
         print(f"=== SENDING JSON RESPONSE ===")
         print(f"Status code: {status_code}")
         print(f"Data to send: {data}")
-        
+
         try:
             # Make sure we haven't already sent headers
             if hasattr(self, '_headers_sent'):
                 print("❌ Headers already sent, cannot send response")
                 return
-                
+
             self.send_response(status_code)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -247,21 +247,21 @@ window.CONFIG = {{
             self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
             self._headers_sent = True
-            
+
             json_response = json.dumps(data, ensure_ascii=False)
             print(f"JSON response length: {len(json_response)}")
             print(f"JSON response: {json_response}")
-            
+
             self.wfile.write(json_response.encode('utf-8'))
             self.wfile.flush()
             print("✅ JSON response sent successfully")
-            
+
         except Exception as send_error:
             print(f"❌ Error sending JSON response: {send_error}")
             print(f"Error type: {type(send_error).__name__}")
             import traceback
             traceback.print_exc()
-            
+
             # If all else fails, try to send minimal JSON
             try:
                 if not hasattr(self, '_headers_sent'):
@@ -275,14 +275,14 @@ window.CONFIG = {{
                 print("⚠️ Sent minimal error response")
             except Exception as final_error:
                 print(f"❌ Failed to send any response: {final_error}")
-        
+
         print("=== JSON RESPONSE COMPLETE ===")
 
     def handle_create_razorpay_order(self):
         """Handle Razorpay order creation"""
         response_data = {"success": False, "error": "Unknown error"}
         status_code = 500
-        
+
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             if content_length == 0:
@@ -293,7 +293,7 @@ window.CONFIG = {{
                 status_code = 400
             else:
                 post_data = self.rfile.read(content_length)
-                
+
                 try:
                     order_data = json.loads(post_data.decode('utf-8'))
                     print(f"Creating order for: {order_data}")
@@ -302,12 +302,12 @@ window.CONFIG = {{
                     plan_key = order_data.get('planKey')
                     price = order_data.get('price')
                     currency = order_data.get('currency', 'INR')
-                    
+
                     if not plan_key or not price:
                         missing_fields = []
                         if not plan_key: missing_fields.append('planKey')
                         if not price: missing_fields.append('price')
-                        
+
                         response_data = {
                             "success": False,
                             "error": f"Missing required fields: {', '.join(missing_fields)}"
@@ -326,7 +326,7 @@ window.CONFIG = {{
                             "planKey": plan_key
                         }
                         status_code = 200
-                        
+
                 except json.JSONDecodeError as e:
                     print(f"JSON decode error in order creation: {e}")
                     print(f"Raw data: {post_data.decode('utf-8')[:200]}")
@@ -342,7 +342,7 @@ window.CONFIG = {{
             print(f"Exception type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
-            
+
             response_data = {
                 "success": False,
                 "error": "Failed to create order",
@@ -357,7 +357,7 @@ window.CONFIG = {{
         """Override to send JSON error responses for API endpoints"""
         parsed_path = urlparse(self.path)
         api_endpoints = ['/verify-payment', '/create-razorpay-order', '/save-ad', '/sync-user-data']
-        
+
         if parsed_path.path in api_endpoints:
             error_data = {
                 "success": False,
