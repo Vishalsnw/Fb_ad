@@ -48,6 +48,25 @@ function loadRazorpayScript() {
     document.head.appendChild(script);
 }
 
+// Load Razorpay payment buttons
+function loadRazorpayPaymentButtons() {
+    // Remove any existing payment button scripts
+    const existingScripts = document.querySelectorAll('script[src*="payment-button.js"]');
+    existingScripts.forEach(script => script.remove());
+    
+    // Load the payment button script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+    script.setAttribute('data-payment_button_id', 'pl_QxlifReO48GlM8');
+    script.onload = () => {
+        console.log('✅ Razorpay payment button script loaded');
+    };
+    script.onerror = () => {
+        console.error('❌ Failed to load Razorpay payment button script');
+    };
+    document.head.appendChild(script);
+}
+
 // Load config when available
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for config to be loaded
@@ -127,15 +146,11 @@ function setupPaymentModal() {
                                 ${key === 'free' ? 'Current Plan' : 'Subscribe Now'}
                             </button>
                             ${key !== 'free' ? `
-                                <div style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
-                                    <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: #666;">Quick Payment Option:</p>
-                                    <form>
-                                        <script 
-                                            src="https://checkout.razorpay.com/v1/payment-button.js" 
-                                            data-payment_button_id="pl_QxlifReO48GlM8" 
-                                            async>
-                                        </script>
-                                    </form>
+                                <div style="margin-top: 15px; padding: 15px; border: 2px solid #667eea; border-radius: 12px; background: linear-gradient(135deg, #f8f9ff, #e6ebff);">
+                                    <p style="margin: 0 0 15px 0; font-size: 1rem; color: #333; font-weight: 600; text-align: center;">⚡ Instant Payment</p>
+                                    <div id="razorpay-button-${key}" style="text-align: center;">
+                                        <div class="razorpay-payment-button" data-payment_button_id="pl_QxlifReO48GlM8"></div>
+                                    </div>
                                 </div>
                             ` : ''}
                         </div>
@@ -146,6 +161,9 @@ function setupPaymentModal() {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Load Razorpay payment buttons
+    loadRazorpayPaymentButtons();
 
     // Setup modal events
     const modal = document.getElementById('paymentModal');
