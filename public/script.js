@@ -371,9 +371,6 @@ async function handleFormSubmit(event) {
             timestamp: new Date().toISOString()
         };
 
-        // Increment usage count after successful generation
-        incrementUsageCount();
-
         // Save to user's ad history if logged in
         if (typeof window.currentUser === 'function' && window.currentUser()) {
             try {
@@ -890,11 +887,25 @@ function displayResults(textContent, imageUrl, formData) {
         cta: textContent.cta
     });
 
-    // Increment usage count after successful generation
-    incrementUsageCount();
-
     console.log('✅ Ad generation completed successfully');
     resultsDiv.scrollIntoView({ behavior: 'smooth' });
+
+    // Increment usage count after successful generation and check limits
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (currentUser) {
+        incrementUsageCount();
+        
+        // Check if user has reached limit after increment
+        const userPlan = localStorage.getItem('userPlan') || 'free';
+        const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+        
+        if (userPlan === 'free' && adsUsed >= 4) {
+            // Show payment modal after successful generation
+            setTimeout(() => {
+                showPaymentModal();
+            }, 2000); // Show after 2 seconds to let user see the result
+        }
+    }
 
     // Debug: Log what's actually being displayed
     console.log('📊 Final ad content being displayed:', {
@@ -1493,21 +1504,8 @@ function checkUsageLimits() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
 
     if (currentUser) {
-        // Check if user has premium subscription
-        const userPlan = localStorage.getItem('userPlan') || 'free';
-        const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-
-        if (userPlan === 'premium') {
-            return true; // Unlimited for premium users
-        }
-
-        // Free users get 4 ads after login
-        if (adsUsed >= 4) {
-            showPaymentModal();
-            return false;
-        }
-
-        return true;
+        // Check if user has premium subscription using canGenerateAd function
+        return canGenerateAd();
     } else {
         showLoginRequiredModal();
         return false;

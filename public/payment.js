@@ -231,7 +231,9 @@ function canGenerateAd() {
         return true; // Unlimited
     }
 
-    if (adsUsed >= planLimits.adsPerMonth) {
+    // For free users, check if they've reached the limit (4 ads)
+    if (adsUsed >= 4) {
+        console.log('🚫 User has reached free plan limit, showing payment modal');
         showPaymentModal();
         return false;
     }
