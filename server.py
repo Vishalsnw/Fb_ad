@@ -5,6 +5,7 @@ import mimetypes
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import traceback
+import time
 
 class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -63,32 +64,54 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             # Debug: Log environment variables (without exposing full keys)
             deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
             deepai_key = os.getenv("DEEPAI_API_KEY", "")
+            google_client_id = os.getenv("GOOGLE_CLIENT_ID", "")
             razorpay_key_id = os.getenv("RAZORPAY_KEY_ID", "")
             razorpay_key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
+            firebase_api_key = os.getenv("FIREBASE_API_KEY", "")
+            firebase_auth_domain = os.getenv("FIREBASE_AUTH_DOMAIN", "")
+            firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "")
 
             print(f"🔑 DEEPSEEK_API_KEY: {'✅ Present' if deepseek_key else '❌ Missing'} ({len(deepseek_key)} chars)")
             print(f"🔑 DEEPAI_API_KEY: {'✅ Present' if deepai_key else '❌ Missing'} ({len(deepai_key)} chars)")
+            print(f"🔑 GOOGLE_CLIENT_ID: {'✅ Present' if google_client_id else '❌ Missing'} ({len(google_client_id)} chars)")
             print(f"🔑 RAZORPAY_KEY_ID: {'✅ Present' if razorpay_key_id else '❌ Missing'} ({len(razorpay_key_id)} chars)")
             print(f"🔑 RAZORPAY_KEY_SECRET: {'✅ Present' if razorpay_key_secret else '❌ Missing'} ({len(razorpay_key_secret)} chars)")
+            print(f"🔑 FIREBASE_API_KEY: {'✅ Present' if firebase_api_key else '❌ Missing'} ({len(firebase_api_key)} chars)")
+            print(f"🔑 FIREBASE_AUTH_DOMAIN: {'✅ Present' if firebase_auth_domain else '❌ Missing'} ({len(firebase_auth_domain)} chars)")
+            print(f"🔑 FIREBASE_PROJECT_ID: {'✅ Present' if firebase_project_id else '❌ Missing'} ({len(firebase_project_id)} chars)")
 
-            if not deepseek_key or not deepai_key:
-                print("❌ CRITICAL: Missing AI API keys! Please add them in Replit Secrets.")
+            # Check for missing critical keys
+            missing_keys = []
+            if not deepseek_key:
+                missing_keys.append('DEEPSEEK_API_KEY')
+            if not deepai_key:
+                missing_keys.append('DEEPAI_API_KEY')
 
-            if not razorpay_key_id or not razorpay_key_secret:
-                print("⚠️ WARNING: Missing Razorpay keys! Payment functionality will not work.")
+            if missing_keys:
+                print(f"❌ CRITICAL: Missing API keys: {', '.join(missing_keys)}")
+                print("🔧 Please add these keys in Replit Secrets:")
+                print("   - Go to Secrets tab in the left sidebar")
+                print("   - Add DEEPSEEK_API_KEY with your DeepSeek API key")
+                print("   - Add DEEPAI_API_KEY with your DeepAI API key")
 
             config_js = f'''
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '{deepseek_key}',
     DEEPAI_API_KEY: '{deepai_key}',
-    GOOGLE_CLIENT_ID: '{os.getenv("GOOGLE_CLIENT_ID", "")}',
+    GOOGLE_CLIENT_ID: '{google_client_id}',
     RAZORPAY_KEY_ID: '{razorpay_key_id}',
     RAZORPAY_KEY_SECRET: '{razorpay_key_secret}',
-    FIREBASE_API_KEY: '{os.getenv("FIREBASE_API_KEY", "")}',
-    FIREBASE_AUTH_DOMAIN: '{os.getenv("FIREBASE_AUTH_DOMAIN", "")}',
-    FIREBASE_PROJECT_ID: '{os.getenv("FIREBASE_PROJECT_ID", "")}',
-    SHOW_3D_EARLY: true
+    FIREBASE_API_KEY: '{firebase_api_key}',
+    FIREBASE_AUTH_DOMAIN: '{firebase_auth_domain}',
+    FIREBASE_PROJECT_ID: '{firebase_project_id}',
+    SHOW_3D_EARLY: true,
+    MISSING_KEYS: {str(missing_keys).replace("'", '"')}
 }};
+console.log('✅ Config loaded from server:', Object.keys(window.CONFIG));
+if (window.CONFIG.MISSING_KEYS.length > 0) {{
+    console.error('❌ Missing API keys:', window.CONFIG.MISSING_KEYS);
+    console.log('🔧 Please add these keys in Replit Secrets and refresh the page');
+}}
 '''
             self.send_response(200)
             self.send_header('Content-type', 'application/javascript')
@@ -97,8 +120,27 @@ window.CONFIG = {{
             self.end_headers()
             self.wfile.write(config_js.encode())
         except Exception as e:
-            print(f"Error serving config: {e}")
-            self.send_error(500, "Internal Server Error")
+            print(f"❌ Error serving config: {e}")
+            error_config = f'''
+window.CONFIG = {{
+    DEEPSEEK_API_KEY: '',
+    DEEPAI_API_KEY: '',
+    GOOGLE_CLIENT_ID: '',
+    RAZORPAY_KEY_ID: '',
+    RAZORPAY_KEY_SECRET: '',
+    FIREBASE_API_KEY: '',
+    FIREBASE_AUTH_DOMAIN: '',
+    FIREBASE_PROJECT_ID: '',
+    SHOW_3D_EARLY: true,
+    ERROR: '{str(e)}'
+}};
+console.error('❌ Config loading error: {str(e)}');
+'''
+            self.send_response(200)
+            self.send_header('Content-type', 'application/javascript')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(error_config.encode())
 
     def serve_config_check(self):
         """Serve configuration status for debugging"""

@@ -85,6 +85,25 @@ async function loadConfig() {
                 const missingKeys = [];
                 if (!hasDeepSeek) missingKeys.push('DEEPSEEK_API_KEY');
                 if (!hasDeepAI) missingKeys.push('DEEPAI_API_KEY');
+                
+                console.error('❌ Missing API keys:', missingKeys);
+                console.log('🔧 To fix this:');
+                console.log('   1. Go to Secrets tab in Replit (left sidebar)');
+                console.log('   2. Add DEEPSEEK_API_KEY with your DeepSeek API key');
+                console.log('   3. Add DEEPAI_API_KEY with your DeepAI API key');
+                console.log('   4. Refresh the page');
+                
+                // Show user-friendly error
+                showError(`
+                    Missing API Keys: ${missingKeys.join(', ')}<br><br>
+                    <strong>To fix this:</strong><br>
+                    1. Click on "Secrets" in the left sidebar<br>
+                    2. Add <code>DEEPSEEK_API_KEY</code> with your DeepSeek API key<br>
+                    3. Add <code>DEEPAI_API_KEY</code> with your DeepAI API key<br>
+                    4. Refresh this page<br><br>
+                    <a href="#" onclick="location.reload()" style="color: #667eea; text-decoration: underline;">Click here to refresh</a>
+                `);
+                
                 throw new Error(`Missing API keys: ${missingKeys.join(', ')}`);
             }
         } else {
@@ -1134,13 +1153,33 @@ function showError(message) {
     const resultsDiv = document.getElementById('results');
     if (resultsDiv) {
         resultsDiv.innerHTML = `
-            <div class="error-message">
-                <h3>❌ Error</h3>
-                <p>${message}</p>
-                <button onclick="location.reload()" class="retry-btn">Try Again</button>
+            <div class="error-message" style="
+                padding: 30px;
+                background: #fff5f5;
+                border: 2px solid #feb2b2;
+                border-radius: 12px;
+                margin: 20px 0;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            ">
+                <h3 style="color: #e53e3e; margin-bottom: 15px; font-size: 1.5rem;">❌ Configuration Error</h3>
+                <div style="color: #2d3748; line-height: 1.6; margin-bottom: 20px;">
+                    ${message}
+                </div>
+                <button onclick="location.reload()" style="
+                    background: #667eea;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    transition: background 0.3s ease;
+                " class="retry-btn">Refresh Page</button>
             </div>
         `;
         resultsDiv.style.display = 'block';
+        resultsDiv.scrollIntoView({ behavior: 'smooth' });
     }
     console.error('Error:', message);
 }
