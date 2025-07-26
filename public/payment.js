@@ -283,6 +283,13 @@ async function handleSubscription(planKey) {
             alert('Payment configuration error. Please contact support.');
             return;
         }
+        
+        // Validate Razorpay key format
+        if (!window.RAZORPAY_KEY_ID.startsWith('rzp_')) {
+            console.error('❌ Invalid Razorpay key format:', window.RAZORPAY_KEY_ID);
+            alert('Invalid payment configuration. Please contact support.');
+            return;
+        }
 
         // Initialize Razorpay payment
         const options = {
@@ -311,14 +318,38 @@ async function handleSubscription(planKey) {
         };
 
         try {
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                console.error('❌ Payment failed:', response.error);
-                alert(`Payment failed: ${response.error.description}`);
+            console.log('🔧 Razorpay options:', {
+                key: options.key,
+                amount: options.amount,
+                currency: options.currency,
+                order_id: options.order_id,
+                name: options.name
             });
+            
+            const rzp = new Razorpay(options);
+            
+            rzp.on('payment.failed', function (response) {
+                console.error('❌ Payment failed:', response);
+                console.error('❌ Error details:', response.error);
+                
+                let errorMessage = 'Payment failed';
+                if (response.error && response.error.description) {
+                    errorMessage = response.error.description;
+                } else if (response.error && response.error.reason) {
+                    errorMessage = response.error.reason;
+                } else if (response.error && response.error.code) {
+                    errorMessage = `Error code: ${response.error.code}`;
+                }
+                
+                alert(`Payment failed: ${errorMessage}`);
+            });
+            
+            console.log('🔧 Opening Razorpay checkout...');
             rzp.open();
         } catch (error) {
             console.error('❌ Error opening Razorpay:', error);
+            console.error('❌ Error type:', error.constructor.name);
+            console.error('❌ Error details:', error.message);
             alert('Failed to open payment gateway. Please try again.');
         }
 
