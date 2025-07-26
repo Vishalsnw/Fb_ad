@@ -211,7 +211,7 @@ console.error('❌ Config loading error: {str(e)}');
                 ads = []
 
             ads.insert(0, ad_data)
-            ads = ads[:4]  # Limit to 4 ads (Ad limit set to 4)
+            ads = ads[:4]  # Limit to 4 ads
 
             with open(filename, 'w') as f:
                 json.dump(ads, f, indent=2)

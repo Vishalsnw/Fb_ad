@@ -351,8 +351,8 @@ function updateUsageDisplay() {
         if (userPlan === 'premium') {
             usageDisplay.innerHTML = `⭐ Premium - Unlimited ads`;
         } else {
-            const remaining = Math.max(0, 10 - adsUsed);
-            usageDisplay.innerHTML = `🎯 ${remaining}/10 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
+            const remaining = Math.max(0, 4 - adsUsed);
+            usageDisplay.innerHTML = `🎯 ${remaining}/4 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
         }
     }
 }
