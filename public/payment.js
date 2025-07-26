@@ -171,13 +171,27 @@ function setupPaymentModal() {
 }
 
 function showPaymentModal() {
+    console.log('💳 showPaymentModal called');
     const modal = document.getElementById('paymentModal');
     if (modal) {
         modal.style.display = 'block';
         console.log('💳 Payment modal opened');
     } else {
-        console.error('❌ Payment modal not found');
-        alert('You have reached your free plan limit of 4 ads. Please upgrade to continue generating unlimited ads!');
+        console.error('❌ Payment modal not found, creating it...');
+        // Try to setup the modal if it doesn't exist
+        setupPaymentModal();
+        
+        // Try again after a short delay
+        setTimeout(() => {
+            const newModal = document.getElementById('paymentModal');
+            if (newModal) {
+                newModal.style.display = 'block';
+                console.log('💳 Payment modal created and opened');
+            } else {
+                // Final fallback - show alert
+                alert('🚀 Upgrade Required!\n\nYou have reached your free plan limit of 4 ads. Upgrade to Pro or Unlimited plan to continue generating professional ads!\n\n💎 Pro Plan: ₹599/month - 100 ads\n⭐ Unlimited Plan: ₹999/month - Unlimited ads');
+            }
+        }, 100);
     }
 }
 
