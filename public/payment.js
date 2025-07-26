@@ -266,9 +266,10 @@ function canGenerateAd() {
     
     const userPlan = currentUser.subscriptionStatus || 'free';
     const adsUsed = currentUser.usageCount || 0;
+    const maxUsage = currentUser.maxUsage || 4;
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
 
-    console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
+    console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, maxUsage=${maxUsage}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
 
     // For premium/unlimited users
     if (userPlan !== 'free' && planLimits && (planLimits.adsPerMonth === -1 || planLimits.adsPerMonth === 100)) {
@@ -276,13 +277,13 @@ function canGenerateAd() {
         return true;
     }
 
-    // For free users, check if they've reached the limit (4 ads)
-    if (adsUsed >= 4 && userPlan === 'free') {
-        console.log('🚫 User has reached free plan limit (4 ads), blocking generation');
+    // For free users, check if they've reached their max usage limit
+    if (adsUsed >= maxUsage && userPlan === 'free') {
+        console.log(`🚫 User has reached free plan limit (${adsUsed}/${maxUsage} ads), blocking generation`);
         return false; // Don't show modal here, let calling function handle it
     }
     
-    console.log(`✅ Can generate: ${adsUsed}/4 ads used (free plan)`);
+    console.log(`✅ Can generate: ${adsUsed}/${maxUsage} ads used (free plan)`);
     return true;
 }
 

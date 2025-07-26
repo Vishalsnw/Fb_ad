@@ -1,9 +1,12 @@
+
 {
   "uid": "0KphYhcfSRQAlurLoUQAIzGdZCq1",
   "displayName": "VISHAL SONAWANE",
   "email": "vishalsnw007@gmail.com",
   "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJAn8hu0vUU8HxwFIlBtdm7FwIQkeWeatJUU6TZF9c7Xow24wQ=s96-c",
   "usageCount": 4,
-  "maxUsage": 10,
-  "subscriptionStatus": "free"
+  "maxUsage": 4,
+  "subscriptionStatus": "free",
+  "createdAt": "2024-01-01T00:00:00.000000",
+  "lastLoginAt": "2024-01-01T00:00:00.000000"
 }
