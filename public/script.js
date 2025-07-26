@@ -893,13 +893,23 @@ function displayResults(textContent, imageUrl, formData) {
     // Increment usage count after successful generation and check limits
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (currentUser) {
-        incrementUsageCount();
+        // Increment usage count first
+        const currentAdsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+        const newAdsUsed = currentAdsUsed + 1;
+        localStorage.setItem('adsUsed', newAdsUsed.toString());
+        
+        console.log(`📊 Usage updated: ${newAdsUsed}/4 ads used`);
+        
+        // Update usage display
+        updateUsageDisplay();
         
         // Check if user has reached limit after increment
         const userPlan = localStorage.getItem('userPlan') || 'free';
-        const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
         
-        if (userPlan === 'free' && adsUsed >= 4) {
+        console.log(`🔍 Checking limits: plan=${userPlan}, adsUsed=${newAdsUsed}`);
+        
+        if (userPlan === 'free' && newAdsUsed >= 4) {
+            console.log('🚫 User has reached limit, showing payment modal');
             // Show payment modal after successful generation
             setTimeout(() => {
                 showPaymentModal();
@@ -1520,10 +1530,19 @@ function incrementUsageCount() {
 
         if (userPlan === 'free') {
             const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-            localStorage.setItem('adsUsed', (adsUsed + 1).toString());
+            const newAdsUsed = adsUsed + 1;
+            localStorage.setItem('adsUsed', newAdsUsed.toString());
+            console.log(`📊 Usage incremented: ${newAdsUsed}/4 ads used`);
             updateUsageDisplay();
+            
+            // Check if limit reached
+            if (newAdsUsed >= 4) {
+                console.log('🚫 Usage limit reached, payment required');
+                return true; // Indicates limit reached
+            }
         }
     }
+    return false; // Limit not reached
 }
 
 function updateUsageDisplay() {
@@ -1742,6 +1761,15 @@ function upgradeToPremium() {
     alert('🎉 Welcome to Premium! You now have unlimited ad generation!');
 }
 
+// Test function to simulate reaching usage limit
+function testUsageLimit() {
+    localStorage.setItem('adsUsed', '4');
+    localStorage.setItem('userPlan', 'free');
+    updateUsageDisplay();
+    console.log('🧪 Test: Set usage to 4/4 - next generation should show payment modal');
+    alert('Usage set to 4/4. Try generating an ad now to test payment modal.');
+}
+
 // Make functions globally available
 window.closeLoginModal = closeLoginModal;
 window.signInForMore = signInForMore;
@@ -1749,6 +1777,7 @@ window.showLoginRequiredModal = showLoginRequiredModal;
 window.showPaymentModal = showPaymentModal;
 window.closePaymentModal = closePaymentModal;
 window.upgradeToPremium = upgradeToPremium;
+window.testUsageLimit = testUsageLimit;
 
 // Helper functions for ad format styling
 function getAdFormatClass(adFormat) {

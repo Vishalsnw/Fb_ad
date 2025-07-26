@@ -227,7 +227,10 @@ function canGenerateAd() {
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
 
-    if (planLimits.adsPerMonth === -1) {
+    console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
+
+    if (planLimits && planLimits.adsPerMonth === -1) {
+        console.log('✅ Unlimited plan, allowing generation');
         return true; // Unlimited
     }
 
@@ -238,6 +241,7 @@ function canGenerateAd() {
         return false;
     }
     
+    console.log(`✅ Can generate: ${adsUsed}/4 ads used`);
     return true;
 }
 
