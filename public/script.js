@@ -64,8 +64,8 @@ async function loadConfig() {
             });
 
             // Validate keys are not empty strings
-            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 10; // API keys are longer than 10 chars
-            const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 10;
+            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5; // API keys should be at least 6 chars
+            const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 5;
             
             console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek, DEEPSEEK_API_KEY ? `(${DEEPSEEK_API_KEY.length} chars)` : '(empty)');
             console.log('DEEPAI_API_KEY loaded:', hasDeepAI, DEEPAI_API_KEY ? `(${DEEPAI_API_KEY.length} chars)` : '(empty)');
@@ -192,6 +192,8 @@ async function handleFormSubmit(event) {
         event.preventDefault();
     }
 
+    console.log('📝 Form submission started');
+
     // Prevent multiple submissions
     if (isGenerating) {
         console.log('⚠️ Ad generation already in progress');
@@ -206,7 +208,10 @@ async function handleFormSubmit(event) {
     }
 
     const formData = getFormData();
+    console.log('🔍 Validating form data:', formData);
+    
     if (!validateForm(formData)) {
+        console.log('❌ Form validation failed');
         // Re-enable submit button on validation failure
         if (submitButton) {
             submitButton.disabled = false;
@@ -214,6 +219,8 @@ async function handleFormSubmit(event) {
         }
         return;
     }
+    
+    console.log('✅ Form validation passed');
 
     // Ensure config is loaded first
     if (!configLoaded) {
@@ -310,7 +317,7 @@ async function handleFormSubmit(event) {
 async function generateText(formData) {
     console.log('🔄 Generating text with DeepSeek...');
 
-    if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.trim().length < 10) {
+    if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.trim().length < 5) {
         throw new Error('DeepSeek API key not properly configured');
     }
 
@@ -465,7 +472,7 @@ async function generateText(formData) {
 async function generateImage(formData) {
     console.log('🔄 Generating image with Google Images search + DeepAI...');
 
-    if (!DEEPAI_API_KEY || DEEPAI_API_KEY.trim().length < 10) {
+    if (!DEEPAI_API_KEY || DEEPAI_API_KEY.trim().length < 5) {
         throw new Error('DeepAI API key not properly configured');
     }
 
@@ -654,8 +661,8 @@ function checkApiKeys() {
     console.log('DEEPSEEK_API_KEY:', DEEPSEEK_API_KEY ? `Present (${DEEPSEEK_API_KEY.length} chars)` : 'Missing');
     console.log('DEEPAI_API_KEY:', DEEPAI_API_KEY ? `Present (${DEEPAI_API_KEY.length} chars)` : 'Missing');
     
-    const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 10;
-    const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 10;
+    const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5;
+    const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 5;
     
     if (!hasDeepSeek || !hasDeepAI) {
         const missingKeys = [];
@@ -884,6 +891,8 @@ function regenerateAd() {
 }
 
 function getFormData() {
+    console.log('📋 Extracting form data...');
+    
     const productName = document.getElementById('productName');
     const productDescription = document.getElementById('productDescription');
     const targetAudience = document.getElementById('targetAudience');
@@ -896,31 +905,41 @@ function getFormData() {
     const languageRadio = document.querySelector('input[name="language"]:checked');
     const language = languageRadio ? languageRadio.value : 'English';
 
-    return {
-        productName: productName ? productName.value : '',
-        productDescription: productDescription ? productDescription.value : '',
-        targetAudience: targetAudience ? targetAudience.value : '',
-        specialOffer: specialOffer ? specialOffer.value : '',
+    const formData = {
+        productName: productName ? productName.value.trim() : '',
+        productDescription: productDescription ? productDescription.value.trim() : '',
+        targetAudience: targetAudience ? targetAudience.value.trim() : '',
+        specialOffer: specialOffer ? specialOffer.value.trim() : '',
         language: language,
         tone: tone ? tone.value : 'professional',
         adFormat: adFormat ? adFormat.value : 'facebook-feed',
         businessType: businessType ? businessType.value : ''
     };
+
+    console.log('📋 Form data extracted:', formData);
+    return formData;
 }
 
 function validateForm(formData) {
-    if (!formData.productName.trim()) {
+    console.log('🔍 Validating form fields...');
+    
+    if (!formData.productName || !formData.productName.trim()) {
+        console.log('❌ Product name missing');
         showError('Please enter your product name');
         return false;
     }
-    if (!formData.productDescription.trim()) {
+    if (!formData.productDescription || !formData.productDescription.trim()) {
+        console.log('❌ Product description missing');
         showError('Please describe your product or service');
         return false;
     }
-    if (!formData.targetAudience.trim()) {
+    if (!formData.targetAudience || !formData.targetAudience.trim()) {
+        console.log('❌ Target audience missing');
         showError('Please specify your target audience');
         return false;
     }
+    
+    console.log('✅ All required fields validated');
     return true;
 }
 

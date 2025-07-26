@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form Test</title>
+</head>
+<body>
+    <h1>Form Test Page</h1>
+    <form id="testForm">
+        <div>
+            <label>Product Name:</label>
+            <input type="text" id="productName" value="Test Product" required>
+        </div>
+        <div>
+            <label>Product Description:</label>
+            <input type="text" id="productDescription" value="Test description" required>
+        </div>
+        <div>
+            <label>Target Audience:</label>
+            <input type="text" id="targetAudience" value="Test audience" required>
+        </div>
+        <div>
+            <label>Business Type:</label>
+            <select id="businessType">
+                <option value="ecommerce">E-commerce</option>
+            </select>
+        </div>
+        <div>
+            <label>Special Offer:</label>
+            <input type="text" id="specialOffer" value="">
+        </div>
+        <div>
+            <label>Tone:</label>
+            <select id="tone">
+                <option value="professional">Professional</option>
+            </select>
+        </div>
+        <div>
+            <label>Ad Format:</label>
+            <select id="adFormat">
+                <option value="facebook-feed">Facebook Feed</option>
+            </select>
+        </div>
+        <div>
+            <input type="radio" name="language" value="English" checked> English
+            <input type="radio" name="language" value="Hindi"> Hindi
+        </div>
+        <button type="submit" id="generateButton">Generate Test Ad</button>
+    </form>
+    
+    <div id="results" style="margin-top: 20px;"></div>
+    
+    <script>
+        // Simple test script
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Test form submitted');
+            
+            // Test form data extraction
+            const formData = {
+                productName: document.getElementById('productName').value,
+                productDescription: document.getElementById('productDescription').value,
+                targetAudience: document.getElementById('targetAudience').value,
+                businessType: document.getElementById('businessType').value,
+                specialOffer: document.getElementById('specialOffer').value,
+                tone: document.getElementById('tone').value,
+                adFormat: document.getElementById('adFormat').value,
+                language: document.querySelector('input[name="language"]:checked').value
+            };
+            
+            console.log('Form data:', formData);
+            document.getElementById('results').innerHTML = '<pre>' + JSON.stringify(formData, null, 2) + '</pre>';
+        });
+    </script>
+</body>
+</html>
