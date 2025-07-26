@@ -575,7 +575,7 @@ console.error('❌ Config loading error: {str(e)}');
             self._send_json_response({"error": str(e)}, 500)
 
     def handle_generate_ad(self):
-        """Handle ad generation requests"""
+        """Handle ad generation requests using real AI APIs"""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             if content_length == 0:
@@ -587,14 +587,28 @@ console.error('❌ Config loading error: {str(e)}');
 
             print(f"🎨 Generating ad for: {form_data.get('productName', 'Unknown product')}")
 
-            # Mock response for now - replace with actual AI integration
-            mock_response = {
+            # Generate ad copy using DeepSeek API
+            ad_copy_result = self.generate_ad_copy_with_deepseek(form_data)
+            if not ad_copy_result["success"]:
+                self._send_json_response(ad_copy_result, 500)
+                return
+
+            # Generate image using DeepAI API
+            image_result = self.generate_image_with_deepai(form_data)
+            if not image_result["success"]:
+                # If image generation fails, continue with text-only ad
+                print(f"⚠️ Image generation failed: {image_result.get('error')}")
+                image_url = "https://picsum.photos/600/400?random=" + str(hash(form_data.get('productName', 'default')))
+            else:
+                image_url = image_result["image_url"]
+
+            response = {
                 "success": True,
-                "ad_copy": f"🌟 Discover {form_data.get('productName', 'our amazing product')}! {form_data.get('productDescription', 'Perfect for your needs.')} Perfect for {form_data.get('targetAudience', 'everyone')}. {form_data.get('specialOffer', 'Special offer available!')} Don't miss out!",
-                "image_url": "https://picsum.photos/600/400?random=" + str(hash(form_data.get('productName', 'default')))
+                "ad_copy": ad_copy_result["ad_copy"],
+                "image_url": image_url
             }
 
-            self._send_json_response(mock_response, 200)
+            self._send_json_response(response, 200)
 
         except json.JSONDecodeError as e:
             print(f"❌ JSON decode error in ad generation: {e}")
@@ -602,6 +616,139 @@ console.error('❌ Config loading error: {str(e)}');
         except Exception as e:
             print(f"❌ Error generating ad: {e}")
             self._send_json_response({"success": False, "error": str(e)}, 500)
+
+    def generate_ad_copy_with_deepseek(self, form_data):
+        """Generate ad copy using DeepSeek API"""
+        try:
+            import urllib.request
+            import urllib.parse
+
+            deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "")
+            if not deepseek_api_key:
+                return {"success": False, "error": "DeepSeek API key not configured"}
+
+            # Create prompt for ad generation
+            language = form_data.get('language', 'English')
+            product_name = form_data.get('productName', '')
+            product_description = form_data.get('productDescription', '')
+            target_audience = form_data.get('targetAudience', '')
+            special_offer = form_data.get('specialOffer', '')
+            tone = form_data.get('tone', 'professional')
+            ad_format = form_data.get('adFormat', 'facebook-feed')
+
+            prompt = f"""Create a compelling {ad_format} ad copy in {language} language with a {tone} tone.
+
+Product: {product_name}
+Description: {product_description}
+Target Audience: {target_audience}
+Special Offer: {special_offer}
+
+Requirements:
+- Write in {language}
+- Use {tone} tone
+- Include emojis for engagement
+- Keep it concise and compelling
+- Include a clear call-to-action
+- Make it suitable for {ad_format}
+
+Generate only the ad copy text, no additional formatting or explanations."""
+
+            # Prepare API request
+            url = "https://api.deepseek.com/v1/chat/completions"
+            headers = {
+                'Authorization': f'Bearer {deepseek_api_key}',
+                'Content-Type': 'application/json'
+            }
+
+            data = {
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 200,
+                "temperature": 0.7
+            }
+
+            # Make API request
+            req = urllib.request.Request(url, data=json.dumps(data).encode(), headers=headers)
+            
+            print(f"🤖 Calling DeepSeek API for ad copy generation...")
+            with urllib.request.urlopen(req, timeout=30) as response:
+                result = json.loads(response.read().decode())
+                
+                if 'choices' in result and len(result['choices']) > 0:
+                    ad_copy = result['choices'][0]['message']['content'].strip()
+                    print(f"✅ DeepSeek API response received: {ad_copy[:50]}...")
+                    return {"success": True, "ad_copy": ad_copy}
+                else:
+                    print(f"❌ DeepSeek API response missing choices: {result}")
+                    return {"success": False, "error": "Invalid API response from DeepSeek"}
+
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode() if e.fp else "No error details"
+            print(f"❌ DeepSeek API HTTP error {e.code}: {error_body}")
+            return {"success": False, "error": f"DeepSeek API error: {e.code}"}
+        except urllib.error.URLError as e:
+            print(f"❌ DeepSeek API connection error: {e}")
+            return {"success": False, "error": "Failed to connect to DeepSeek API"}
+        except Exception as e:
+            print(f"❌ DeepSeek API unexpected error: {e}")
+            return {"success": False, "error": f"DeepSeek API error: {str(e)}"}
+
+    def generate_image_with_deepai(self, form_data):
+        """Generate image using DeepAI API"""
+        try:
+            import urllib.request
+            import urllib.parse
+
+            deepai_api_key = os.getenv("DEEPAI_API_KEY", "")
+            if not deepai_api_key:
+                return {"success": False, "error": "DeepAI API key not configured"}
+
+            # Create image prompt
+            product_name = form_data.get('productName', '')
+            product_description = form_data.get('productDescription', '')
+            business_type = form_data.get('businessType', '')
+
+            image_prompt = f"Professional product advertisement photo of {product_name}, {product_description}, {business_type}, high quality, commercial photography, attractive lighting, clean background"
+
+            # Prepare API request
+            url = "https://api.deepai.org/api/text2img"
+            headers = {
+                'Api-Key': deepai_api_key
+            }
+
+            # Prepare form data
+            data = urllib.parse.urlencode({
+                'text': image_prompt
+            }).encode()
+
+            print(f"🎨 Calling DeepAI API for image generation...")
+            print(f"Image prompt: {image_prompt}")
+
+            req = urllib.request.Request(url, data=data, headers=headers)
+            
+            with urllib.request.urlopen(req, timeout=45) as response:
+                result = json.loads(response.read().decode())
+                
+                if 'output_url' in result:
+                    image_url = result['output_url']
+                    print(f"✅ DeepAI API image generated: {image_url}")
+                    return {"success": True, "image_url": image_url}
+                else:
+                    print(f"❌ DeepAI API response missing output_url: {result}")
+                    return {"success": False, "error": "Invalid API response from DeepAI"}
+
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode() if e.fp else "No error details"
+            print(f"❌ DeepAI API HTTP error {e.code}: {error_body}")
+            return {"success": False, "error": f"DeepAI API error: {e.code}"}
+        except urllib.error.URLError as e:
+            print(f"❌ DeepAI API connection error: {e}")
+            return {"success": False, "error": "Failed to connect to DeepAI API"}
+        except Exception as e:
+            print(f"❌ DeepAI API unexpected error: {e}")
+            return {"success": False, "error": f"DeepAI API error: {str(e)}"}
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
