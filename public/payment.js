@@ -171,8 +171,18 @@ function setupPaymentModal() {
 }
 
 function showPaymentModal() {
-    document.getElementById('paymentModal').style.display = 'block';
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.style.display = 'block';
+        console.log('💳 Payment modal opened');
+    } else {
+        console.error('❌ Payment modal not found');
+        alert('You have reached your free plan limit of 4 ads. Please upgrade to continue generating unlimited ads!');
+    }
 }
+
+// Make it globally accessible
+window.showPaymentModal = showPaymentModal;
 
 function checkUserSubscription() {
     // Only show for logged in users

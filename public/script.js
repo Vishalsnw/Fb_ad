@@ -1,4 +1,3 @@
-
 // Prevent multiple script loading
 if (window.adGeneratorLoaded) {
     console.log('Ad Generator script already loaded, skipping...');
@@ -29,11 +28,11 @@ async function loadConfig() {
     try {
         const timestamp = Date.now();
         const response = await fetch(`/config.js?t=${timestamp}`);
-        
+
         if (!response.ok) {
             throw new Error(`Config fetch failed: ${response.status}`);
         }
-        
+
         const configScript = await response.text();
 
         // Create a safe execution context
@@ -45,7 +44,7 @@ async function loadConfig() {
         // Wait for CONFIG to be available with retry
         let retries = 0;
         const maxRetries = 10;
-        
+
         while (!window.CONFIG && retries < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 100));
             retries++;
@@ -66,7 +65,7 @@ async function loadConfig() {
             // Validate keys are not empty strings
             const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5; // API keys should be at least 6 chars
             const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 5;
-            
+
             console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek, DEEPSEEK_API_KEY ? `(${DEEPSEEK_API_KEY.length} chars)` : '(empty)');
             console.log('DEEPAI_API_KEY loaded:', hasDeepAI, DEEPAI_API_KEY ? `(${DEEPAI_API_KEY.length} chars)` : '(empty)');
 
@@ -79,7 +78,7 @@ async function loadConfig() {
                 } else {
                     console.warn('⚠️ Razorpay keys not found in config');
                 }
-                
+
                 configLoaded = true;
                 return true;
             } else {
@@ -102,18 +101,18 @@ async function loadConfig() {
 // Load configuration when page loads
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🔄 Page loaded, initializing...');
-    
+
     // Setup UI first
     setupEventListeners();
     setupLanguagePlaceholders();
     setupCopyProtection();
-    
+
     // Initialize usage display for anonymous users
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!currentUser) {
         updateUsageDisplay();
     }
-    
+
     // Then load config
     const configLoaded = await loadConfig();
     if (configLoaded) {
@@ -131,7 +130,7 @@ function setupCopyProtection() {
             return false;
         }
     });
-    
+
     // Disable text selection on ad preview
     document.addEventListener('selectstart', function(e) {
         if (e.target.closest('.ad-preview')) {
@@ -139,7 +138,7 @@ function setupCopyProtection() {
             return false;
         }
     });
-    
+
     // Disable drag and drop on images
     document.addEventListener('dragstart', function(e) {
         if (e.target.closest('.ad-image')) {
@@ -147,7 +146,7 @@ function setupCopyProtection() {
             return false;
         }
     });
-    
+
     // Disable common keyboard shortcuts for screenshots and copying
     document.addEventListener('keydown', function(e) {
         if (e.target.closest('.ad-preview')) {
@@ -162,7 +161,7 @@ function setupCopyProtection() {
             }
         }
     });
-    
+
     // Add screenshot detection
     let isScreenshotAttempt = false;
     document.addEventListener('keyup', function(e) {
@@ -171,7 +170,7 @@ function setupCopyProtection() {
             showScreenshotWarning();
         }
     });
-    
+
     // Detect if page becomes hidden (possible screenshot)
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && isScreenshotAttempt) {
@@ -190,7 +189,7 @@ function showScreenshotWarning() {
 function setupEventListeners() {
     const form = document.getElementById('adForm');
     const generateButton = document.getElementById('generateButton');
-    
+
     if (form) {
         form.removeEventListener('submit', handleFormSubmit); // Remove existing
         form.addEventListener('submit', handleFormSubmit);
@@ -217,7 +216,7 @@ function handleGenerateClick(event) {
 
 function setupLanguagePlaceholders() {
     const languageRadios = document.querySelectorAll('input[name="language"]');
-    
+
     languageRadios.forEach(radio => {
         radio.addEventListener('change', function() {
             if (this.checked) {
@@ -225,7 +224,7 @@ function setupLanguagePlaceholders() {
             }
         });
     });
-    
+
     // Set initial placeholders
     const checkedRadio = document.querySelector('input[name="language"]:checked');
     if (checkedRadio) {
@@ -294,7 +293,7 @@ async function handleFormSubmit(event) {
 
     const formData = getFormData();
     console.log('🔍 Validating form data:', formData);
-    
+
     if (!validateForm(formData)) {
         console.log('❌ Form validation failed');
         // Re-enable submit button on validation failure
@@ -304,7 +303,7 @@ async function handleFormSubmit(event) {
         }
         return;
     }
-    
+
     console.log('✅ Form validation passed');
 
     // Ensure config is loaded first
@@ -336,7 +335,7 @@ async function handleFormSubmit(event) {
         deepSeek: DEEPSEEK_API_KEY ? `${DEEPSEEK_API_KEY.substring(0, 10)}...` : 'MISSING',
         deepAI: DEEPAI_API_KEY ? `${DEEPAI_API_KEY.substring(0, 10)}...` : 'MISSING'
     });
-    
+
     isGenerating = true;
     showLoading();
 
@@ -392,7 +391,7 @@ async function handleFormSubmit(event) {
     } finally {
         isGenerating = false;
         hideLoading();
-        
+
         // Re-enable form submit button
         const submitButton = document.querySelector('button[type="submit"]');
         if (submitButton) {
@@ -438,11 +437,11 @@ async function generateText(formData) {
         }
 
         const data = await response.json();
-        
+
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
             throw new Error('Invalid response format from DeepSeek API');
         }
-        
+
         const content = data.choices[0].message.content;
 
         // Parse the response more reliably
@@ -464,7 +463,7 @@ async function generateText(formData) {
                 .replace(/html/gi, '') // Remove html tags
                 .replace(/^\s*\*/gm, '') // Remove asterisks at start of lines
                 .replace(/\*+/g, '') // Remove all remaining asterisks
-                .replace(/�/g, '') // Remove strange unicode characters
+                .replace(//g, '') // Remove strange unicode characters
                 .replace(/\[|\]/g, '') // Remove square brackets
                 .replace(/🛡️|🔥|⚡|✨|💪|🎯|🚀/g, '') // Remove emojis that might break parsing
                 .trim();
@@ -477,7 +476,7 @@ async function generateText(formData) {
                     .replace(/\*/g, '')
                     .replace(/^\s*[-•]\s*/, '')
                     .replace(/[\[\]]/g, '')
-                    .replace(/�/g, '')
+                    .replace(//g, '')
                     .replace(/🛡️|🔥|⚡|✨|💪|🎯|🚀/g, '') // Remove problematic emojis
                     .trim();
             }
@@ -535,7 +534,7 @@ async function generateText(formData) {
             return result;
         } catch (parseError) {
             console.error('❌ Error parsing API response:', parseError);
-            
+
             // Fallback: return the raw content split into parts
             const lines = content.split('\n').filter(line => line.trim());
             if (lines.length >= 3) {
@@ -546,7 +545,7 @@ async function generateText(formData) {
                 result.headline = lines[0].substring(0, 100);
                 result.adText = content.substring(0, 200);
             }
-            
+
             return result;
         }
     } catch (error) {
@@ -567,7 +566,7 @@ async function generateImage(formData) {
     // Step 1: Search Google Images for reference
     console.log('🔍 Step 1: Searching Google Images for reference...');
     const referenceImages = await searchGoogleImages(formData);
-    
+
     // Step 2: Create enhanced prompt with reference context
     const imagePrompt = createEnhancedImagePrompt(formData, referenceImages);
     console.log('🖼️ Enhanced image prompt:', imagePrompt);
@@ -608,20 +607,20 @@ async function generateImage(formData) {
 
 async function searchGoogleImages(formData) {
     console.log('🔍 Searching Google Images for product references...');
-    
+
     try {
         // Create search query from product info
         const searchQuery = `${formData.productName} ${formData.productDescription} ${formData.businessType} product advertisement`.trim();
-        
+
         // Use Google Custom Search API (free alternative)
         // For now, we'll use a proxy service to get image search results
         const searchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=isch&safe=active`)}`;
-        
+
         const response = await fetch(searchUrl);
-        
+
         if (response.ok) {
             const htmlContent = await response.text();
-            
+
             // Extract image characteristics from search results
             const imageAnalysis = analyzeSearchResults(htmlContent, formData);
             console.log('🔍 Google Images analysis:', imageAnalysis);
@@ -641,14 +640,14 @@ function analyzeSearchResults(htmlContent, formData) {
     const productName = formData.productName.toLowerCase();
     const productDescription = formData.productDescription.toLowerCase();
     const businessType = formData.businessType.toLowerCase();
-    
+
     const analysis = {
         dominantColors: [],
         commonElements: [],
         styleKeywords: [],
         composition: 'professional'
     };
-    
+
     // Determine common visual patterns based on product type
     if (productDescription.includes('mosquito') || productDescription.includes('net')) {
         analysis.dominantColors = ['blue', 'white', 'green'];
@@ -677,7 +676,7 @@ function analyzeSearchResults(htmlContent, formData) {
         analysis.styleKeywords = ['modern', 'professional', 'clean'];
         analysis.composition = 'product-focused commercial layout';
     }
-    
+
     return analysis;
 }
 
@@ -690,15 +689,15 @@ function createEnhancedImagePrompt(formData, referenceAnalysis) {
     const productName = formData.productName || 'product';
     const productDescription = formData.productDescription || '';
     const businessType = formData.businessType || 'business';
-    
+
     // Use reference analysis to create a more targeted prompt
     const colors = referenceAnalysis.dominantColors.join(', ');
     const elements = referenceAnalysis.commonElements.join(', ');
     const style = referenceAnalysis.styleKeywords.join(', ');
     const composition = referenceAnalysis.composition;
-    
+
     let basePrompt = '';
-    
+
     if (productDescription.toLowerCase().includes('mosquito') || productDescription.toLowerCase().includes('net')) {
         basePrompt = `Professional healthcare advertisement for ${productName} mosquito protection, showing ${elements}, ${composition} setting, dominant colors: ${colors}`;
     } else if (productDescription.toLowerCase().includes('coaching') || productDescription.toLowerCase().includes('education')) {
@@ -706,13 +705,13 @@ function createEnhancedImagePrompt(formData, referenceAnalysis) {
     } else {
         basePrompt = `Professional ${businessType} advertisement poster for ${productName}, incorporating ${elements}, ${composition} style, using ${colors} color palette`;
     }
-    
+
     const textRequirement = `CRITICAL: Large bold text "${productName}" with maximum contrast, readable typography, professional advertisement text overlay`;
     const styleRequirement = `Style: ${style}, commercial advertisement poster, marketing banner design, professional typography`;
-    
+
     // Enhanced prompt with Google Images insights
     const finalPrompt = `${basePrompt}. ${textRequirement}. ${styleRequirement}. Based on market research: incorporate common visual elements like ${elements}, use proven color combinations (${colors}), maintain ${composition}. Text visibility is MANDATORY with high contrast. This is a professional advertising poster that must have clearly visible brand text "${productName}".`;
-    
+
     return finalPrompt;
 }
 
@@ -723,7 +722,7 @@ function createImagePrompt(formData) {
 
     // Create a focused prompt for text visibility
     const productInfo = `${productName} ${productDescription}`.toLowerCase();
-    
+
     let basePrompt = '';
     let textRequirement = '';
 
@@ -748,10 +747,10 @@ function checkApiKeys() {
     console.log('🔍 Checking API keys...');
     console.log('DEEPSEEK_API_KEY:', DEEPSEEK_API_KEY ? `Present (${DEEPSEEK_API_KEY.length} chars)` : 'Missing');
     console.log('DEEPAI_API_KEY:', DEEPAI_API_KEY ? `Present (${DEEPAI_API_KEY.length} chars)` : 'Missing');
-    
+
     const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5;
     const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 5;
-    
+
     if (!hasDeepSeek || !hasDeepAI) {
         const missingKeys = [];
         if (!hasDeepSeek) {
@@ -766,7 +765,7 @@ function checkApiKeys() {
         showError(`Missing or invalid API keys: ${missingKeys.join(', ')}. Please add them in Replit Secrets.`);
         return false;
     }
-    
+
     console.log('✅ All API keys validated successfully');
     return true;
 }
@@ -801,10 +800,10 @@ CTA: Your call to action here`;
 
 function displayResults(textContent, imageUrl, formData) {
     console.log('🖼️ Displaying results with:', { textContent, imageUrl });
-    
+
     const resultsDiv = document.getElementById('results');
     const resultSection = document.getElementById('resultSection');
-    
+
     if (!resultsDiv) {
         console.error('❌ Results div not found!');
         return;
@@ -884,10 +883,19 @@ function displayResults(textContent, imageUrl, formData) {
     if (resultSection) {
         resultSection.style.display = 'block';
     }
-    
-    console.log('✅ Results displayed, scrolling into view');
+
+    console.log('📊 Final ad content being displayed:', {
+        headline: textContent.headline,
+        adText: textContent.adText.substring(0, 100) + '...',
+        cta: textContent.cta
+    });
+
+    // Increment usage count after successful generation
+    incrementUsageCount();
+
+    console.log('✅ Ad generation completed successfully');
     resultsDiv.scrollIntoView({ behavior: 'smooth' });
-    
+
     // Debug: Log what's actually being displayed
     console.log('📊 Final ad content being displayed:', {
         headline: structuredHeadline,
@@ -898,20 +906,20 @@ function displayResults(textContent, imageUrl, formData) {
 
 function formatAdText(text) {
     if (!text) return 'Generated ad text will appear here.';
-    
+
     // Clean up the text
     let cleanText = text.trim();
-    
+
     // Remove any existing HTML tags
     cleanText = cleanText.replace(/<[^>]*>/g, '');
-    
+
     // Split into sentences
     const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
+
     if (sentences.length <= 1) {
         return `<p style="margin: 8px 0; line-height: 1.5;">${cleanText}</p>`;
     }
-    
+
     // Format with better structure
     const formatted = sentences.map((sentence, index) => {
         const trimmed = sentence.trim();
@@ -926,7 +934,7 @@ function formatAdText(text) {
             return `<p style="margin: 8px 0; line-height: 1.5; color: #555;">${trimmed}.</p>`;
         }
     }).join('');
-    
+
     return formatted;
 }
 
@@ -978,7 +986,7 @@ function regenerateAd() {
 
 function getFormData() {
     console.log('📋 Extracting form data...');
-    
+
     const productName = document.getElementById('productName');
     const productDescription = document.getElementById('productDescription');
     const targetAudience = document.getElementById('targetAudience');
@@ -986,7 +994,7 @@ function getFormData() {
     const specialOffer = document.getElementById('specialOffer');
     const tone = document.getElementById('tone');
     const adFormat = document.getElementById('adFormat');
-    
+
     // Get language from radio buttons
     const languageRadio = document.querySelector('input[name="language"]:checked');
     const language = languageRadio ? languageRadio.value : 'English';
@@ -1008,7 +1016,7 @@ function getFormData() {
 
 function validateForm(formData) {
     console.log('🔍 Validating form fields...');
-    
+
     if (!formData.productName || !formData.productName.trim()) {
         console.log('❌ Product name missing');
         showError('Please enter your product name');
@@ -1024,7 +1032,7 @@ function validateForm(formData) {
         showError('Please specify your target audience');
         return false;
     }
-    
+
     console.log('✅ All required fields validated');
     return true;
 }
@@ -1070,11 +1078,11 @@ function startLoadingAnimation() {
     const steps = document.querySelectorAll('.step-3d');
     const progressText = document.querySelector('.progress-text');
     const progressCircle = document.querySelector('.progress-ring-circle');
-    
+
     const interval = setInterval(() => {
         progress += Math.random() * 15 + 5;
         if (progress > 100) progress = 100;
-        
+
         // Update progress ring
         if (progressText) progressText.textContent = Math.round(progress) + '%';
         if (progressCircle) {
@@ -1082,7 +1090,7 @@ function startLoadingAnimation() {
             const offset = circumference - (progress / 100) * circumference;
             progressCircle.style.strokeDashoffset = offset;
         }
-        
+
         // Update steps
         const newStepIndex = Math.floor((progress / 100) * steps.length);
         if (newStepIndex > stepIndex && newStepIndex < steps.length) {
@@ -1090,7 +1098,7 @@ function startLoadingAnimation() {
             steps[newStepIndex].classList.add('active');
             stepIndex = newStepIndex;
         }
-        
+
         if (progress >= 100) {
             clearInterval(interval);
         }
@@ -1186,7 +1194,7 @@ function generateVariations() {
     if (!validateForm(formData)) return;
 
     console.log('🔄 Generating ad variations...');
-    
+
     // Show loading state for variations
     let container = document.getElementById('variationsContainer');
     if (!container) {
@@ -1196,7 +1204,7 @@ function generateVariations() {
         container.style.cssText = 'margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;';
         resultsDiv.appendChild(container);
     }
-    
+
     container.innerHTML = `
         <div class="loading" style="text-align: center; padding: 20px;">
             <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
@@ -1239,7 +1247,7 @@ function generateVariations() {
 
 function displayVariations(variations) {
     console.log('🎯 Displaying variations:', variations);
-    
+
     let container = document.getElementById('variationsContainer');
     if (!container) {
         const resultsDiv = document.getElementById('results');
@@ -1263,18 +1271,18 @@ function displayVariations(variations) {
 
     variations.forEach((variation, index) => {
         console.log(`📝 Adding variation ${index + 1}:`, variation);
-        
+
         if (variation && variation.content) {
             const variationCard = document.createElement('div');
             variationCard.className = 'variation-card';
             variationCard.style.cssText = 'border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-            
+
             // Safely escape HTML content
             const headline = variation.content.headline || 'No headline';
             const adText = variation.content.adText || 'No ad text';
             const cta = variation.content.cta || 'No CTA';
             const title = variation.title || `Variation ${index + 1}`;
-            
+
             variationCard.innerHTML = `
                 <h4 style="color: #667eea; margin-bottom: 15px;">${title}</h4>
                 <div style="margin-bottom: 10px;"><strong>Headline:</strong> ${headline}</div>
@@ -1293,7 +1301,7 @@ function displayVariations(variations) {
 
     // Store variations globally for the useVariation function
     window.adVariations = variations;
-    
+
     // Add event listeners to buttons (more reliable than onclick)
     const useButtons = container.querySelectorAll('.use-variation-btn');
     useButtons.forEach(button => {
@@ -1301,7 +1309,7 @@ function displayVariations(variations) {
             const index = parseInt(this.getAttribute('data-index'));
             useVariation(index);
         });
-        
+
         // Add hover effect
         button.addEventListener('mouseenter', function() {
             this.style.background = '#5a67d8';
@@ -1310,53 +1318,53 @@ function displayVariations(variations) {
             this.style.background = '#667eea';
         });
     });
-    
+
     // Scroll to variations
     setTimeout(() => {
         container.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-    
+
     console.log(`✅ Successfully displayed ${variations.length} variations`);
 }
 
 function useVariation(variationIndex) {
     console.log(`🔄 Using variation ${variationIndex}`);
     console.log('Available variations:', window.adVariations);
-    
+
     if (!window.adVariations) {
         console.error('❌ No variations available');
         alert('No variations available. Please generate variations first.');
         return;
     }
-    
+
     if (variationIndex < 0 || variationIndex >= window.adVariations.length) {
         console.error('❌ Invalid variation index:', variationIndex);
         alert('Invalid variation selected.');
         return;
     }
-    
+
     const variation = window.adVariations[variationIndex];
     if (!variation || !variation.content) {
         console.error('❌ Invalid variation data:', variation);
         alert('Invalid variation data.');
         return;
     }
-    
+
     console.log('✅ Using variation:', variation.title, variation.content);
-    
+
     // Update global ad data
     currentAdData = variation.content;
-    
+
     // Update the main ad preview with the new variation
     const formData = getFormData();
     displayResults(variation.content, currentImageUrl, formData);
-    
+
     // Scroll to the updated ad preview
     const resultsDiv = document.getElementById('results');
     if (resultsDiv) {
         resultsDiv.scrollIntoView({ behavior: 'smooth' });
     }
-    
+
     // Show success feedback
     const button = document.querySelector(`.use-variation-btn[data-index="${variationIndex}"]`);
     if (button) {
@@ -1483,22 +1491,22 @@ if (typeof window.currentUser === 'undefined') {
 // Usage tracking functions
 function checkUsageLimits() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    
+
     if (currentUser) {
         // Check if user has premium subscription
         const userPlan = localStorage.getItem('userPlan') || 'free';
         const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-        
+
         if (userPlan === 'premium') {
             return true; // Unlimited for premium users
         }
-        
+
         // Free users get 4 ads after login
         if (adsUsed >= 4) {
             showPaymentModal();
             return false;
         }
-        
+
         return true;
     } else {
         showLoginRequiredModal();
@@ -1508,10 +1516,10 @@ function checkUsageLimits() {
 
 function incrementUsageCount() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    
+
     if (currentUser) {
         const userPlan = localStorage.getItem('userPlan') || 'free';
-        
+
         if (userPlan === 'free') {
             const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
             localStorage.setItem('adsUsed', (adsUsed + 1).toString());
@@ -1522,12 +1530,12 @@ function incrementUsageCount() {
 
 function updateUsageDisplay() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    
+
     if (!currentUser) return;
-    
+
     const userPlan = localStorage.getItem('userPlan') || 'free';
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-    
+
     let usageDisplay = document.getElementById('usageDisplay');
     if (!usageDisplay) {
         const header = document.querySelector('header');
@@ -1547,7 +1555,7 @@ function updateUsageDisplay() {
             header.appendChild(usageDisplay);
         }
     }
-    
+
     if (usageDisplay) {
         if (userPlan === 'premium') {
             usageDisplay.innerHTML = `⭐ Premium - Unlimited ads`;
@@ -1576,7 +1584,7 @@ function showLoginRequiredModal() {
             justify-content: center;
             z-index: 10000;
         `;
-        
+
         modal.innerHTML = `
             <div style="
                 background: white;
@@ -1619,10 +1627,10 @@ function showLoginRequiredModal() {
                 </p>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
     }
-    
+
     modal.style.display = 'flex';
 }
 
@@ -1660,7 +1668,7 @@ function showPaymentModal() {
             justify-content: center;
             z-index: 10000;
         `;
-        
+
         modal.innerHTML = `
             <div style="
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1711,10 +1719,10 @@ function showPaymentModal() {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
     }
-    
+
     modal.style.display = 'flex';
 }
 
@@ -1729,10 +1737,10 @@ function upgradeToPremium() {
     // Set user to premium (in real app, this would integrate with payment processor)
     localStorage.setItem('userPlan', 'premium');
     localStorage.setItem('adsUsed', '0');
-    
+
     closePaymentModal();
     updateUsageDisplay();
-    
+
     alert('🎉 Welcome to Premium! You now have unlimited ad generation!');
 }
 
