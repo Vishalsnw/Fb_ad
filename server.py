@@ -32,6 +32,8 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.handle_sync_user_data()
         elif parsed_path.path == '/verify-payment':
             self.handle_verify_payment()
+        elif parsed_path.path == '/create-razorpay-order':
+            self.handle_create_razorpay_order()
         else:
             self.send_error(404, "Not Found")
 
@@ -142,6 +144,45 @@ window.CONFIG = {{
             print(f"Payment verification error: {e}")
             self.send_error(500, "Internal Server Error")
 
+    def handle_create_razorpay_order(self):
+        """Handle Razorpay order creation"""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            order_data = json.loads(post_data.decode('utf-8'))
+
+            print(f"Creating order for: {order_data}")
+
+            # Mock order creation - return a fake order ID
+            import uuid
+            order_id = f"order_{uuid.uuid4().hex[:12]}"
+
+            response_data = {
+                "success": True,
+                "order_id": order_id,
+                "amount": order_data.get('price', 59900),
+                "currency": order_data.get('currency', 'INR')
+            }
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(response_data).encode())
+
+        except Exception as e:
+            print(f"Order creation error: {e}")
+            error_response = {
+                "success": False,
+                "error": "Failed to create order",
+                "details": str(e)
+            }
+
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(error_response).encode())
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
