@@ -296,17 +296,18 @@ async function handleSubscription(planKey) {
 
         // Check if Razorpay is available
         if (typeof Razorpay === 'undefined') {
-            console.error('❌ Razorpay not loaded');
-            // Try to load Razorpay script and retry
-            loadRazorpayScript();
-            setTimeout(() => {
-                if (typeof Razorpay !== 'undefined') {
-                    handleSubscription(planKey); // Retry
-                } else {
-                    alert('Payment system not ready. Please refresh the page and try again.');
-                }
-            }, 2000);
-            return;
+            console.error('❌ Razorpay not loaded, attempting to load...');
+            try {
+                await loadRazorpayScript();
+                console.log('✅ Razorpay script loaded, retrying payment...');
+                // Retry after loading
+                setTimeout(() => handleSubscription(planKey), 1000);
+                return;
+            } catch (loadError) {
+                console.error('❌ Failed to load Razorpay script:', loadError);
+                alert('Payment system not ready. Please refresh the page and try again.');
+                return;
+            }
         }
 
         if (!window.RAZORPAY_KEY_ID) {
@@ -328,7 +329,7 @@ async function handleSubscription(planKey) {
             description: `${plan.name} Plan Subscription`,
             order_id: orderData.order_id,
             handler: function(response) {
-                console.log('✅ Payment successful:', response);
+                console.log('✅ Payment successful in handler:', response);
                 handlePaymentSuccess(planKey, response);
             },
             prefill: {
@@ -358,7 +359,14 @@ async function handleSubscription(planKey) {
                 name: options.name
             });
             
+            // Create Razorpay instance
             const rzp = new Razorpay(options);
+            
+            // Add success handler
+            rzp.on('payment.success', function (response) {
+                console.log('✅ Payment successful:', response);
+                handlePaymentSuccess(planKey, response);
+            });
             
             rzp.on('payment.failed', function (response) {
                 console.error('❌ Payment failed:', response);
@@ -404,9 +412,30 @@ async function handleSubscription(planKey) {
             });
             
             console.log('🔧 Opening Razorpay checkout...');
-            rzp.open();
+            
+            // Try to open with retry mechanism
+            setTimeout(() => {
+                try {
+                    rzp.open();
+                    console.log('✅ Razorpay checkout opened successfully');
+                } catch (openError) {
+                    console.error('❌ Failed to open Razorpay on first attempt:', openError);
+                    
+                    // Retry after a short delay
+                    setTimeout(() => {
+                        try {
+                            rzp.open();
+                            console.log('✅ Razorpay checkout opened on retry');
+                        } catch (retryError) {
+                            console.error('❌ Failed to open Razorpay on retry:', retryError);
+                            alert('Unable to open payment window. Please ensure popups are allowed and try again.');
+                        }
+                    }, 500);
+                }
+            }, 100);
+            
         } catch (error) {
-            console.error('❌ Error opening Razorpay:', error);
+            console.error('❌ Error creating Razorpay instance:', error);
             console.error('❌ Error type:', error.constructor.name);
             console.error('❌ Error details:', error.message);
             
@@ -415,8 +444,10 @@ async function handleSubscription(planKey) {
                 alert('Payment system not loaded. Please refresh the page and try again.');
             } else if (error.message.includes('Invalid key')) {
                 alert('Payment configuration error. Please contact support.');
+            } else if (error.message.includes('Amount should be') || error.message.includes('amount')) {
+                alert('Invalid payment amount. Please contact support.');
             } else {
-                alert('Failed to open payment gateway. Please check your internet connection and try again.');
+                alert('Failed to initialize payment gateway. Please check your internet connection and try again.');
             }
         }
 
