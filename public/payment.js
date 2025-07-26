@@ -175,6 +175,8 @@ function showPaymentModal() {
     const modal = document.getElementById('paymentModal');
     if (modal) {
         modal.style.display = 'block';
+        modal.style.zIndex = '10000';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
         console.log('💳 Payment modal opened');
     } else {
         console.error('❌ Payment modal not found, creating it...');
@@ -186,10 +188,32 @@ function showPaymentModal() {
             const newModal = document.getElementById('paymentModal');
             if (newModal) {
                 newModal.style.display = 'block';
+                newModal.style.zIndex = '10000';
+                document.body.style.overflow = 'hidden';
                 console.log('💳 Payment modal created and opened');
             } else {
-                // Final fallback - show alert
-                alert('🚀 Upgrade Required!\n\nYou have reached your free plan limit of 4 ads. Upgrade to Pro or Unlimited plan to continue generating professional ads!\n\n💎 Pro Plan: ₹599/month - 100 ads\n⭐ Unlimited Plan: ₹999/month - Unlimited ads');
+                // Final fallback - show attractive alert
+                const upgradeMessage = `
+🚀 CONGRATULATIONS! 
+
+You've used all 4 FREE ads! 🎉
+
+Ready to unlock unlimited professional ads?
+
+💎 PRO PLAN - ₹599/month
+✅ 100 Professional Ads
+✅ Premium Templates  
+✅ Priority Support
+
+⭐ UNLIMITED PLAN - ₹999/month  
+✅ Unlimited Ads
+✅ All Premium Features
+✅ 24/7 Support
+✅ Custom Branding
+
+Transform your business with unlimited AI-powered ads!
+                `;
+                alert(upgradeMessage);
             }
         }, 100);
     }

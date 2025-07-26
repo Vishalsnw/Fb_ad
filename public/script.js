@@ -454,7 +454,7 @@ async function handleFormSubmission(event) {
         return;
     }
 
-    // Check if user has reached their limit
+    // Check if user has reached their limit BEFORE generating
     if (user && user.usageCount >= 4 && user.subscriptionStatus === 'free') {
         console.log('🚫 User has reached 4 ads limit, showing payment modal');
         showPaymentModal();
@@ -481,7 +481,10 @@ async function handleFormSubmission(event) {
         const result = await generateAd(formData);
 
         if (result.success) {
-            // Increment usage count and check if limit reached
+            // Display results first
+            displayResults(result);
+
+            // Then increment usage count and check if limit reached
             const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
             if (user && typeof window.incrementAdUsage === 'function') {
                 const limitReached = window.incrementAdUsage();
@@ -492,7 +495,7 @@ async function handleFormSubmission(event) {
                     setTimeout(() => {
                         console.log('💳 Showing payment modal after reaching limit');
                         showPaymentModal();
-                    }, 2000);
+                    }, 3000); // Give user time to see their ad
                 }
             } else {
                 // Fallback for local storage
@@ -500,8 +503,6 @@ async function handleFormSubmission(event) {
                 saveUserData();
                 updateUsageDisplay();
             }
-
-            displayResults(result);
         } else {
             showError(result.error || 'Failed to generate ad');
         }
@@ -704,27 +705,79 @@ async function displayResults(result) {
     if (result && result.success) {
         const adText = result.ad_copy || 'Ad copy not available';
         const imageUrl = result.image_url || 'https://picsum.photos/600/400?random=1';
+        const formData = collectFormData();
+        const adFormat = formData.adFormat || 'facebook-feed';
+
+        // Store current ad data
+        currentAdData = adText;
+        currentImageUrl = imageUrl;
 
         console.log('📊 Final ad content being displayed:', {
             adText: adText.substring(0, 50) + '...',
             imageUrl: imageUrl.substring(0, 50) + '...'
         });
 
+        // Create professional Facebook ad preview
+        const formatClass = getAdFormatClass(adFormat);
+        const formatIcon = getFormatIcon(adFormat);
+        const formatLabel = getFormatLabel(adFormat);
+
         resultsDiv.innerHTML = `
             <div class="ad-result">
-                <h3>✨ Your AI-Generated Ad</h3>
-                <div class="ad-content">
-                    <div class="ad-image">
-                        <img src="${imageUrl}" alt="Generated Ad Image" onerror="this.src='https://picsum.photos/600/400?random=fallback'">
+                <h3>✨ Your Professional ${adFormat.charAt(0).toUpperCase() + adFormat.slice(1).replace('-', ' ')} Ad</h3>
+                
+                <div class="ad-preview ${formatClass}">
+                    <div class="screenshot-protection"></div>
+                    
+                    <div class="ad-header">
+                        <div class="profile-info">
+                            <div class="profile-pic">${formData.productName ? formData.productName.charAt(0).toUpperCase() : 'B'}</div>
+                            <div>
+                                <div class="page-name">${formData.productName || 'Your Business'}</div>
+                                <div class="sponsored">${formatIcon} ${formatLabel}</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="ad-text">
-                        <p style="margin: 8px 0; font-weight: 600; font-size: 1.05em; color: #333;">${adText}</p>
+                    
+                    <div class="ad-content">
+                        <div class="ad-text-section">
+                            ${formatAdText(adText)}
+                        </div>
+                        
+                        <div class="ad-image-container">
+                            <img src="${imageUrl}" alt="Professional Ad Image" class="ad-image" 
+                                 onerror="this.src='https://picsum.photos/600/400?random=fallback'"
+                                 oncontextmenu="return false;" ondragstart="return false;">
+                        </div>
+                        
+                        <div class="ad-cta-container">
+                            <button class="ad-cta" disabled>Learn More</button>
+                        </div>
                     </div>
                 </div>
+
+                <div class="ad-performance">
+                    <h4>📊 Estimated Performance</h4>
+                    <div class="ad-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Reach</span>
+                            <span class="metric-value">High</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Engagement</span>
+                            <span class="metric-value">Good</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Relevance</span>
+                            <span class="metric-value">${calculatePerformanceScore(result, formData)}%</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="ad-actions">
-                    <button onclick="downloadAd()" class="download-btn">📥 Download Ad</button>
-                    <button onclick="copyAdText()" class="copy-btn">📋 Copy Text</button>
-                    <button onclick="generateNewAd()" class="new-ad-btn">🔄 Generate Another</button>
+                    <button onclick="downloadAd()" class="action-btn download-btn">📥 Download</button>
+                    <button onclick="copyAdText()" class="action-btn copy-btn">📋 Copy Text</button>
+                    <button onclick="regenerateAd()" class="action-btn regenerate-btn">🔄 Regenerate</button>
                 </div>
             </div>
         `;
@@ -733,7 +786,7 @@ async function displayResults(result) {
             <div class="error-message">
                 <h3>❌ Error Generating Ad</h3>
                 <p>${result?.error || 'Unknown error occurred'}</p>
-                <button onclick="generateNewAd()" class="retry-btn">🔄 Try Again</button>
+                <button onclick="regenerateAd()" class="retry-btn">🔄 Try Again</button>
             </div>
         `;
     }
@@ -1023,8 +1076,43 @@ function getFormatLabel(adFormat) {
     }
 }
 
+// Download ad function
+function downloadAd() {
+    if (!currentImageUrl || !currentAdData) {
+        alert('No ad to download');
+        return;
+    }
+
+    const formData = collectFormData();
+    const filename = formData.productName ? formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'ad';
+
+    // Create download link for image
+    const link = document.createElement('a');
+    link.href = currentImageUrl;
+    link.download = `${filename}_ad_image.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Also copy ad text to clipboard
+    navigator.clipboard.writeText(currentAdData).then(() => {
+        alert('🎉 Image download started and ad text copied to clipboard!');
+    }).catch(() => {
+        alert('🎉 Image download started!');
+    });
+}
+
+function generateNewAd() {
+    const formData = collectFormData();
+    if (validateFormData(formData)) {
+        handleFormSubmission({ preventDefault: () => {} });
+    }
+}
+
 // Make functions globally available
 window.handleFormSubmit = handleFormSubmission;
+window.downloadAd = downloadAd;
 window.downloadImage = downloadImage;
-window.regenerateAd = regenerateAd;
+window.regenerateAd = generateNewAd;
+window.generateNewAd = generateNewAd;
 window.copyAdText = copyAdText;
