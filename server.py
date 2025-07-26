@@ -20,6 +20,8 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "healthy"}).encode())
+        elif parsed_path.path == '/api/config-check':
+            self.serve_config_check()
         else:
             super().do_GET()
 
@@ -61,20 +63,30 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             # Debug: Log environment variables (without exposing full keys)
             deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
             deepai_key = os.getenv("DEEPAI_API_KEY", "")
+            razorpay_key_id = os.getenv("RAZORPAY_KEY_ID", "")
+            razorpay_key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
 
             print(f"🔑 DEEPSEEK_API_KEY: {'✅ Present' if deepseek_key else '❌ Missing'} ({len(deepseek_key)} chars)")
             print(f"🔑 DEEPAI_API_KEY: {'✅ Present' if deepai_key else '❌ Missing'} ({len(deepai_key)} chars)")
+            print(f"🔑 RAZORPAY_KEY_ID: {'✅ Present' if razorpay_key_id else '❌ Missing'} ({len(razorpay_key_id)} chars)")
+            print(f"🔑 RAZORPAY_KEY_SECRET: {'✅ Present' if razorpay_key_secret else '❌ Missing'} ({len(razorpay_key_secret)} chars)")
 
             if not deepseek_key or not deepai_key:
-                print("❌ CRITICAL: Missing API keys! Please add them in Replit Secrets.")
+                print("❌ CRITICAL: Missing AI API keys! Please add them in Replit Secrets.")
+            
+            if not razorpay_key_id or not razorpay_key_secret:
+                print("⚠️ WARNING: Missing Razorpay keys! Payment functionality will not work.")
 
             config_js = f'''
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '{deepseek_key}',
     DEEPAI_API_KEY: '{deepai_key}',
     GOOGLE_CLIENT_ID: '{os.getenv("GOOGLE_CLIENT_ID", "")}',
-    RAZORPAY_KEY_ID: '{os.getenv("RAZORPAY_KEY_ID", "")}',
-    RAZORPAY_KEY_SECRET: '{os.getenv("RAZORPAY_KEY_SECRET", "")}',
+    RAZORPAY_KEY_ID: '{razorpay_key_id}',
+    RAZORPAY_KEY_SECRET: '{razorpay_key_secret}',
+    FIREBASE_API_KEY: '{os.getenv("FIREBASE_API_KEY", "")}',
+    FIREBASE_AUTH_DOMAIN: '{os.getenv("FIREBASE_AUTH_DOMAIN", "")}',
+    FIREBASE_PROJECT_ID: '{os.getenv("FIREBASE_PROJECT_ID", "")}',
     SHOW_3D_EARLY: true
 }};
 '''
@@ -87,6 +99,51 @@ window.CONFIG = {{
         except Exception as e:
             print(f"Error serving config: {e}")
             self.send_error(500, "Internal Server Error")
+
+    def serve_config_check(self):
+        """Serve configuration status for debugging"""
+        try:
+            config_status = {
+                "deepseek_api_key": bool(os.getenv("DEEPSEEK_API_KEY", "")),
+                "deepai_api_key": bool(os.getenv("DEEPAI_API_KEY", "")),
+                "google_client_id": bool(os.getenv("GOOGLE_CLIENT_ID", "")),
+                "razorpay_key_id": bool(os.getenv("RAZORPAY_KEY_ID", "")),
+                "razorpay_key_secret": bool(os.getenv("RAZORPAY_KEY_SECRET", "")),
+                "firebase_api_key": bool(os.getenv("FIREBASE_API_KEY", "")),
+                "firebase_auth_domain": bool(os.getenv("FIREBASE_AUTH_DOMAIN", "")),
+                "firebase_project_id": bool(os.getenv("FIREBASE_PROJECT_ID", "")),
+                "timestamp": int(time.time()) if 'time' in globals() else None
+            }
+            
+            all_required_present = (
+                config_status["deepseek_api_key"] and 
+                config_status["deepai_api_key"] and
+                config_status["razorpay_key_id"] and
+                config_status["razorpay_key_secret"]
+            )
+            
+            config_status["status"] = "healthy" if all_required_present else "missing_keys"
+            config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(config_status, indent=2).encode())
+            
+        except Exception as e:
+            print(f"Error serving config check: {e}")
+            error_response = {
+                "status": "error",
+                "error": str(e),
+                "payment_ready": False
+            }
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(error_response).encode())
 
     def handle_save_ad(self):
         """Handle saving ad data"""
@@ -138,7 +195,7 @@ window.CONFIG = {{
             self.send_error(500, "Internal Server Error")
 
     def handle_verify_payment(self):
-        """Handle payment verification and ensure JSON responses"""
+        """Handle payment verification with comprehensive error handling"""
         print("=== PAYMENT VERIFICATION START ===")
         print(f"Method: {self.command}")
         print(f"Path: {self.path}")
@@ -148,6 +205,21 @@ window.CONFIG = {{
         status_code = 500
 
         try:
+            # Check if Razorpay keys are available
+            razorpay_key_id = os.getenv("RAZORPAY_KEY_ID", "")
+            razorpay_key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
+            
+            if not razorpay_key_id or not razorpay_key_secret:
+                print("❌ Razorpay keys not configured in environment")
+                response_data = {
+                    "success": False,
+                    "error": "Payment system not configured. Please contact support.",
+                    "code": "RAZORPAY_CONFIG_MISSING"
+                }
+                status_code = 503  # Service Unavailable
+                self._send_json_response(response_data, status_code)
+                return
+
             content_length = int(self.headers.get('Content-Length', 0))
             print(f"Content-Length: {content_length}")
 
@@ -155,38 +227,28 @@ window.CONFIG = {{
                 print("❌ No payment data received")
                 response_data = {
                     "success": False,
-                    "error": "No payment data received"
+                    "error": "No payment data received",
+                    "code": "NO_PAYMENT_DATA"
                 }
                 status_code = 400
             else:
                 post_data = self.rfile.read(content_length)
                 print(f"Raw post data length: {len(post_data)}")
-                print(f"Raw post data: {post_data}")
 
                 try:
                     payment_data = json.loads(post_data.decode('utf-8'))
                     print("✅ Payment data successfully parsed:", payment_data)
 
-                    # Mock payment verification - in production, verify with Razorpay
+                    # Extract payment details
                     plan_key = payment_data.get('planKey', 'pro')
-                    payment_id = payment_data.get('payment_id')
-                    order_id = payment_data.get('order_id')
-                    signature = payment_data.get('signature')
+                    payment_id = payment_data.get('payment_id', '').strip()
+                    order_id = payment_data.get('order_id', '').strip()
+                    signature = payment_data.get('signature', '').strip()
 
-                    print(f"Payment details - planKey: {plan_key}, payment_id: {payment_id}, order_id: {order_id}, signature: {signature}")
+                    print(f"Payment details - planKey: {plan_key}, payment_id: {payment_id}, order_id: {order_id}")
 
-                    if payment_id and order_id and signature:
-                        print("✅ All required payment fields present")
-                        # Simulate successful verification
-                        response_data = {
-                            "success": True, 
-                            "message": "Payment verified successfully",
-                            "planKey": plan_key,
-                            "payment_id": payment_id,
-                            "order_id": order_id
-                        }
-                        status_code = 200
-                    else:
+                    # Validate required fields
+                    if not payment_id or not order_id or not signature:
                         missing_fields = []
                         if not payment_id: missing_fields.append('payment_id')
                         if not order_id: missing_fields.append('order_id')
@@ -195,28 +257,74 @@ window.CONFIG = {{
                         print(f"❌ Missing payment fields: {missing_fields}")
                         response_data = {
                             "success": False, 
-                            "error": f"Missing required payment details: {', '.join(missing_fields)}"
+                            "error": f"Missing required payment details: {', '.join(missing_fields)}",
+                            "code": "MISSING_PAYMENT_FIELDS"
                         }
                         status_code = 400
+                    else:
+                        print("✅ All required payment fields present")
+                        
+                        # Here you would normally verify with Razorpay API
+                        # For demo purposes, we'll simulate successful verification
+                        # In production, use Razorpay's signature verification
+                        
+                        try:
+                            # Simulate API call delay
+                            import time
+                            time.sleep(0.5)
+                            
+                            # Mock successful verification
+                            response_data = {
+                                "success": True, 
+                                "message": "Payment verified successfully",
+                                "planKey": plan_key,
+                                "payment_id": payment_id,
+                                "order_id": order_id,
+                                "verified_at": time.time()
+                            }
+                            status_code = 200
+                            print("✅ Payment verification simulated successfully")
+                            
+                        except Exception as verify_error:
+                            print(f"❌ Payment verification API error: {verify_error}")
+                            response_data = {
+                                "success": False,
+                                "error": "Payment verification failed with payment provider",
+                                "code": "VERIFICATION_API_ERROR",
+                                "details": str(verify_error)
+                            }
+                            status_code = 502  # Bad Gateway
 
                 except json.JSONDecodeError as e:
                     print(f"❌ JSON decode error: {e}")
-                    print(f"Failed to decode: {post_data}")
+                    print(f"Failed to decode: {post_data[:200] if post_data else 'No data'}")
                     response_data = {
                         "success": False, 
-                        "error": "Invalid JSON format in request",
+                        "error": "Invalid payment data format",
+                        "code": "INVALID_JSON",
                         "details": str(e)
                     }
                     status_code = 400
 
+        except ValueError as e:
+            print(f"❌ Value error in payment verification: {e}")
+            response_data = {
+                "success": False,
+                "error": "Invalid payment data",
+                "code": "INVALID_DATA",
+                "details": str(e)
+            }
+            status_code = 400
+
         except Exception as e:
-            print(f"❌ Payment verification error: {e}")
+            print(f"❌ Unexpected payment verification error: {e}")
             print(f"Exception type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
             response_data = {
                 "success": False,
-                "error": "Payment verification failed",
+                "error": "Payment verification system error",
+                "code": "SYSTEM_ERROR",
                 "details": str(e)
             }
             status_code = 500
@@ -225,7 +333,7 @@ window.CONFIG = {{
         print(f"Final status code: {status_code}")
         print("=== PAYMENT VERIFICATION END ===")
 
-        # Always send JSON response - override the default error handling
+        # Always send JSON response
         self._send_json_response(response_data, status_code)
 
     def _send_json_response(self, data, status_code=200):

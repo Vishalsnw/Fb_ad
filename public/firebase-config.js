@@ -5,12 +5,18 @@ import { getAuth, GoogleAuthProvider, onAuthStateChanged,signInWithPopup, signOu
 // Firebase configuration - loaded from environment
 let firebaseConfig = {};
 
-// Load Firebase config from environment
-async function loadFirebaseConfig() {
+// Load Firebase config from environment with retry mechanism
+async function loadFirebaseConfig(retryCount = 0) {
     let loadedFirebaseConfig = {};
+    const maxRetries = 3;
     
     try {
-        const response = await fetch('/config.js');
+        const response = await fetch('/config.js?t=' + Date.now());
+        
+        if (!response.ok) {
+            throw new Error(`Config fetch failed: ${response.status}`);
+        }
+        
         const configScript = await response.text();
 
         // Execute config script safely
@@ -19,7 +25,7 @@ async function loadFirebaseConfig() {
         document.head.appendChild(scriptElement);
         document.head.removeChild(scriptElement);
 
-        if (window.CONFIG) {
+        if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
             console.log('✅ Firebase config loaded from server');
 
             // Make config values available globally if not already set
@@ -37,6 +43,8 @@ async function loadFirebaseConfig() {
 
             if (window.RAZORPAY_KEY_ID && window.RAZORPAY_KEY_SECRET) {
                 console.log('✅ Razorpay keys loaded successfully');
+            } else {
+                console.warn('⚠️ Razorpay keys missing from config');
             }
 
             // Firebase configuration
@@ -53,11 +61,28 @@ async function loadFirebaseConfig() {
             firebaseConfig = loadedFirebaseConfig;
             return true;
         } else {
-            console.error('❌ CONFIG not available from server');
+            console.error('❌ CONFIG not available or empty from server');
+            
+            // Retry if we haven't exceeded max retries
+            if (retryCount < maxRetries) {
+                console.log(`🔄 Retrying config load (${retryCount + 1}/${maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                return await loadFirebaseConfig(retryCount + 1);
+            }
+            
             return false;
         }
     } catch (error) {
-        console.warn('Failed to load Firebase config from environment, using defaults');
+        console.error('❌ Error loading config:', error);
+        
+        // Retry if we haven't exceeded max retries
+        if (retryCount < maxRetries) {
+            console.log(`🔄 Retrying config load after error (${retryCount + 1}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            return await loadFirebaseConfig(retryCount + 1);
+        }
+        
+        console.warn('Using default Firebase config after all retries failed');
         loadedFirebaseConfig = {
             apiKey: "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
             authDomain: "adgenie-59adb.firebaseapp.com",
