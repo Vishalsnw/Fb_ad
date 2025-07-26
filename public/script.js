@@ -1049,7 +1049,23 @@ function generateVariations() {
     if (!validateForm(formData)) return;
 
     console.log('🔄 Generating ad variations...');
-    setLoading(true);
+    
+    // Show loading state for variations
+    let container = document.getElementById('variationsContainer');
+    if (!container) {
+        const resultsDiv = document.getElementById('results');
+        container = document.createElement('div');
+        container.id = 'variationsContainer';
+        container.style.cssText = 'margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;';
+        resultsDiv.appendChild(container);
+    }
+    
+    container.innerHTML = `
+        <div class="loading" style="text-align: center; padding: 20px;">
+            <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+            <p>🎯 Generating alternative versions...</p>
+        </div>
+    `;
 
     const variations = [
         { ...formData, tone: 'Energetic' },
@@ -1059,71 +1075,161 @@ function generateVariations() {
 
     Promise.all(variations.map(async (variation, index) => {
         try {
+            console.log(`🔄 Generating variation ${index + 1} (${variation.tone})...`);
             const textContent = await generateAdText(variation);
+            console.log(`✅ Variation ${index + 1} generated:`, textContent);
             return {
                 title: `Variation ${index + 1} (${variation.tone})`,
                 content: textContent
             };
         } catch (error) {
-            console.error(`Failed to generate variation ${index + 1}:`, error);
+            console.error(`❌ Failed to generate variation ${index + 1}:`, error);
             return null;
         }
     })).then(results => {
+        console.log('🎯 All variations completed:', results);
         const validResults = results.filter(r => r !== null);
-        displayVariations(validResults);
-    }).finally(() => {
-        setLoading(false);
+        if (validResults.length > 0) {
+            displayVariations(validResults);
+        } else {
+            container.innerHTML = '<p style="text-align: center; color: #666;">❌ Failed to generate variations. Please try again.</p>';
+        }
+    }).catch(error => {
+        console.error('❌ Error generating variations:', error);
+        container.innerHTML = '<p style="text-align: center; color: #666;">❌ Failed to generate variations. Please try again.</p>';
     });
 }
 
 function displayVariations(variations) {
+    console.log('🎯 Displaying variations:', variations);
+    
     let container = document.getElementById('variationsContainer');
     if (!container) {
         const resultsDiv = document.getElementById('results');
+        if (!resultsDiv) {
+            console.error('❌ Results div not found!');
+            return;
+        }
         container = document.createElement('div');
         container.id = 'variationsContainer';
         container.style.cssText = 'margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;';
         resultsDiv.appendChild(container);
     }
 
+    // Clear loading content and add header
     container.innerHTML = '<h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">🎯 Alternative Versions</h3>';
 
+    if (!variations || variations.length === 0) {
+        container.innerHTML += '<p style="text-align: center; color: #666;">No variations available.</p>';
+        return;
+    }
+
     variations.forEach((variation, index) => {
+        console.log(`📝 Adding variation ${index + 1}:`, variation);
+        
         if (variation && variation.content) {
             const variationCard = document.createElement('div');
             variationCard.className = 'variation-card';
             variationCard.style.cssText = 'border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+            
+            // Safely escape HTML content
+            const headline = variation.content.headline || 'No headline';
+            const adText = variation.content.adText || 'No ad text';
+            const cta = variation.content.cta || 'No CTA';
+            const title = variation.title || `Variation ${index + 1}`;
+            
             variationCard.innerHTML = `
-                <h4 style="color: #667eea; margin-bottom: 15px;">${variation.title}</h4>
-                <div style="margin-bottom: 10px;"><strong>Headline:</strong> ${variation.content.headline}</div>
-                <div style="margin-bottom: 10px;"><strong>Text:</strong> ${variation.content.adText}</div>
-                <div style="margin-bottom: 15px;"><strong>CTA:</strong> ${variation.content.cta}</div>
-                <button onclick="useVariation(${index})" 
-                        style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                <h4 style="color: #667eea; margin-bottom: 15px;">${title}</h4>
+                <div style="margin-bottom: 10px;"><strong>Headline:</strong> ${headline}</div>
+                <div style="margin-bottom: 10px;"><strong>Text:</strong> ${adText}</div>
+                <div style="margin-bottom: 15px;"><strong>CTA:</strong> ${cta}</div>
+                <button class="use-variation-btn" data-index="${index}" 
+                        style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.3s ease;">
                     Use This Version
                 </button>
             `;
             container.appendChild(variationCard);
+        } else {
+            console.warn(`⚠️ Invalid variation at index ${index}:`, variation);
         }
     });
 
     // Store variations globally for the useVariation function
     window.adVariations = variations;
     
+    // Add event listeners to buttons (more reliable than onclick)
+    const useButtons = container.querySelectorAll('.use-variation-btn');
+    useButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            useVariation(index);
+        });
+        
+        // Add hover effect
+        button.addEventListener('mouseenter', function() {
+            this.style.background = '#5a67d8';
+        });
+        button.addEventListener('mouseleave', function() {
+            this.style.background = '#667eea';
+        });
+    });
+    
     // Scroll to variations
-    container.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+        container.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    
+    console.log(`✅ Successfully displayed ${variations.length} variations`);
 }
 
 function useVariation(variationIndex) {
-    if (window.adVariations && window.adVariations[variationIndex]) {
-        const variation = window.adVariations[variationIndex];
-        currentAdData = variation.content;
-        
-        // Update the main ad preview with the new variation
-        const formData = getFormData();
-        displayResults(variation.content, currentImageUrl, formData);
-        
-        console.log('✅ Using variation:', variation.title);
+    console.log(`🔄 Using variation ${variationIndex}`);
+    console.log('Available variations:', window.adVariations);
+    
+    if (!window.adVariations) {
+        console.error('❌ No variations available');
+        alert('No variations available. Please generate variations first.');
+        return;
+    }
+    
+    if (variationIndex < 0 || variationIndex >= window.adVariations.length) {
+        console.error('❌ Invalid variation index:', variationIndex);
+        alert('Invalid variation selected.');
+        return;
+    }
+    
+    const variation = window.adVariations[variationIndex];
+    if (!variation || !variation.content) {
+        console.error('❌ Invalid variation data:', variation);
+        alert('Invalid variation data.');
+        return;
+    }
+    
+    console.log('✅ Using variation:', variation.title, variation.content);
+    
+    // Update global ad data
+    currentAdData = variation.content;
+    
+    // Update the main ad preview with the new variation
+    const formData = getFormData();
+    displayResults(variation.content, currentImageUrl, formData);
+    
+    // Scroll to the updated ad preview
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) {
+        resultsDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Show success feedback
+    const button = document.querySelector(`.use-variation-btn[data-index="${variationIndex}"]`);
+    if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✅ Applied!';
+        button.style.background = '#28a745';
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.style.background = '#667eea';
+        }, 2000);
     }
 }
 
