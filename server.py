@@ -120,29 +120,63 @@ window.CONFIG = {{
             self.send_error(500, "Internal Server Error")
 
     def handle_verify_payment(self):
-        """Handle payment verification and JSON parsing errors."""
+        """Handle payment verification and ensure JSON responses"""
         try:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
+            
             try:
                 payment_data = json.loads(post_data.decode('utf-8'))
-                # In a real application, you would verify the payment with Razorpay or another provider.
-                # This is a simplified example.
-                print("Payment data received and parsed:", payment_data)
-                response_data = {"success": True, "message": "Payment verified (mock)"}
+                print("Payment data received:", payment_data)
+                
+                # Mock payment verification - in production, verify with Razorpay
+                plan_key = payment_data.get('planKey', 'pro')
+                payment_id = payment_data.get('payment_id')
+                order_id = payment_data.get('order_id')
+                
+                if payment_id and order_id:
+                    response_data = {
+                        "success": True, 
+                        "message": "Payment verified successfully",
+                        "planKey": plan_key,
+                        "payment_id": payment_id
+                    }
+                else:
+                    response_data = {
+                        "success": False, 
+                        "error": "Missing payment details"
+                    }
+                    
             except json.JSONDecodeError as e:
-                print(f"JSONDecodeError: {e}")
-                print(f"Raw data received: {post_data.decode('utf-8')}")
-                response_data = {"success": False, "error": "Invalid JSON format"}
+                print(f"JSON decode error: {e}")
+                print(f"Raw data: {post_data.decode('utf-8')}")
+                response_data = {
+                    "success": False, 
+                    "error": "Invalid JSON format",
+                    "details": str(e)
+                }
 
+            # Always send JSON response
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(response_data).encode())
 
         except Exception as e:
             print(f"Payment verification error: {e}")
-            self.send_error(500, "Internal Server Error")
+            # Send JSON error response instead of HTML error
+            error_response = {
+                "success": False,
+                "error": "Payment verification failed",
+                "details": str(e)
+            }
+            
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(error_response).encode())
 
     def handle_create_razorpay_order(self):
         """Handle Razorpay order creation"""

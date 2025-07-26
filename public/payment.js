@@ -347,12 +347,22 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
 
         let data;
         try {
+            // Get response as text first to debug
             const responseText = await response.text();
-            console.log('Payment verification response:', responseText);
+            console.log('Payment verification raw response:', responseText);
+            
+            // Check if response starts with HTML (error page)
+            if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
+                console.error('Received HTML instead of JSON:', responseText.substring(0, 100));
+                throw new Error('Server returned HTML error page instead of JSON');
+            }
+            
             data = JSON.parse(responseText);
+            console.log('Parsed payment data:', data);
         } catch (parseError) {
             console.error('Failed to parse payment response:', parseError);
-            throw new Error('Invalid response from payment verification');
+            console.error('Response text was:', responseText);
+            throw new Error(`Invalid response format: ${parseError.message}`);
         }
         
         if (data.success) {
