@@ -347,17 +347,21 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
 
         let data;
         try {
+            console.log('Payment verification response status:', response.status);
+            console.log('Payment verification response headers:', Object.fromEntries(response.headers));
+            
             // Check if response is OK first
             if (!response.ok) {
                 console.error('Payment verification failed with status:', response.status);
                 const errorText = await response.text();
-                console.error('Error response text:', errorText);
+                console.error('Error response text:', errorText.substring(0, 500));
                 throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}`);
             }
 
             // Get response as text first to debug
             const responseText = await response.text();
-            console.log('Payment verification raw response:', responseText);
+            console.log('Payment verification raw response length:', responseText.length);
+            console.log('Payment verification raw response:', responseText.substring(0, 1000));
             
             // Check if response starts with HTML (error page)
             if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
@@ -370,6 +374,12 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
                 throw new Error('Server returned empty response');
             }
             
+            // Check if response contains "The page" which might indicate an error page
+            if (responseText.includes('The page') && !responseText.trim().startsWith('{')) {
+                console.error('Response appears to be an error page:', responseText.substring(0, 200));
+                throw new Error('Server returned an error page instead of JSON');
+            }
+            
             data = JSON.parse(responseText);
             console.log('Parsed payment data:', data);
             
@@ -380,8 +390,9 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
             
         } catch (parseError) {
             console.error('Failed to parse payment response:', parseError);
+            console.error('Error type:', parseError.constructor.name);
             if (typeof responseText !== 'undefined') {
-                console.error('Response text was:', responseText.substring(0, 500));
+                console.error('Full response text was:', responseText);
             }
             throw new Error(`Payment verification failed: ${parseError.message}`);
         }
