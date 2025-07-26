@@ -65,8 +65,8 @@ const SUBSCRIPTION_PLANS = {
     free: {
         name: 'Free',
         price: 0,
-        adsPerMonth: 3,
-        features: ['3 ads per month', 'Basic templates', 'Standard support']
+        adsPerMonth: 4,
+        features: ['4 ads per month', 'Basic templates', 'Standard support']
     },
     pro: {
         name: 'Pro',
@@ -333,7 +333,7 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
     try {
         // Verify payment on server side
         const response = await fetch('/verify-payment', {
-        method: 'POST',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -345,7 +345,15 @@ async function handlePaymentSuccess(planKey, paymentResponse) {
             })
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            const responseText = await response.text();
+            console.log('Payment verification response:', responseText);
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('Failed to parse payment response:', parseError);
+            throw new Error('Invalid response from payment verification');
+        }
         
         if (data.success) {
             // Update user subscription status

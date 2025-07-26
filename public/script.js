@@ -279,7 +279,7 @@ async function handleFormSubmit(event) {
         return;
     }
 
-    // Check usage limits AFTER authentication
+    // Check usage limits AFTER authentication (now 4 ads instead of 5)
     const canGenerate = checkUsageLimits();
     if (!canGenerate) {
         return; // checkUsageLimits handles UI updates
@@ -1493,8 +1493,8 @@ function checkUsageLimits() {
             return true; // Unlimited for premium users
         }
         
-        // Free users get 5 ads after login
-        if (adsUsed >= 5) {
+        // Free users get 4 ads after login
+        if (adsUsed >= 4) {
             showPaymentModal();
             return false;
         }
@@ -1552,8 +1552,8 @@ function updateUsageDisplay() {
         if (userPlan === 'premium') {
             usageDisplay.innerHTML = `⭐ Premium - Unlimited ads`;
         } else {
-            const remaining = Math.max(0, 5 - adsUsed);
-            usageDisplay.innerHTML = `🎯 ${remaining}/5 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
+            const remaining = Math.max(0, 4 - adsUsed);
+            usageDisplay.innerHTML = `🎯 ${remaining}/4 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
         }
     }
 }
@@ -1675,7 +1675,7 @@ function showPaymentModal() {
                 <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
                 <h2 style="color: white; margin-bottom: 15px;">Upgrade to Premium!</h2>
                 <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
-                    You've reached your 5 free ads limit. Upgrade to Premium for unlimited ad generation!
+                    You've reached your 4 free ads limit. Upgrade to Premium for unlimited ad generation!
                 </p>
                 <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 30px;">
                     <h3 style="color: white; margin-bottom: 15px;">Premium Features:</h3>
