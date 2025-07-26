@@ -189,9 +189,9 @@ function checkUserSubscription() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!currentUser) return;
 
-    // Check user's current subscription from localStorage
-    const userPlan = localStorage.getItem('userPlan') || 'free';
-    const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+    // Use Firebase user data instead of localStorage
+    const userPlan = currentUser.subscriptionStatus || 'free';
+    const adsUsed = currentUser.usageCount || 0;
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
 
     updateUsageDisplay(userPlan, adsUsed, planLimits.adsPerMonth);
@@ -223,8 +223,8 @@ function canGenerateAd() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!currentUser) return false; // Anonymous users handled separately
     
-    const userPlan = localStorage.getItem('userPlan') || 'free';
-    const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+    const userPlan = currentUser.subscriptionStatus || 'free';
+    const adsUsed = currentUser.usageCount || 0;
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
 
     console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);

@@ -23,6 +23,8 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "healthy"}).encode())
         elif parsed_path.path == '/api/config-check':
             self.serve_config_check()
+        elif parsed_path.path.startswith('/get-user-data/'): # Added to handle new get user data endpoint
+            self.handle_get_user_data(parsed_path.path[len('/get-user-data/'):]) # Extract user ID from path
         else:
             super().do_GET()
 
@@ -46,6 +48,8 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             self.handle_create_razorpay_order()
         elif parsed_path.path == '/api/verify-payment':
             self.handle_verify_payment()
+        elif parsed_path.path == '/save-user-data': # Added new save user data endpoint
+            self.handle_save_user_data()
         else:
             # Send JSON error for unknown endpoints
             error_response = {
@@ -81,7 +85,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             print(f"🔑 FIREBASE_PROJECT_ID: {'✅ Present' if firebase_project_id else '❌ Missing'} ({len(firebase_project_id)} chars)")
 
             # Check for missing critical keys
-            missing_keys = []
+missing_keys = []
             if not deepseek_key:
                 missing_keys.append('DEEPSEEK_API_KEY')
             if not deepai_key:
@@ -530,6 +534,43 @@ console.error('❌ Config loading error: {str(e)}');
         else:
             # For non-API endpoints, use default HTML error
             super().send_error(code, message)
+    
+    def handle_get_user_data(self, uid):
+        """Handles fetching user data based on UID"""
+        try:
+            user_file = f'public/user_data_{uid}.json'
+            if os.path.exists(user_file):
+                with open(user_file, 'r') as f:
+                    user_data = json.load(f)
+                print(f"📊 Retrieved user data for {uid}: {user_data.get('usageCount', 0)} ads used")
+                self._send_json_response(user_data, 200)
+            else:
+                print(f"📊 No existing data for user {uid}, will create new")
+                self._send_json_response({"error": "User data not found"}, 404)
+        except Exception as e:
+            print(f"❌ Error getting user data: {e}")
+            self._send_json_response({"error": str(e)}, 500)
+
+    def handle_save_user_data(self):
+        """Handles saving user data to a file based on UID"""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            user_data = json.loads(post_data.decode('utf-8'))
+            uid = user_data.get('uid')
+            if not uid:
+                self._send_json_response({"error": "No UID provided"}, 400)
+                return
+
+            user_file = f'public/user_data_{uid}.json'
+            with open(user_file, 'w') as f:
+                json.dump(user_data, f, indent=2)
+
+            print(f"📊 Saved user data for {uid}: {user_data.get('usageCount', 0)} ads used, plan: {user_data.get('subscriptionStatus', 'free')}")
+            self._send_json_response({"status": "success", "message": "User data saved"}, 200)
+        except Exception as e:
+            print(f"❌ Error saving user data: {e}")
+            self._send_json_response({"error": str(e)}, 500)
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')

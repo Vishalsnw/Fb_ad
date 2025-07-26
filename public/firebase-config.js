@@ -115,31 +115,20 @@ let currentUser = null;
 function initAuth() {
     onAuthStateChanged(auth, (user) => {
         if (user) {
+            // Initialize user with default values
             currentUser = {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 usageCount: 0,
-                maxUsage: 10,
+                maxUsage: 4, // Free users get 4 ads
                 adsGenerated: 0,
                 subscriptionStatus: 'free'
             };
 
-            // Load existing user data from localStorage
-            const savedUser = localStorage.getItem('userData');
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser);
-                    if (userData.uid === user.uid) {
-                        currentUser = { ...currentUser, ...userData };
-                    }
-                } catch (error) {
-                    console.error('Error loading saved user data:', error);
-                }
-            }
-
-            localStorage.setItem('userData', JSON.stringify(currentUser));
+            // Load user data from server instead of localStorage
+            loadUserDataFromServer(user.uid);
             
             // Hide anonymous usage display when user logs in
             const anonymousDisplay = document.getElementById('anonymousUsageDisplay');
@@ -164,8 +153,6 @@ function initAuth() {
             console.log('✅ User signed in:', user.email);
         } else {
             currentUser = null;
-            localStorage.removeItem('userData');
-            localStorage.removeItem('savedAds');
             
             // Show anonymous usage display when user logs out
             if (typeof window.updateAnonymousUsageDisplay === 'function') {
@@ -248,15 +235,26 @@ function incrementAdUsage() {
     currentUser.usageCount += 1;
     currentUser.adsGenerated += 1;
 
-    if (currentUser) {
-        saveUserData(currentUser);
-    }
+    // Save updated usage to server immediately
+    saveUserDataToServer(currentUser);
     updateUsageDisplay();
+
+    // Check if user reached limit
+    if (currentUser.subscriptionStatus === 'free' && currentUser.usageCount >= 4) {
+        console.log('🚫 User reached free plan limit, showing payment modal');
+        setTimeout(() => {
+            if (typeof window.showPaymentModal === 'function') {
+                window.showPaymentModal();
+            }
+        }, 2000);
+    }
 }
 
 function updateUsageDisplay() {
+    if (!currentUser) return;
+
     const usageEl = document.getElementById('usageCount');
-    if (usageEl && currentUser) {
+    if (usageEl) {
         if (currentUser.subscriptionStatus === 'premium') {
             usageEl.textContent = 'Unlimited ads (Premium)';
         } else {
@@ -264,18 +262,46 @@ function updateUsageDisplay() {
             usageEl.textContent = `${remaining} ads remaining`;
         }
     }
+
+    // Update usage info in header
+    const usageInfo = document.querySelector('.usage-info');
+    if (usageInfo) {
+        const usageCount = usageInfo.querySelector('.usage-count');
+        if (usageCount) {
+            if (currentUser.subscriptionStatus === 'premium') {
+                usageCount.textContent = 'Unlimited ads used';
+            } else {
+                usageCount.textContent = `${currentUser.usageCount}/${currentUser.maxUsage} ads used`;
+            }
+        }
+    }
 }
 
-// User data management
-function saveUserData(userData) {
-    currentUser = userData;
-    localStorage.setItem('userData', JSON.stringify(userData));
-    syncUserDataWithServer(userData);
-}
-
-async function syncUserData(userData) {
+// User data management - Firebase-based
+async function loadUserDataFromServer(uid) {
     try {
-        const response = await fetch('/sync-user-data', {
+        const response = await fetch(`/get-user-data/${uid}`);
+        if (response.ok) {
+            const serverData = await response.json();
+            currentUser = { ...currentUser, ...serverData };
+            console.log('✅ User data loaded from server:', currentUser);
+            updateAuthUI();
+            updateUsageDisplay();
+        } else {
+            // New user - save default data to server
+            await saveUserDataToServer(currentUser);
+        }
+    } catch (error) {
+        console.error('Failed to load user data:', error);
+        // Use default values on error
+        updateAuthUI();
+        updateUsageDisplay();
+    }
+}
+
+async function saveUserDataToServer(userData) {
+    try {
+        const response = await fetch('/save-user-data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -285,31 +311,18 @@ async function syncUserData(userData) {
 
         if (response.ok) {
             const result = await response.json();
-            console.log('User data synced:', result);
+            console.log('✅ User data saved to server:', result);
+            return result;
         }
     } catch (error) {
-        console.error('Failed to sync user data:', error);
+        console.error('Failed to save user data:', error);
     }
 }
 
-async function syncUserDataWithServer(userData) {
-    try {
-        const response = await fetch('/sync-user-data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(userData)
-        });
-
-        if (response.ok) {
-            const serverData = await response.json();
-            currentUser = { ...currentUser, ...serverData };
-            localStorage.setItem('userData', JSON.stringify(currentUser));
-        }
-    } catch (error) {
-        console.error('Failed to sync user data:', error);
-    }
+function saveUserData(userData) {
+    currentUser = { ...currentUser, ...userData };
+    saveUserDataToServer(currentUser);
+    updateUsageDisplay();
 }
 
 function showError(message) {

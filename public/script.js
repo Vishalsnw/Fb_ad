@@ -1564,21 +1564,15 @@ function checkUsageLimits() {
 function incrementUsageCount() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
 
-    if (currentUser) {
-        const userPlan = localStorage.getItem('userPlan') || 'free';
-
-        if (userPlan === 'free') {
-            const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-            const newAdsUsed = adsUsed + 1;
-            localStorage.setItem('adsUsed', newAdsUsed.toString());
-            console.log(`📊 Usage incremented: ${newAdsUsed}/4 ads used`);
-            updateUsageDisplay();
-            
-            // Check if limit reached
-            if (newAdsUsed >= 4) {
-                console.log('🚫 Usage limit reached, payment required');
-                return true; // Indicates limit reached
-            }
+    if (currentUser && typeof window.incrementAdUsage === 'function') {
+        // Use Firebase-based increment function
+        window.incrementAdUsage();
+        console.log(`📊 Usage incremented via Firebase: ${currentUser.usageCount}/${currentUser.maxUsage} ads used`);
+        
+        // Check if limit reached
+        if (currentUser.subscriptionStatus === 'free' && currentUser.usageCount >= 4) {
+            console.log('🚫 Usage limit reached via Firebase, payment required');
+            return true; // Indicates limit reached
         }
     }
     return false; // Limit not reached
