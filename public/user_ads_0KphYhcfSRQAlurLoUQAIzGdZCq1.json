@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1753546917925",
+    "formData": {
+      "productName": "SteadyCore Max",
+      "productDescription": "Tesg",
+      "targetAudience": "Tesg",
+      "specialOffer": "",
+      "language": "English",
+      "tone": "Emotional",
+      "adFormat": "facebook-feed",
+      "businessType": "Retail"
+    },
+    "textContent": {
+      "headline": "Feel Stronger, Move Freely with SteadyCore Max",
+      "adText": "Life is full of moments that demand strength and stability. With SteadyCore Max, you can trust your body to keep up, no matter what the day brings. Designed for those who refuse to slow down, this is the support you\u2019ve been waiting for. Don\u2019t let discomfort hold you back\u2014step into confidence with SteadyCore Max.",
+      "cta": "Shop now and experience the difference today."
+    },
+    "imageUrl": "https://api.deepai.org/job-view-file/a35d5352-fb57-4548-b890-4c71f31a7836/outputs/output.jpg",
+    "timestamp": "2025-07-26T16:21:57.925Z",
+    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
+  },
+  {
+    "id": "1753546898290",
+    "formData": {
+      "productName": "SteadyCore Max",
+      "productDescription": "Tesg",
+      "targetAudience": "Tesg",
+      "specialOffer": "",
+      "language": "English",
+      "tone": "Emotional",
+      "adFormat": "facebook-feed",
+      "businessType": "Retail"
+    },
+    "textContent": {
+      "headline": "Feel Stronger, Move Freely with SteadyCore Max",
+      "adText": "Life is full of moments that demand strength and stability. With SteadyCore Max, you can face every challenge with confidence. Designed for those who refuse to let discomfort hold them back, our innovative support technology keeps you steady, so you can keep moving forward. Don\u2019t let weakness slow you down\u2014embrace the strength you deserve.",
+      "cta": "Get your SteadyCore Max today and step into a stro"
+    },
+    "imageUrl": "https://api.deepai.org/job-view-file/54354a78-bae1-448b-8912-fe0cad8ef0bc/outputs/output.jpg",
+    "timestamp": "2025-07-26T16:21:38.290Z",
+    "userId": "0KphYhcfSRQAlurLoUQAIzGdZCq1"
+  }
+]
