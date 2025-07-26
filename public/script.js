@@ -1079,39 +1079,56 @@ function generateVariations() {
 function displayVariations(variations) {
     let container = document.getElementById('variationsContainer');
     if (!container) {
-        const resultSection = document.querySelector('.result-section');
+        const resultsDiv = document.getElementById('results');
         container = document.createElement('div');
         container.id = 'variationsContainer';
-        resultSection.appendChild(container);
+        container.style.cssText = 'margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;';
+        resultsDiv.appendChild(container);
     }
 
-    container.innerHTML = '<h3 style="margin: 20px 0 15px 0; color: #333;">Alternative Versions</h3>';
+    container.innerHTML = '<h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">🎯 Alternative Versions</h3>';
 
-    variations.forEach(variation => {
-        const variationCard = document.createElement('div');
-        variationCard.className = 'variation-card';
-        variationCard.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f9f9f9;';
-        variationCard.innerHTML = `
-            <h4>${variation.title}</h4>
-            <p><strong>Headline:</strong> ${variation.content.headline}</p>
-            <p><strong>Text:</strong> ${variation.content.adText}</p>
-            <p><strong>CTA:</strong> ${variation.content.cta}</p>
-            <button onclick="useVariation(${JSON.stringify(variation.content).replace(/"/g, '&quot;')})" 
-                    style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
-                Use This Version
-            </button>
-        `;
-        container.appendChild(variationCard);
+    variations.forEach((variation, index) => {
+        if (variation && variation.content) {
+            const variationCard = document.createElement('div');
+            variationCard.className = 'variation-card';
+            variationCard.style.cssText = 'border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+            variationCard.innerHTML = `
+                <h4 style="color: #667eea; margin-bottom: 15px;">${variation.title}</h4>
+                <div style="margin-bottom: 10px;"><strong>Headline:</strong> ${variation.content.headline}</div>
+                <div style="margin-bottom: 10px;"><strong>Text:</strong> ${variation.content.adText}</div>
+                <div style="margin-bottom: 15px;"><strong>CTA:</strong> ${variation.content.cta}</div>
+                <button onclick="useVariation(${index})" 
+                        style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    Use This Version
+                </button>
+            `;
+            container.appendChild(variationCard);
+        }
     });
+
+    // Store variations globally for the useVariation function
+    window.adVariations = variations;
+    
+    // Scroll to variations
+    container.scrollIntoView({ behavior: 'smooth' });
 }
 
-function useVariation(variationContent) {
-    currentAdData = variationContent;
-    const formData = getFormData();
-    updateAdPreview(variationContent, currentImageUrl, formData.adFormat);
-
-    document.querySelector('.ad-preview').scrollIntoView({ behavior: 'smooth' });
+function useVariation(variationIndex) {
+    if (window.adVariations && window.adVariations[variationIndex]) {
+        const variation = window.adVariations[variationIndex];
+        currentAdData = variation.content;
+        
+        // Update the main ad preview with the new variation
+        const formData = getFormData();
+        displayResults(variation.content, currentImageUrl, formData);
+        
+        console.log('✅ Using variation:', variation.title);
+    }
 }
+
+// Make useVariation available globally
+window.useVariation = useVariation;
 
 function updateAdPreview(textContent, imageUrl, adFormat) {
     const adPreview = document.querySelector('.ad-preview');

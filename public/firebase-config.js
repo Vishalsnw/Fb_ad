@@ -41,9 +41,9 @@ async function loadFirebaseConfig() {
 
             // Firebase configuration
             loadedFirebaseConfig = {
-                apiKey: "AIzaSyDhz_lrY64kUqAF6nGqFWJJOKLzHUB0G_Q",
-                authDomain: "adgenie-59adb.firebaseapp.com",
-                projectId: "adgenie-59adb",
+                apiKey: window.CONFIG.FIREBASE_API_KEY || "AIzaSyD76bzmFM8ScCq7FCEDzaDPTPSFv3GKPlM",
+                authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN || "adgenie-59adb.firebaseapp.com",
+                projectId: window.CONFIG.FIREBASE_PROJECT_ID || "adgenie-59adb",
                 storageBucket: "adgenie-59adb.firebasestorage.app",
                 messagingSenderId: "775764972429",
                 appId: "1:775764972429:web:2921b91eea1614a05863c4",
