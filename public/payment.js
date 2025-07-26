@@ -152,6 +152,10 @@ function showPaymentModal() {
 }
 
 function checkUserSubscription() {
+    // Only show for logged in users
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!currentUser) return;
+
     // Check user's current subscription from localStorage
     const userPlan = localStorage.getItem('userPlan') || 'free';
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
@@ -159,9 +163,9 @@ function checkUserSubscription() {
 
     updateUsageDisplay(userPlan, adsUsed, planLimits.adsPerMonth);
 
-    // Add usage info to header
+    // Add usage info to header for logged in users
     const header = document.querySelector('header');
-    if (header && !document.querySelector('.usage-info')) {
+    if (header && !document.querySelector('.usage-info') && currentUser) {
         const usageHTML = `
             <div class="usage-info">
                 <div class="plan-badge">${planLimits.name} Plan</div>
@@ -183,6 +187,9 @@ function updateUsageDisplay(plan, used, limit) {
 }
 
 function canGenerateAd() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!currentUser) return false; // Anonymous users handled separately
+    
     const userPlan = localStorage.getItem('userPlan') || 'free';
     const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
     const planLimits = SUBSCRIPTION_PLANS[userPlan];
@@ -197,6 +204,23 @@ function canGenerateAd() {
     }
     
     return true;
+}
+
+// Show payment modal for new users after they sign in
+function checkAndShowUpgradePrompt() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!currentUser) return;
+    
+    const userPlan = localStorage.getItem('userPlan') || 'free';
+    const hasSeenUpgradePrompt = localStorage.getItem('hasSeenUpgradePrompt');
+    
+    // Show upgrade prompt for new free users
+    if (userPlan === 'free' && !hasSeenUpgradePrompt) {
+        setTimeout(() => {
+            showPaymentModal();
+            localStorage.setItem('hasSeenUpgradePrompt', 'true');
+        }, 2000); // Show after 2 seconds
+    }
 }
 
 function incrementAdUsage() {

@@ -115,13 +115,40 @@ function initAuth() {
             }
 
             localStorage.setItem('userData', JSON.stringify(currentUser));
+            
+            // Hide anonymous usage display when user logs in
+            const anonymousDisplay = document.getElementById('anonymousUsageDisplay');
+            if (anonymousDisplay) {
+                anonymousDisplay.style.display = 'none';
+            }
+            
+            // Close login modal if open
+            const loginModal = document.getElementById('loginRequiredModal');
+            if (loginModal) {
+                loginModal.style.display = 'none';
+            }
+            
             updateAuthUI();
             syncUserData(currentUser);
+            
+            // Show upgrade prompt for new users
+            if (typeof window.checkAndShowUpgradePrompt === 'function') {
+                window.checkAndShowUpgradePrompt();
+            }
+            
+            console.log('✅ User signed in:', user.email);
         } else {
             currentUser = null;
             localStorage.removeItem('userData');
             localStorage.removeItem('savedAds');
+            
+            // Show anonymous usage display when user logs out
+            if (typeof window.updateAnonymousUsageDisplay === 'function') {
+                window.updateAnonymousUsageDisplay();
+            }
+            
             updateAuthUI();
+            console.log('👋 User signed out');
         }
     });
 }

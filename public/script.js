@@ -107,6 +107,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupEventListeners();
     setupLanguagePlaceholders();
     
+    // Initialize usage display for anonymous users
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!currentUser) {
+        updateAnonymousUsageDisplay();
+    }
+    
     // Then load config
     const configLoaded = await loadConfig();
     if (configLoaded) {
@@ -200,6 +206,12 @@ async function handleFormSubmit(event) {
         return;
     }
 
+    // Check usage limits BEFORE processing
+    const canGenerate = checkUsageLimits();
+    if (!canGenerate) {
+        return; // checkUsageLimits handles UI updates
+    }
+
     // Disable form submit button
     const submitButton = document.querySelector('button[type="submit"]') || document.getElementById('generateButton');
     if (submitButton) {
@@ -286,6 +298,9 @@ async function handleFormSubmit(event) {
             imageUrl: imageUrl,
             timestamp: new Date().toISOString()
         };
+
+        // Increment usage count after successful generation
+        incrementUsageCount();
 
         // Save to user's ad history if logged in
         if (typeof window.currentUser === 'function' && window.currentUser()) {
@@ -1331,6 +1346,173 @@ console.log('✅ Ad Generator script fully loaded');
 if (typeof window.currentUser === 'undefined') {
     window.currentUser = null;
 }
+
+// Usage tracking functions
+function checkUsageLimits() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    
+    if (currentUser) {
+        // Logged in users - check subscription
+        if (typeof window.canGenerateAd === 'function') {
+            return window.canGenerateAd();
+        }
+        return true; // Allow if function not available
+    } else {
+        // Anonymous users - limit to 5 generations
+        const usageCount = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
+        console.log(`📊 Anonymous usage: ${usageCount}/5`);
+        
+        if (usageCount >= 5) {
+            showLoginRequiredModal();
+            return false;
+        }
+        return true;
+    }
+}
+
+function incrementUsageCount() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    
+    if (currentUser) {
+        // Logged in users - use payment system tracking
+        if (typeof window.incrementAdUsage === 'function') {
+            window.incrementAdUsage();
+        }
+    } else {
+        // Anonymous users - track locally
+        const currentUsage = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
+        const newUsage = currentUsage + 1;
+        localStorage.setItem('anonymousUsageCount', newUsage.toString());
+        console.log(`📊 Anonymous usage updated: ${newUsage}/5`);
+        updateAnonymousUsageDisplay(newUsage);
+    }
+}
+
+function updateAnonymousUsageDisplay(usageCount = null) {
+    if (usageCount === null) {
+        usageCount = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
+    }
+    
+    const remaining = Math.max(0, 5 - usageCount);
+    
+    // Update or create usage display
+    let usageDisplay = document.getElementById('anonymousUsageDisplay');
+    if (!usageDisplay) {
+        const header = document.querySelector('header');
+        if (header) {
+            usageDisplay = document.createElement('div');
+            usageDisplay.id = 'anonymousUsageDisplay';
+            usageDisplay.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 25px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                margin-left: auto;
+            `;
+            header.appendChild(usageDisplay);
+        }
+    }
+    
+    if (usageDisplay) {
+        if (remaining > 0) {
+            usageDisplay.innerHTML = `🎯 ${remaining} free ads remaining`;
+        } else {
+            usageDisplay.innerHTML = `🔒 Free limit reached - <span style="text-decoration: underline; cursor: pointer;" onclick="showLoginRequiredModal()">Sign in for more</span>`;
+        }
+    }
+}
+
+function showLoginRequiredModal() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('loginRequiredModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'loginRequiredModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                max-width: 500px;
+                margin: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            ">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
+                <h2 style="color: #333; margin-bottom: 15px;">Free Limit Reached!</h2>
+                <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
+                    You've used all 5 free ad generations. Sign in to continue creating amazing ads with our premium features!
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="signInForMore()" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: transform 0.3s ease;
+                    ">🔑 Sign In with Google</button>
+                    <button onclick="closeLoginModal()" style="
+                        background: #f0f0f0;
+                        color: #333;
+                        border: none;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 1.1rem;
+                        cursor: pointer;
+                    ">Maybe Later</button>
+                </div>
+                <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
+                    Get unlimited ads, premium templates, and priority support!
+                </p>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeLoginModal() {
+    const modal = document.getElementById('loginRequiredModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function signInForMore() {
+    if (typeof window.signIn === 'function') {
+        window.signIn();
+        closeLoginModal();
+    } else {
+        alert('Sign in functionality not available. Please refresh the page.');
+    }
+}
+
+// Make functions globally available
+window.closeLoginModal = closeLoginModal;
+window.signInForMore = signInForMore;
+window.showLoginRequiredModal = showLoginRequiredModal;
 
 // Export functions globally for HTML event handlers
 window.handleFormSubmit = handleFormSubmit;
