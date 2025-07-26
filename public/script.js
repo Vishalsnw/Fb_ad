@@ -206,7 +206,15 @@ async function handleFormSubmit(event) {
         return;
     }
 
-    // Check usage limits BEFORE processing
+    // Check if user is logged in FIRST
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!currentUser) {
+        console.log('❌ User not logged in, showing login modal');
+        showLoginRequiredModal();
+        return;
+    }
+
+    // Check usage limits AFTER authentication
     const canGenerate = checkUsageLimits();
     if (!canGenerate) {
         return; // checkUsageLimits handles UI updates
@@ -747,13 +755,13 @@ function displayResults(textContent, imageUrl, formData) {
     const structuredCTA = textContent.cta || 'Learn More';
 
     resultsDiv.innerHTML = `
-        <div class="ad-preview">
+        <div class="ad-preview ${getAdFormatClass(formData.adFormat)}">
             <div class="ad-header">
                 <div class="profile-info">
-                    <div class="profile-pic">📘</div>
+                    <div class="profile-pic">${getFormatIcon(formData.adFormat)}</div>
                     <div class="profile-details">
                         <div class="page-name">${formData.productName || 'Your Brand'}</div>
-                        <div class="sponsored">Sponsored</div>
+                        <div class="sponsored">${getFormatLabel(formData.adFormat)}</div>
                     </div>
                 </div>
             </div>
@@ -1300,34 +1308,45 @@ function updatePreviewHeading(adFormat) {
     }
 }
 
-function updateFacebookPreview(textContent) {
-    const headlineEl = document.getElementById('adHeadline');
-    const textEl = document.getElementById('adText');
-    const ctaEl = document.getElementById('adCta');
-    const hashtagsEl = document.getElementById('adHashtags');
+function updateFacebookPreview(textContent, adFormat) {
+    const adPreview = document.querySelector('.ad-preview');
+    if (!adPreview) return;
 
-    if (headlineEl) headlineEl.textContent = textContent.headline || 'No headline generated';
-    if (textEl) textEl.textContent = textContent.adText || 'No ad text generated';
-    if (ctaEl) ctaEl.textContent = textContent.cta || 'No CTA generated';
-    if (hashtagsEl) hashtagsEl.textContent = '';
+    // Apply format-specific styling
+    switch(adFormat) {
+        case 'instagram-story':
+            adPreview.className = 'ad-preview instagram-story-format';
+            break;
+        case 'google-search':
+            adPreview.className = 'ad-preview google-search-format';
+            break;
+        case 'whatsapp-status':
+            adPreview.className = 'ad-preview whatsapp-status-format';
+            break;
+        default:
+            adPreview.className = 'ad-preview facebook-format';
+    }
 }
 
 function updateInstagramStoryPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview instagram-story-format';
+    const adPreview = document.querySelector('.ad-preview');
+    if (adPreview) {
+        adPreview.className = 'ad-preview instagram-story-format';
+    }
 }
 
 function updateGoogleSearchPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview google-search-format';
+    const adPreview = document.querySelector('.ad-preview');
+    if (adPreview) {
+        adPreview.className = 'ad-preview google-search-format';
+    }
 }
 
 function updateWhatsAppStatusPreview(textContent) {
-    updateFacebookPreview(textContent);
-	const adPreview = document.querySelector('.ad-preview');
-    adPreview.className = 'ad-preview whatsapp-status-format';
+    const adPreview = document.querySelector('.ad-preview');
+    if (adPreview) {
+        adPreview.className = 'ad-preview whatsapp-status-format';
+    }
 }
 
 // Add missing utility functions
@@ -1358,15 +1377,9 @@ function checkUsageLimits() {
         }
         return true; // Allow if function not available
     } else {
-        // Anonymous users - limit to 5 generations
-        const usageCount = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
-        console.log(`📊 Anonymous usage: ${usageCount}/5`);
-        
-        if (usageCount >= 5) {
-            showLoginRequiredModal();
-            return false;
-        }
-        return true;
+        // Should not reach here since we check login first
+        showLoginRequiredModal();
+        return false;
     }
 }
 
@@ -1378,14 +1391,8 @@ function incrementUsageCount() {
         if (typeof window.incrementAdUsage === 'function') {
             window.incrementAdUsage();
         }
-    } else {
-        // Anonymous users - track locally
-        const currentUsage = parseInt(localStorage.getItem('anonymousUsageCount') || '0');
-        const newUsage = currentUsage + 1;
-        localStorage.setItem('anonymousUsageCount', newUsage.toString());
-        console.log(`📊 Anonymous usage updated: ${newUsage}/5`);
-        updateAnonymousUsageDisplay(newUsage);
     }
+    // No anonymous tracking since login is required
 }
 
 function updateAnonymousUsageDisplay(usageCount = null) {
@@ -1455,9 +1462,9 @@ function showLoginRequiredModal() {
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             ">
                 <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
-                <h2 style="color: #333; margin-bottom: 15px;">Free Limit Reached!</h2>
+                <h2 style="color: #333; margin-bottom: 15px;">Login Required!</h2>
                 <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
-                    You've used all 5 free ad generations. Sign in to continue creating amazing ads with our premium features!
+                    Please sign in with your Google account to start generating amazing ads with our premium features!
                 </p>
                 <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
                     <button onclick="signInForMore()" style="
@@ -1513,6 +1520,46 @@ function signInForMore() {
 window.closeLoginModal = closeLoginModal;
 window.signInForMore = signInForMore;
 window.showLoginRequiredModal = showLoginRequiredModal;
+
+// Helper functions for ad format styling
+function getAdFormatClass(adFormat) {
+    switch(adFormat) {
+        case 'instagram-story':
+            return 'instagram-story-format';
+        case 'google-search':
+            return 'google-search-format';
+        case 'whatsapp-status':
+            return 'whatsapp-status-format';
+        default:
+            return 'facebook-format';
+    }
+}
+
+function getFormatIcon(adFormat) {
+    switch(adFormat) {
+        case 'instagram-story':
+            return '📸';
+        case 'google-search':
+            return '🔍';
+        case 'whatsapp-status':
+            return '💬';
+        default:
+            return '📘';
+    }
+}
+
+function getFormatLabel(adFormat) {
+    switch(adFormat) {
+        case 'instagram-story':
+            return 'Instagram Story';
+        case 'google-search':
+            return 'Ad';
+        case 'whatsapp-status':
+            return 'WhatsApp Status';
+        default:
+            return 'Sponsored';
+    }
+}
 
 // Export functions globally for HTML event handlers
 window.handleFormSubmit = handleFormSubmit;
