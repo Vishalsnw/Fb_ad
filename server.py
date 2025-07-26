@@ -187,7 +187,6 @@ window.CONFIG = {{
                         
                 except json.JSONDecodeError as e:
                     print(f"JSON decode error: {e}")
-                    print(f"Raw data: {post_data.decode('utf-8')[:200]}")
                     response_data = {
                         "success": False, 
                         "error": "Invalid JSON format in request",
@@ -197,10 +196,6 @@ window.CONFIG = {{
 
         except Exception as e:
             print(f"Payment verification error: {e}")
-            print(f"Exception type: {type(e).__name__}")
-            import traceback
-            traceback.print_exc()
-            
             response_data = {
                 "success": False,
                 "error": "Payment verification failed",
@@ -208,7 +203,11 @@ window.CONFIG = {{
             }
             status_code = 500
 
-        # Always send JSON response with proper headers
+        # Always send JSON response - override the default error handling
+        self._send_json_response(response_data, status_code)
+
+    def _send_json_response(self, data, status_code=200):
+        """Helper method to always send JSON responses"""
         try:
             self.send_response(status_code)
             self.send_header('Content-type', 'application/json')
@@ -217,15 +216,15 @@ window.CONFIG = {{
             self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
             
-            json_response = json.dumps(response_data, ensure_ascii=False)
+            json_response = json.dumps(data, ensure_ascii=False)
             self.wfile.write(json_response.encode('utf-8'))
             print(f"Sent JSON response: {json_response}")
             
         except Exception as send_error:
             print(f"Error sending response: {send_error}")
-            # Last resort - try to send basic error
+            # If all else fails, send minimal JSON
             try:
-                self.send_error(500, "Internal Server Error")
+                self.wfile.write(b'{"success": false, "error": "Response error"}')
             except:
                 pass
 
@@ -301,25 +300,24 @@ window.CONFIG = {{
             }
             status_code = 500
 
-        # Always send JSON response with proper headers
-        try:
-            self.send_response(status_code)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-            self.end_headers()
-            
-            json_response = json.dumps(response_data, ensure_ascii=False)
-            self.wfile.write(json_response.encode('utf-8'))
-            print(f"Sent order response: {json_response}")
-            
-        except Exception as send_error:
-            print(f"Error sending order response: {send_error}")
-            try:
-                self.send_error(500, "Internal Server Error")
-            except:
-                pass
+        # Always send JSON response
+        self._send_json_response(response_data, status_code)
+
+    def send_error(self, code, message=None):
+        """Override to send JSON error responses for API endpoints"""
+        parsed_path = urlparse(self.path)
+        api_endpoints = ['/verify-payment', '/create-razorpay-order', '/save-ad', '/sync-user-data']
+        
+        if parsed_path.path in api_endpoints:
+            error_data = {
+                "success": False,
+                "error": message or f"HTTP {code} Error",
+                "code": code
+            }
+            self._send_json_response(error_data, code)
+        else:
+            # For non-API endpoints, use default HTML error
+            super().send_error(code, message)
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
