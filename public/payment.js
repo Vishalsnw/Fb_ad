@@ -48,23 +48,9 @@ function loadRazorpayScript() {
     document.head.appendChild(script);
 }
 
-// Load Razorpay payment buttons
+// Load Razorpay payment buttons - now inline in HTML
 function loadRazorpayPaymentButtons() {
-    // Remove any existing payment button scripts
-    const existingScripts = document.querySelectorAll('script[src*="payment-button.js"]');
-    existingScripts.forEach(script => script.remove());
-    
-    // Load the payment button script
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-    script.setAttribute('data-payment_button_id', 'pl_QxlifReO48GlM8');
-    script.onload = () => {
-        console.log('✅ Razorpay payment button script loaded');
-    };
-    script.onerror = () => {
-        console.error('❌ Failed to load Razorpay payment button script');
-    };
-    document.head.appendChild(script);
+    console.log('✅ Razorpay payment buttons loaded inline in form tags');
 }
 
 // Load config when available
@@ -149,7 +135,13 @@ function setupPaymentModal() {
                                 <div style="margin-top: 15px; padding: 15px; border: 2px solid #667eea; border-radius: 12px; background: linear-gradient(135deg, #f8f9ff, #e6ebff);">
                                     <p style="margin: 0 0 15px 0; font-size: 1rem; color: #333; font-weight: 600; text-align: center;">⚡ Instant Payment</p>
                                     <div id="razorpay-button-${key}" style="text-align: center;">
-                                        <div class="razorpay-payment-button" data-payment_button_id="pl_QxlifReO48GlM8"></div>
+                                        <form>
+                                            <script 
+                                                src="https://checkout.razorpay.com/v1/payment-button.js" 
+                                                data-payment_button_id="pl_QxlifReO48GlM8" 
+                                                async>
+                                            </script>
+                                        </form>
                                     </div>
                                 </div>
                             ` : ''}
