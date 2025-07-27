@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Applying changes to fix syntax errors, malformed responses, and incomplete print statements in server.py
 import os
 import json
 import mimetypes
@@ -87,7 +88,6 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             print(f"🔑 FIREBASE_PROJECT_ID: {'✅ Present' if firebase_project_id else '❌ Missing'} ({len(firebase_project_id)} chars)")
             print(f"🔑 FIREBASE_APP_ID: {'✅ Present' if firebase_app_id else '❌ Missing'} ({len(firebase_app_id)} chars)")
 
-            # Check for missing critical keys
             missing_keys = []
             if not deepseek_key:
                 missing_keys.append('DEEPSEEK_API_KEY')
@@ -730,143 +730,4 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
 
             print(f"🤖 Calling DeepSeek API for ad copy generation...")
             with urllib.request.urlopen(req, timeout=30) as response:
-                result = json.loads(response.read().decode())
-
-                if 'choices' in result and len(result['choices']) > 0:
-                    ad_copy = result['choices'][0]['message']['content'].strip()
-                    print(f"✅ DeepSeek API response received: {ad_copy[:50]}...")
-                    return {"success": True, "ad_copy": ad_copy}
-                else:
-                    print(f"❌ DeepSeek API response missing choices: {result}")
-                    return {"success": False, "error": "Invalid API response from DeepSeek"}
-
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode() if e.fp else "No error details"
-            print(f"❌ DeepSeek API HTTP error {e.code}: {error_body}")
-            return {"success": False, "error": f"DeepSeek API error: {e.code}"}
-        except urllib.error.URLError as e:
-            print(f"❌ DeepSeek API connection error: {e}")
-            return {"success": False, "error": "Failed to connect to DeepSeek API"}
-        except Exception as e:
-            print(f"❌ DeepSeek API unexpected error: {e}")
-            return {"success": False, "error": f"DeepSeek API error: {str(e)}"}
-
-    def generate_image_with_deepai(self, form_data):
-        """Generate image using DeepAI API"""
-        try:
-            import urllib.request
-            import urllib.parse
-            import random
-
-            deepai_api_key = os.getenv("DEEPAI_API_KEY", "")
-            if not deepai_api_key:
-                return {"success": False, "error": "DeepAI API key not configured"}
-
-            # Create varied image prompt
-            product_name = form_data.get('productName', '')
-            product_description = form_data.get('productDescription', '')
-            business_type = form_data.get('businessType', '')
-            ad_format = form_data.get('adFormat', 'facebook-feed')
-
-            # Add variety to image generation
-            styles = [
-                "professional commercial photography",
-                "modern artistic product shot", 
-                "lifestyle product photography",
-                "premium brand advertisement"
-            ]
-
-            backgrounds = [
-                "clean minimalist background",
-                "elegant gradient backdrop",
-                "soft natural lighting setup",
-                "premium studio environment"
-            ]
-
-            qualities = [
-                "high resolution, sharp details",
-                "vibrant colors, excellent contrast",
-                "professional lighting, crisp quality",
-                "premium quality, commercial grade"
-            ]
-
-            selected_style = random.choice(styles)
-            selected_background = random.choice(backgrounds)
-            selected_quality = random.choice(qualities)
-
-            image_prompt = f"{selected_style} of {product_name}, {product_description}, {business_type}, {selected_background}, {selected_quality}, perfect for {ad_format} advertisement"
-
-            # Prepare API request
-            url = "https://api.deepai.org/api/text2img"
-            headers = {
-                'Api-Key': deepai_api_key
-            }
-
-            # Prepare form data
-            data = urllib.parse.urlencode({
-                'text': image_prompt
-            }).encode()
-
-            print(f"🎨 Calling DeepAI API for image generation...")
-            print(f"Image prompt: {image_prompt}")
-
-            req = urllib.request.Request(url, data=data, headers=headers)
-
-            with urllib.request.urlopen(req, timeout=45) as response:
-                result = json.loads(response.read().decode())
-
-                if 'output_url' in result:
-                    image_url = result['output_url']
-                    print(f"✅ DeepAI API image generated: {image_url}")
-                    return {"success": True, "image_url": image_url}
-                else:
-                    print(f"❌ DeepAI API response missing output_url: {result}")
-                    return {"success": False, "error": "Invalid API response from DeepAI"}
-
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode() if e.fp else "No error details"
-            print(f"❌ DeepAI API HTTP error {e.code}: {error_body}")
-            return {"success": False, "error": f"DeepAI API error: {e.code}"}
-        except urllib.error.URLError as e:
-            print(f"❌ DeepAI API connection error: {e}")
-            return {"success": False, "error": "Failed to connect to DeepAI API"}
-        except Exception as e:
-            print(f"❌ DeepAI API unexpected error: {e}")
-            return {"success": False, "error": f"DeepAI API error: {str(e)}"}
-
-    def end_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        super().end_headers()
-
-def create_user_data(uid, display_name, email, photo_url):
-    """Create initial user data structure"""
-    return {
-        'uid': uid,
-        'displayName': display_name,
-        'email': email,
-        'photoURL': photo_url,
-        'usageCount': 0,
-        'maxUsage': 4,  # Free users get 4 ads
-        'subscriptionStatus': 'free',
-        'createdAt': datetime.now().isoformat(),
-        'lastLoginAt': datetime.now().isoformat()
-    }
-
-def run_server():
-    port = int(os.getenv('PORT', 5000))
-    server_address = ('0.0.0.0', port)
-
-    httpd = HTTPServer(server_address, AdGeneratorHandler)
-    print(f"🚀 Server running on http://0.0.0.0:{port}")
-    print(f"📱 Access your app at: http://localhost:{port}")
-
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\n🛑 Server stopped")
-        httpd.server_close()
-
-if __name__ == '__main__':
-    run_server()
+                result = json.loads

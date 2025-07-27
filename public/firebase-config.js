@@ -27,8 +27,8 @@ async function initializeFirebase() {
         return;
     }
 
-    console.log('🔧 Using Firebase authentication (Email/Password and Anonymous)');
-    // No Google Client ID needed for Firebase Email/Password auth
+    console.log('🔧 Using Firebase authentication (Anonymous only)');
+    // Using anonymous authentication only - no Google OAuth needed
 
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,

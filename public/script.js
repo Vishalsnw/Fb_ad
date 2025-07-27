@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Failed to initialize application');
     }
 
-    console.log('✅ App initialized');
+    console.log('✅ App initialized');.log('✅ App initialized');
 });
 
 function setupCopyProtection() {
@@ -1174,7 +1174,8 @@ window.regenerateAd = generateNewAd;
 window.generateNewAd = generateNewAd;
 window.copyAdText = copyAdText;
 
-//Attempt to fix the 'signIn is not defined' error by checking if it exists
+// Attach event listeners for download functionality
+console.log('✅ Ad Generator script fully loaded');empt to fix the 'signIn is not defined' error by checking if it exists
 if (typeof window.signIn !== 'function') {
     window.signIn = async () => {
         console.warn('signIn function is not properly initialized. Please check Firebase setup.');
