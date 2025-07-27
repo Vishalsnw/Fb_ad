@@ -96,7 +96,6 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
 
             if missing_keys:
                 print(f"❌ CRITICAL: Missing API keys: {', '.join(missing_keys)}")
-                print("🔧 Please add these keys in Replit Secrets:")
                 print("   - Go to Secrets tab in the left sidebar")
                 print("   - Add DEEPSEEK_API_KEY with your DeepSeek API key")
                 print("   - Add DEEPAI_API_KEY with your DeepAI API key")
@@ -730,4 +729,85 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
 
             print(f"🤖 Calling DeepSeek API for ad copy generation...")
             with urllib.request.urlopen(req, timeout=30) as response:
-                result = json.loads
+                result = json.loads(response.read().decode('utf-8'))
+
+                ifresult.get("choices") and len(result["choices"]) > 0:
+                    ad_copy = result["choices"][0]["message"]["content"]
+                    return {"success": True, "ad_copy": ad_copy}
+                else:
+                    return {"success": False, "error": f"DeepSeek API error: {result}"}
+
+        except Exception as e:
+            return {"success": False, "error": f"DeepSeek API call failed: {str(e)}"}
+
+    def generate_image_with_deepai(self, form_data):
+        """Generate image using DeepAI API"""
+        try:
+            import urllib.request
+            import urllib.parse
+
+            deepai_api_key = os.getenv("DEEPAI_API_KEY", "")
+            if not deepai_api_key:
+                return {"success": False, "error": "DeepAI API key not configured"}
+
+            product_name = form_data.get('productName', '')
+            product_description = form_data.get('productDescription', '')
+
+            # Construct a prompt for image generation
+            prompt = f"""A visually stunning advertisement for {product_name}.
+            {product_description}. High-quality, vibrant colors, and professional composition."""
+
+            url = "https://api.deepai.org/api/text2img"
+            headers = {'api-key': deepai_api_key}
+            data = {'text': prompt}
+
+            data = urllib.parse.urlencode(data).encode('ascii')
+            req = urllib.request.Request(url, data, headers)
+
+            with urllib.request.urlopen(req, timeout=30) as response:
+                result = json.loads(response.read().decode('utf-8'))
+
+                if 'output_url' in result:
+                    return {"success": True, "image_url": result['output_url']}
+                else:
+                    return {"success": False, "error": f"DeepAI API error: {result.get('err', 'Unknown error')}"}
+
+        except Exception as e:
+            return {"success": False, "error": f"DeepAI API call failed: {str(e)}"}
+
+def create_user_data(uid, name, email, subscriptionStatus):
+    """Creates initial user data"""
+    timestamp = datetime.now().isoformat()
+    initial_data = {
+        "uid": uid,
+        "name": name,
+        "email": email,
+        "creationTime": timestamp,
+        "lastSignInTime": timestamp,
+        "usageCount": 0,
+        "subscriptionStatus": subscriptionStatus,
+        "planDetails": {
+            "planName": "free",
+            "startDate": timestamp,
+            "endDate": timestamp,
+            "isTrial": True
+        }
+    }
+
+    user_file = f'public/user_data_{uid}.json'
+    with open(user_file, 'w') as f:
+        json.dump(initial_data, f, indent=2)
+    return initial_data
+
+def run(server_class=HTTPServer, handler_class=AdGeneratorHandler, port=int(os.environ.get('PORT', 8000))):
+    """Start the HTTP server."""
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"🚀 Starting server on port {port}...")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("🛑 Server stopped.")
+
+if __name__ == "__main__":
+    run()
