@@ -227,7 +227,7 @@ function setupEventListeners() {
 
     if (form) {
         form.removeEventListener('submit', handleFormSubmit); // Remove existing
-        //form.addEventListener('submit', handleFormSubmit);  //Replaced with handleFormSubmission
+        //form.addEventListener('submit', handleFormSubmission);  //Replaced with handleFormSubmission
         console.log('✅ Form submit event listener attached');
     }
 
@@ -658,9 +658,38 @@ function showError(message) {
     console.error('Error:', message);
 }
 
-// Generate ad using API
-async function generateAd(formData) {
+// Generate ad function
+async function generateAd() {
+    console.log('🚀 Starting ad generation...');
+
+    // Check authentication first
+    const user = window.currentUser ? window.currentUser() : null;
+    if (!user) {
+        console.log('❌ User not authenticated');
+        showLoginRequiredModal();
+        return;
+    }
+
+    // Show loading state immediately
+    showLoading('🤖 Generating your ad copy...');
+
     try {
+        // Get form data
+        const formData = getFormData();
+        console.log('📝 Form data:', formData);
+
+        // Validate required fields
+        if (!formData.productName || !formData.productDescription) {
+            throw new Error('Please fill in all required fields');
+        }
+
+        // Check if user can generate more ads
+        if (!canGenerateAd()) {
+            console.log('❌ User has reached generation limit');
+            hideLoading();
+            showPaymentModal();
+            return;
+        }
         console.log('🚀 Sending request to /generate-ad with data:', formData);
 
         const response = await fetch('/generate-ad', {
@@ -726,10 +755,10 @@ async function displayResults(result) {
         resultsDiv.innerHTML = `
             <div class="ad-result">
                 <h3>✨ Your Professional ${adFormat.charAt(0).toUpperCase() + adFormat.slice(1).replace('-', ' ')} Ad</h3>
-                
+
                 <div class="ad-preview ${formatClass}">
                     <div class="screenshot-protection"></div>
-                    
+
                     <div class="ad-header">
                         <div class="profile-info">
                             <div class="profile-pic">${formData.productName ? formData.productName.charAt(0).toUpperCase() : 'B'}</div>
@@ -739,18 +768,18 @@ async function displayResults(result) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="ad-content">
                         <div class="ad-text-section">
                             ${formatAdText(adText)}
                         </div>
-                        
+
                         <div class="ad-image-container">
                             <img src="${imageUrl}" alt="Professional Ad Image" class="ad-image" 
                                  onerror="this.src='https://picsum.photos/600/400?random=fallback'"
                                  oncontextmenu="return false;" ondragstart="return false;">
                         </div>
-                        
+
                         <div class="ad-cta-container">
                             <button class="ad-cta" disabled>Learn More</button>
                         </div>
@@ -774,7 +803,7 @@ async function displayResults(result) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="ad-actions">
                     <button onclick="downloadAd()" class="action-btn download-btn">📥 Download</button>
                     <button onclick="copyAdText()" class="action-btn copy-btn">📋 Copy Text</button>
@@ -883,8 +912,7 @@ function regenerateAd() {
     if (validateFormData(formData)) {
         handleFormSubmission({ preventDefault: () => {} });
     }
-}
-
+```text
 function getFormData() {
     console.log('📋 Extracting form data...');
 
