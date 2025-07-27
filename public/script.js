@@ -333,7 +333,7 @@ function updateUsageDisplay() {
 // Show login required modal
 function showLoginRequiredModal() {
     console.log('🔑 Showing login required modal');
-    
+
     let modal = document.getElementById('loginRequiredModal');
     if (!modal) {
         modal = document.createElement('div');
@@ -416,7 +416,7 @@ function showLoginRequiredModal() {
         document.body.appendChild(modal);
     }
     modal.style.display = 'flex';
-    
+
     // Focus trap
     modal.focus();
 }
@@ -432,7 +432,7 @@ function closeLoginModal() {
 // Sign in for more ads
 async function signInForMore() {
     console.log('🔑 Attempting to sign in...');
-    
+
     // Check if Firebase is available
     if (typeof firebase === 'undefined') {
         console.error('Firebase not loaded');
@@ -942,7 +942,8 @@ function regenerateAd() {
     if (validateFormData(formData)) {
         handleFormSubmission({ preventDefault: () => {} });
     }
-```text
+}
+
 function getFormData() {
     console.log('📋 Extracting form data...');
 
@@ -1172,3 +1173,11 @@ window.downloadImage = downloadImage;
 window.regenerateAd = generateNewAd;
 window.generateNewAd = generateNewAd;
 window.copyAdText = copyAdText;
+
+//Attempt to fix the 'signIn is not defined' error by checking if it exists
+if (typeof window.signIn !== 'function') {
+    window.signIn = async () => {
+        console.warn('signIn function is not properly initialized. Please check Firebase setup.');
+        alert('Sign-in functionality is not available. Please ensure Firebase is properly configured.');
+    };
+}
