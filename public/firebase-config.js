@@ -23,6 +23,7 @@ async function initializeFirebase() {
 
     if (!window.CONFIG.FIREBASE_API_KEY) {
         console.warn('Firebase not configured - authentication disabled');
+        showError('Firebase authentication is not configured. Please add Firebase credentials to your secrets.');
         return;
     }
 
@@ -40,17 +41,19 @@ async function initializeFirebase() {
     try {
         // Wait for Firebase SDK to load
         let firebaseRetries = 0;
-        while (typeof firebase === 'undefined' && firebaseRetries < 30) {
-            console.log(`Waiting for Firebase SDK... (${firebaseRetries + 1}/30)`);
-            await new Promise(resolve => setTimeout(resolve, 100));
+        while (typeof firebase === 'undefined' && firebaseRetries < 50) {
+            console.log(`Waiting for Firebase SDK... (${firebaseRetries + 1}/50)`);
+            await new Promise(resolve => setTimeout(resolve, 200));
             firebaseRetries++;
         }
 
         if (typeof firebase !== 'undefined') {
+            console.log('✅ Firebase SDK loaded successfully');
+            
             // Check if already initialized
             if (firebase.apps.length === 0) {
-                firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase initialized');
+                const app = firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase initialized', app.name);
             } else {
                 console.log('✅ Firebase already initialized');
             }
@@ -70,13 +73,13 @@ async function initializeFirebase() {
 
             setupAuthListener();
         } else {
-            console.error('❌ Firebase SDK failed to load after 3 seconds');
-            showError('Authentication service failed to load. Please refresh the page.');
+            console.error('❌ Firebase SDK failed to load after 10 seconds');
+            showError('Authentication service failed to load. Please refresh the page and ensure you have a stable internet connection.');
         }
     } catch (error) {
         console.error('Firebase initialization error:', error);
         if (error.code === 'auth/invalid-api-key') {
-            showError('Invalid Firebase API key. Please check configuration.');
+            showError('Invalid Firebase API key. Please check your Firebase configuration in secrets.');
         } else if (error.code === 'auth/app-already-exists') {
             console.log('Firebase app already exists, continuing...');
             setupAuthListener();
@@ -125,18 +128,35 @@ function setupAuthListener() {
 }
 
 async function signIn() {
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-        console.error('Firebase Auth not available');
+    console.log('🔑 Sign in function called');
+    
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase SDK not available');
+        showError('Authentication service is not loaded. Please wait and try again.');
         return;
     }
 
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('profile');
-    provider.addScope('email');
+    if (!firebase.auth) {
+        console.error('Firebase Auth not available');
+        showError('Authentication service is not available. Please refresh the page.');
+        return;
+    }
 
     try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+
+        console.log('🔑 Starting Google sign in...');
         const result = await firebase.auth().signInWithPopup(provider);
         console.log('✅ Sign in successful:', result.user.email);
+        
+        // Close any login modal that might be open
+        const loginModal = document.getElementById('loginRequiredModal');
+        if (loginModal) {
+            loginModal.style.display = 'none';
+        }
+        
     } catch (error) {
         console.error('Sign in error:', error);
         if (error.code === 'auth/unauthorized-domain') {
@@ -146,6 +166,8 @@ async function signIn() {
             showError('Popup blocked. Please allow popups for this site and try again.');
         } else if (error.code === 'auth/popup-closed-by-user') {
             console.log('User closed the popup');
+        } else if (error.code === 'auth/network-request-failed') {
+            showError('Network error. Please check your internet connection and try again.');
         } else {
             showError('Sign in failed: ' + error.message);
         }
@@ -376,7 +398,7 @@ async function loadUserAds(uid) {
     }
 }
 
-// Make functions globally available
+// Make functions globally available immediately
 window.currentUser = () => currentUser;
 window.signIn = signIn;
 window.signOut = signOut;
@@ -385,5 +407,10 @@ window.incrementAdUsage = incrementAdUsage;
 window.saveUserData = saveUserData;
 window.showLoginModal = showLoginModal;
 
+console.log('✅ Firebase functions made globally available');
+
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', initializeFirebase);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM loaded, initializing Firebase...');
+    initializeFirebase();
+});
