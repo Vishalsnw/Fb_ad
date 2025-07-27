@@ -731,7 +731,7 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
             with urllib.request.urlopen(req, timeout=30) as response:
                 result = json.loads(response.read().decode('utf-8'))
 
-                ifresult.get("choices") and len(result["choices"]) > 0:
+                if result.get("choices") and len(result["choices"]) > 0:
                     ad_copy = result["choices"][0]["message"]["content"]
                     return {"success": True, "ad_copy": ad_copy}
                 else:
