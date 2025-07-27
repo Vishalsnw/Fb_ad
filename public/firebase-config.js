@@ -27,6 +27,10 @@ async function initializeFirebase() {
         return;
     }
 
+    if (!window.CONFIG.GOOGLE_CLIENT_ID) {
+        console.warn('Google Client ID missing - using Firebase auth without Google OAuth');
+    }
+
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
         authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN,

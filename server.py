@@ -93,7 +93,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             missing_keys = []
             if not deepseek_key:
                 missing_keys.append('DEEPSEEK_API_KEY')
-            if not deepai_key:
+            if not deepai_key:epai_key:
                 missing_keys.append('DEEPAI_API_KEY')
 
             if missing_keys:
@@ -102,6 +102,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
                 print("   - Go to Secrets tab in the left sidebar")
                 print("   - Add DEEPSEEK_API_KEY with your DeepSeek API key")
                 print("   - Add DEEPAI_API_KEY with your DeepAI API key")
+                priprint("   - Add DEEPAI_API_KEY with your DeepAI API key")
 
             config_js = f'''
 window.CONFIG = {{
@@ -141,6 +142,12 @@ window.CONFIG = {{
     FIREBASE_API_KEY: '',
     FIREBASE_AUTH_DOMAIN: '',
     FIREBASE_PROJECT_ID: '',
+    FIREBASE_APP_ID: '',
+    SHOW_3D_EARLY: false,
+    MISSING_KEYS: ['ALL_KEYS_MISSING']
+}};
+console.error('❌ Failed to load configuration');'''REBASE_AUTH_DOMAIN: '',
+    FIREBASE_PROJECT_ID: '',
     SHOW_3D_EARLY: true,
     ERROR: '{str(e)}'
 }};
@@ -176,7 +183,7 @@ console.error('❌ Config loading error: {str(e)}');
             )
 
             config_status["status"] = "healthy" if all_required_present else "missing_keys"
-            config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
+            config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]y"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
