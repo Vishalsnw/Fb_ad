@@ -27,9 +27,8 @@ async function initializeFirebase() {
         return;
     }
 
-    if (!window.CONFIG.GOOGLE_CLIENT_ID) {
-        console.warn('Google Client ID missing - using Firebase auth without Google OAuth');
-    }
+    console.log('🔧 Using Firebase authentication (Email/Password and Anonymous)');
+    // No Google Client ID needed for Firebase Email/Password auth
 
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
@@ -104,12 +103,13 @@ function setupAuthListener() {
         if (user) {
             currentUser = {
                 uid: user.uid,
-                displayName: user.displayName,
-                email: user.email,
-                photoURL: user.photoURL,
+                displayName: user.displayName || `User_${user.uid.slice(-6)}`,
+                email: user.email || 'anonymous@example.com',
+                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`,
                 usageCount: 0,
                 maxUsage: 4,
-                subscriptionStatus: 'free'
+                subscriptionStatus: 'free',
+                isAnonymous: user.isAnonymous
             };
 
             console.log('✅ User signed in:', currentUser.email);
@@ -147,13 +147,16 @@ async function signIn() {
     }
 
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.addScope('profile');
-        provider.addScope('email');
-
-        console.log('🔑 Starting Google sign in...');
-        const result = await firebase.auth().signInWithPopup(provider);
-        console.log('✅ Sign in successful:', result.user.email);
+        // For demo purposes, sign in anonymously or prompt for email/password
+        console.log('🔑 Starting anonymous sign in...');
+        const result = await firebase.auth().signInAnonymously();
+        
+        // Set a display name for anonymous users
+        await result.user.updateProfile({
+            displayName: `User_${Date.now().toString().slice(-6)}`
+        });
+        
+        console.log('✅ Anonymous sign in successful:', result.user.uid);
         
         // Close any login modal that might be open
         const loginModal = document.getElementById('loginRequiredModal');
@@ -163,13 +166,8 @@ async function signIn() {
         
     } catch (error) {
         console.error('Sign in error:', error);
-        if (error.code === 'auth/unauthorized-domain') {
-            const currentDomain = window.location.hostname;
-            showError(`Domain "${currentDomain}" not authorized. Add this domain to Firebase Console > Authentication > Settings > Authorized domains.`);
-        } else if (error.code === 'auth/popup-blocked') {
-            showError('Popup blocked. Please allow popups for this site and try again.');
-        } else if (error.code === 'auth/popup-closed-by-user') {
-            console.log('User closed the popup');
+        if (error.code === 'auth/operation-not-allowed') {
+            showError('Anonymous authentication is not enabled. Please enable it in Firebase Console.');
         } else if (error.code === 'auth/network-request-failed') {
             showError('Network error. Please check your internet connection and try again.');
         } else {
@@ -203,7 +201,7 @@ function updateAuthUI() {
         if (userInfo) {
             userInfo.innerHTML = `
                 <img src="${currentUser.photoURL}" alt="User" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
-                <span>${currentUser.displayName}</span>
+                <span>${currentUser.displayName}${currentUser.isAnonymous ? ' (Guest)' : ''}</span>
             `;
             userInfo.style.display = 'flex';
         }

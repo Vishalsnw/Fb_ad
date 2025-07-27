@@ -71,7 +71,6 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             # Debug: Log environment variables (without exposing full keys)
             deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
             deepai_key = os.getenv("DEEPAI_API_KEY", "")
-            google_client_id = os.getenv("GOOGLE_CLIENT_ID", "")
             razorpay_key_id = os.getenv("RAZORPAY_KEY_ID", "")
             razorpay_key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
             firebase_api_key = os.getenv("FIREBASE_API_KEY", "")
@@ -81,7 +80,6 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
 
             print(f"🔑 DEEPSEEK_API_KEY: {'✅ Present' if deepseek_key else '❌ Missing'} ({len(deepseek_key)} chars)")
             print(f"🔑 DEEPAI_API_KEY: {'✅ Present' if deepai_key else '❌ Missing'} ({len(deepai_key)} chars)")
-            print(f"🔑 GOOGLE_CLIENT_ID: {'✅ Present' if google_client_id else '❌ Missing'} ({len(google_client_id)} chars)")
             print(f"🔑 RAZORPAY_KEY_ID: {'✅ Present' if razorpay_key_id else '❌ Missing'} ({len(razorpay_key_id)} chars)")
             print(f"🔑 RAZORPAY_KEY_SECRET: {'✅ Present' if razorpay_key_secret else '❌ Missing'} ({len(razorpay_key_secret)} chars)")
             print(f"🔑 FIREBASE_API_KEY: {'✅ Present' if firebase_api_key else '❌ Missing'} ({len(firebase_api_key)} chars)")
@@ -93,7 +91,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             missing_keys = []
             if not deepseek_key:
                 missing_keys.append('DEEPSEEK_API_KEY')
-            if not deepai_key:epai_key:
+            if not deepai_key:
                 missing_keys.append('DEEPAI_API_KEY')
 
             if missing_keys:
@@ -102,13 +100,11 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
                 print("   - Go to Secrets tab in the left sidebar")
                 print("   - Add DEEPSEEK_API_KEY with your DeepSeek API key")
                 print("   - Add DEEPAI_API_KEY with your DeepAI API key")
-                priprint("   - Add DEEPAI_API_KEY with your DeepAI API key")
 
             config_js = f'''
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '{deepseek_key}',
     DEEPAI_API_KEY: '{deepai_key}',
-    GOOGLE_CLIENT_ID: '{google_client_id}',
     RAZORPAY_KEY_ID: '{razorpay_key_id}',
     RAZORPAY_KEY_SECRET: '{razorpay_key_secret}',
     FIREBASE_API_KEY: '{firebase_api_key}',
@@ -136,7 +132,6 @@ if (window.CONFIG.MISSING_KEYS.length > 0) {{
 window.CONFIG = {{
     DEEPSEEK_API_KEY: '',
     DEEPAI_API_KEY: '',
-    GOOGLE_CLIENT_ID: '',
     RAZORPAY_KEY_ID: '',
     RAZORPAY_KEY_SECRET: '',
     FIREBASE_API_KEY: '',
@@ -144,13 +139,10 @@ window.CONFIG = {{
     FIREBASE_PROJECT_ID: '',
     FIREBASE_APP_ID: '',
     SHOW_3D_EARLY: false,
-    MISSING_KEYS: ['ALL_KEYS_MISSING']
-}};
-console.error('❌ Failed to load configuration');'''REBASE_AUTH_DOMAIN: '',
-    FIREBASE_PROJECT_ID: '',
-    SHOW_3D_EARLY: true,
+    MISSING_KEYS: ['ALL_KEYS_MISSING'],
     ERROR: '{str(e)}'
 }};
+console.error('❌ Failed to load configuration');
 console.error('❌ Config loading error: {str(e)}');
 '''
             self.send_response(200)
@@ -165,7 +157,6 @@ console.error('❌ Config loading error: {str(e)}');
             config_status = {
                 "deepseek_api_key": bool(os.getenv("DEEPSEEK_API_KEY", "")),
                 "deepai_api_key": bool(os.getenv("DEEPAI_API_KEY", "")),
-                "google_client_id": bool(os.getenv("GOOGLE_CLIENT_ID", "")),
                 "razorpay_key_id": bool(os.getenv("RAZORPAY_KEY_ID", "")),
                 "razorpay_key_secret": bool(os.getenv("RAZORPAY_KEY_SECRET", "")),
                 "firebase_api_key": bool(os.getenv("FIREBASE_API_KEY", "")),
@@ -183,7 +174,7 @@ console.error('❌ Config loading error: {str(e)}');
             )
 
             config_status["status"] = "healthy" if all_required_present else "missing_keys"
-            config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]y"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
+            config_status["payment_ready"] = config_status["razorpay_key_id"] and config_status["razorpay_key_secret"]
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
