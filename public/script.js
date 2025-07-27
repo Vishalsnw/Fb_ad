@@ -332,6 +332,8 @@ function updateUsageDisplay() {
 
 // Show login required modal
 function showLoginRequiredModal() {
+    console.log('🔑 Showing login required modal');
+    
     let modal = document.getElementById('loginRequiredModal');
     if (!modal) {
         modal = document.createElement('div');
@@ -342,11 +344,12 @@ function showLoginRequiredModal() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10000;
+            animation: fadeIn 0.3s ease-out;
         `;
 
         modal.innerHTML = `
@@ -357,43 +360,65 @@ function showLoginRequiredModal() {
                 text-align: center;
                 max-width: 500px;
                 margin: 20px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+                transform: scale(0.9);
+                animation: modalSlideIn 0.3s ease-out forwards;
             ">
-                <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
-                <h2 style="color: #333; margin-bottom: 15px;">Login Required!</h2>
+                <div style="font-size: 4rem; margin-bottom: 20px; animation: bounce 2s infinite;">🔐</div>
+                <h2 style="color: #333; margin-bottom: 15px; font-size: 1.8rem;">Sign In Required!</h2>
                 <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
-                    Please sign in with your Google account to start generating amazing ads with our premium features!
+                    Please sign in with your Google account to start generating amazing Facebook ads with AI!
                 </p>
                 <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
                     <button onclick="signInForMore()" style="
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                         color: white;
                         border: none;
-                        padding: 15px 30px;
-                        border-radius: 10px;
+                        padding: 18px 35px;
+                        border-radius: 12px;
                         font-size: 1.1rem;
                         font-weight: 600;
                         cursor: pointer;
-                        transition: transform 0.3s ease;
-                    ">🔑 Sign In with Google</button>
+                        transition: all 0.3s ease;
+                        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)'">🔑 Sign In with Google</button>
                     <button onclick="closeLoginModal()" style="
-                        background: #f0f0f0;
+                        background: #f8f9fa;
                         color: #666;
-                        border: none;
-                        padding: 15px 30px;
-                        border-radius: 10px;
+                        border: 2px solid #e9ecef;
+                        padding: 18px 35px;
+                        border-radius: 12px;
                         font-size: 1.1rem;
                         cursor: pointer;
-                    ">Maybe Later</button>
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">Maybe Later</button>
                 </div>
                 <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
-                    Get unlimited ads, premium templates, and priority support!
+                    ✨ Get 4 free ads, then upgrade for unlimited access!
                 </p>
             </div>
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes modalSlideIn {
+                    from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+                    to { transform: scale(1) translateY(0); opacity: 1; }
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            </style>
         `;
         document.body.appendChild(modal);
     }
     modal.style.display = 'flex';
+    
+    // Focus trap
+    modal.focus();
 }
 
 // Close login modal
@@ -405,24 +430,58 @@ function closeLoginModal() {
 }
 
 // Sign in for more ads
-function signInForMore() {
+async function signInForMore() {
+    console.log('🔑 Attempting to sign in...');
+    
+    // Check if Firebase is available
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase not loaded');
+        alert('Authentication service is loading. Please wait a moment and try again.');
+        return;
+    }
+
     if (typeof window.signIn === 'function') {
-        window.signIn();
+        try {
+            await window.signIn();
+            closeLoginModal();
+        } catch (error) {
+            console.error('Sign in error:', error);
+            if (error.code === 'auth/popup-blocked') {
+                alert('Popup blocked! Please allow popups for this site and try again.');
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                console.log('User cancelled sign in');
+            } else {
+                alert('Sign in failed. Please try again.');
+            }
+        }
     } else {
         console.error('signIn function not available');
-        alert('Sign in functionality is not available. Please check your internet connection.');
+        alert('Sign in functionality is not available. Please refresh the page and try again.');
     }
-    closeLoginModal();
 }
 
 // Handle form submission
 async function handleFormSubmission(event) {
     event.preventDefault();
 
+    // Wait for Firebase to initialize
+    let retries = 0;
+    while (typeof firebase === 'undefined' && retries < 20) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+    }
+
     const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+
+    console.log('🔍 Checking authentication status:', {
+        user: !!user,
+        firebase: typeof firebase !== 'undefined',
+        auth: typeof firebase !== 'undefined' && !!firebase.auth
+    });
 
     // Check if user is logged in and has remaining ads
     if (!user) {
+        console.log('🚫 User not authenticated, showing login modal');
         showLoginRequiredModal();
         return;
     }

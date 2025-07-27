@@ -6,9 +6,18 @@ let firebaseConfig = {};
 
 // Initialize Firebase when config is loaded
 async function initializeFirebase() {
+    let retries = 0;
+    const maxRetries = 50; // Wait up to 5 seconds
+    
+    while (!window.CONFIG && retries < maxRetries) {
+        console.log(`Waiting for config to load... (${retries + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+    }
+
     if (!window.CONFIG) {
-        console.log('Waiting for config to load...');
-        setTimeout(initializeFirebase, 100);
+        console.error('Config failed to load after 5 seconds');
+        showError('Configuration failed to load. Please refresh the page.');
         return;
     }
 
@@ -29,14 +38,27 @@ async function initializeFirebase() {
     console.log(`🔧  Current domain: ${currentDomain}`);
 
     try {
-        // Initialize Firebase (assuming Firebase SDK is loaded)
+        // Wait for Firebase SDK to load
+        let firebaseRetries = 0;
+        while (typeof firebase === 'undefined' && firebaseRetries < 30) {
+            console.log(`Waiting for Firebase SDK... (${firebaseRetries + 1}/30)`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            firebaseRetries++;
+        }
+
         if (typeof firebase !== 'undefined') {
-            firebase.initializeApp(firebaseConfig);
+            // Check if already initialized
+            if (firebase.apps.length === 0) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase initialized');
+            } else {
+                console.log('✅ Firebase already initialized');
+            }
             
             // Initialize Firestore
             if (firebase.firestore) {
                 window.db = firebase.firestore();
-                console.log('✅ Firebase and Firestore initialized');
+                console.log('✅ Firestore initialized');
             } else {
                 console.warn('Firestore not available');
             }
@@ -48,12 +70,18 @@ async function initializeFirebase() {
 
             setupAuthListener();
         } else {
-            console.warn('Firebase SDK not loaded');
+            console.error('❌ Firebase SDK failed to load after 3 seconds');
+            showError('Authentication service failed to load. Please refresh the page.');
         }
     } catch (error) {
         console.error('Firebase initialization error:', error);
         if (error.code === 'auth/invalid-api-key') {
             showError('Invalid Firebase API key. Please check configuration.');
+        } else if (error.code === 'auth/app-already-exists') {
+            console.log('Firebase app already exists, continuing...');
+            setupAuthListener();
+        } else {
+            showError('Authentication initialization failed: ' + error.message);
         }
     }
 }
