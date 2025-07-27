@@ -123,28 +123,21 @@ async function loadConfig() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 App initializing...');
 
-    // Load user data
-    loadUserData();
-
     // Setup form submission
     const form = document.getElementById('adForm');
     if (form) {
         form.addEventListener('submit', handleFormSubmission);
     }
 
-    // Update usage display
-    updateUsageDisplay();
+    // Usage display will be updated by Firebase auth state change
+    console.log('📊 Usage display will be handled by Firebase authentication');
 
     // Setup UI first
     setupEventListeners();
     setupLanguagePlaceholders();
     setupCopyProtection();
 
-    // Initialize usage display for anonymous users
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!currentUser) {
-        updateUsageDisplay();
-    }
+    // Usage display will only be shown for authenticated users
 
     // Then load config
     const configLoaded = loadConfig();
@@ -293,35 +286,15 @@ function updatePlaceholders(language) {
     if (targetAudienceInput) targetAudienceInput.placeholder = currentPlaceholders.targetAudience;
 }
 
-// Load user data from localStorage
+// User data is now handled exclusively by Firebase
 function loadUserData() {
-    try {
-        const savedAdsUsed = localStorage.getItem('adsUsed');
-        const savedUserPlan = localStorage.getItem('userPlan');
-
-        if (savedAdsUsed !== null) {
-            adsUsed = parseInt(savedAdsUsed, 10) || 0;
-        }
-
-        if (savedUserPlan) {
-            userPlan = savedUserPlan;
-        }
-
-        console.log(`📊 User data loaded: ${adsUsed} ads used, plan: ${userPlan}`);
-    } catch (error) {
-        console.error('Error loading user data:', error);
-    }
+    // User data loading is handled by Firebase auth state change
+    console.log('📊 User data loading handled by Firebase authentication');
 }
 
-// Save user data to localStorage
 function saveUserData() {
-    try {
-        localStorage.setItem('adsUsed', adsUsed.toString());
-        localStorage.setItem('userPlan', userPlan);
-        console.log('💾 User data saved');
-    } catch (error) {
-        console.error('Error saving user data:', error);
-    }
+    // User data saving is handled by Firebase functions
+    console.log('💾 User data saving handled by Firebase');
 }
 
 // Update usage display
@@ -499,10 +472,8 @@ async function handleFormSubmission(event) {
                     }, 3000); // Give user time to see their ad
                 }
             } else {
-                // Fallback for local storage
-                adsUsed++;
-                saveUserData();
-                updateUsageDisplay();
+                console.error('Firebase user tracking not available');
+                showError('User tracking not available. Please refresh the page.');
             }
         } else {
             showError(result.error || 'Failed to generate ad');
@@ -1042,7 +1013,7 @@ function checkUsageLimits() {
 
     if (currentUser) {
         // Check if user has premium subscription using canGenerateAd function
-        return canGenerateAd();
+        return typeof window.canGenerateAd === 'function' ? window.canGenerateAd() : false;
     } else {
         showLoginRequiredModal();
         return false;
@@ -1054,16 +1025,13 @@ function incrementUsageCount() {
 
     if (currentUser && typeof window.incrementAdUsage === 'function') {
         // Use Firebase-based increment function
-        window.incrementAdUsage();
+        const limitReached = window.incrementAdUsage();
         console.log(`📊 Usage incremented via Firebase: ${currentUser.usageCount}/${currentUser.maxUsage} ads used`);
-
-        // Check if limit reached
-        if (currentUser.subscriptionStatus === 'free' && currentUser.usageCount >= 4) {
-            console.log('🚫 Usage limit reached via Firebase, payment required');
-            return true; // Indicates limit reached
-        }
+        return limitReached;
+    } else {
+        console.error('Firebase user tracking not available');
+        throw new Error('User tracking not available');
     }
-    return false; // Limit not reached
 }
 
 function getAdFormatClass(adFormat) {

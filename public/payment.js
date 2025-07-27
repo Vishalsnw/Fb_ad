@@ -292,24 +292,24 @@ function checkAndShowUpgradePrompt() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!currentUser) return;
 
-    const userPlan = localStorage.getItem('userPlan') || 'free';
-    const hasSeenUpgradePrompt = localStorage.getItem('hasSeenUpgradePrompt');
+    //const userPlan = localStorage.getItem('userPlan') || 'free';
+    //const hasSeenUpgradePrompt = localStorage.getItem('hasSeenUpgradePrompt');
 
     // Show upgrade prompt for new free users
-    if (userPlan === 'free' && !hasSeenUpgradePrompt) {
-        setTimeout(() => {
-            showPaymentModal();
-            localStorage.setItem('hasSeenUpgradePrompt', 'true');
-        }, 2000); // Show after 2 seconds
-    }
+    //if (userPlan === 'free' && !hasSeenUpgradePrompt) {
+        //setTimeout(() => {
+            //showPaymentModal();
+            //localStorage.setItem('hasSeenUpgradePrompt', 'true');
+        //}, 2000); // Show after 2 seconds
+    //}
 }
 
 function incrementAdUsage() {
-    const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-    localStorage.setItem('adsUsed', (adsUsed + 1).toString());
+    //const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
+    //localStorage.setItem('adsUsed', (adsUsed + 1).toString());
 
-    const userPlan = localStorage.getItem('userPlan') || 'free';
-    updateUsageDisplay(userPlan, adsUsed + 1, SUBSCRIPTION_PLANS[userPlan].adsPerMonth);
+    //const userPlan = localStorage.getItem('userPlan') || 'free';
+    //updateUsageDisplay(userPlan, adsUsed + 1, SUBSCRIPTION_PLANS[userPlan].adsPerMonth);
 }
 
 async function handleSubscription(planKey) {

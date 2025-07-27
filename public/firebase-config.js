@@ -60,7 +60,8 @@ async function initializeFirebase() {
 
 function setupAuthListener() {
     if (typeof firebase === 'undefined' || !firebase.auth) {
-        console.warn('Firebase Auth not available');
+        console.error('Firebase Auth not available - authentication required');
+        showError('Authentication service not available. Please refresh the page.');
         return;
     }
 
@@ -77,12 +78,20 @@ function setupAuthListener() {
             };
 
             console.log('✅ User signed in:', currentUser.email);
-            await loadUserDataFromServer(user.uid);
-            updateAuthUI();
+            try {
+                await loadUserDataFromServer(user.uid);
+                updateAuthUI();
+            } catch (error) {
+                console.error('Failed to load user data:', error);
+                showError('Failed to load user data. Please try signing in again.');
+                await signOut();
+            }
         } else {
             currentUser = null;
             console.log('User signed out');
             updateAuthUI();
+            // Clear any cached data when user signs out
+            document.getElementById('results')?.innerHTML = '';
         }
     });
 }
@@ -204,8 +213,8 @@ function updateUsageDisplay() {
 async function loadUserDataFromServer(uid) {
     try {
         if (!window.db) {
-            console.warn('Firestore not initialized, falling back to local storage');
-            return;
+            console.error('Firestore not initialized, cannot load user data');
+            throw new Error('Database not available');
         }
 
         const userDoc = await window.db.collection('users').doc(uid).get();
@@ -226,9 +235,7 @@ async function loadUserDataFromServer(uid) {
         updateUsageDisplay();
     } catch (error) {
         console.error('Failed to load user data from Firestore:', error);
-        // Use default values on error
-        updateAuthUI();
-        updateUsageDisplay();
+        throw error;
     }
 }
 
@@ -295,7 +302,10 @@ function showLoginModal() {
 
 // Saved ads management - Firebase Firestore
 async function saveAd(adData, imageUrl) {
-    if (!currentUser || !window.db) return;
+    if (!currentUser || !window.db) {
+        console.error('Cannot save ad: user not authenticated or database not available');
+        return;
+    }
 
     const adToSave = {
         id: Date.now().toString(),
@@ -306,16 +316,12 @@ async function saveAd(adData, imageUrl) {
     };
 
     try {
-        // Save to Firestore
+        // Save to Firestore only
         await window.db.collection('ads').doc(adToSave.id).set(adToSave);
         console.log('✅ Ad saved to Firestore:', adToSave.id);
-        
-        // Also keep in localStorage as backup
-        const savedAds = JSON.parse(localStorage.getItem('savedAds') || '[]');
-        savedAds.unshift(adToSave);
-        localStorage.setItem('savedAds', JSON.stringify(savedAds.slice(0, 50)));
     } catch (error) {
         console.error('Failed to save ad to Firestore:', error);
+        throw error;
     }
 }
 
