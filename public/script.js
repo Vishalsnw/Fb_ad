@@ -265,14 +265,12 @@ function setupEventListeners() {
     const generateButton = document.getElementById('generateButton');
 
     if (form) {
-        form.removeEventListener('submit', handleFormSubmit); // Remove existing
-        //form.addEventListener('submit', handleFormSubmission);  //Replaced with handleFormSubmission
+        form.addEventListener('submit', handleFormSubmission);
         console.log('✅ Form submit event listener attached');
     }
 
     // Also attach to generate button directly
     if (generateButton) {
-        generateButton.removeEventListener('click', handleGenerateClick);
         generateButton.addEventListener('click', handleGenerateClick);
         console.log('✅ Generate button click event listener attached');
     }
@@ -285,7 +283,6 @@ function setupEventListeners() {
 function handleGenerateClick(event) {
     event.preventDefault();
     console.log('🖱️ Generate button clicked');
-    //handleFormSubmit(event); //Replaced with handleFormSubmission
     handleFormSubmission(event);
 }
 
@@ -1228,11 +1225,9 @@ function generateNewAd() {
 }
 
 // Make functions globally available
-window.handleFormSubmit = handleFormSubmission;
 window.downloadAd = downloadAd;
 window.downloadImage = downloadImage;
 window.regenerateAd = generateNewAd;
-window.generateNewAd = generateNewAd;
 window.copyAdText = copyAdText;
 
 // Attach event listeners for download functionality
