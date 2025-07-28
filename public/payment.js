@@ -261,12 +261,7 @@ function updateUsageDisplay(plan, used, limit) {
     }
 }
 
-// Subscription plans configuration
-const SUBSCRIPTION_PLANS = {
-    free: { adsPerMonth: 4, name: 'Free Plan' },
-    pro: { adsPerMonth: 100, name: 'Pro Plan' },
-    unlimited: { adsPerMonth: -1, name: 'Unlimited Plan' }
-};
+// Subscription plans configuration moved to top of file
 
 function canGenerateAd() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;

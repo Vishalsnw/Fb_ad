@@ -54,7 +54,7 @@ async function initializeFirebase() {
             console.log('✅ Firebase SDK loaded successfully');
             
             // Check if already initialized
-            if (firebase.apps.length === 0) {
+            if (!firebase.apps || firebase.apps.length === 0) {
                 const app = firebase.initializeApp(firebaseConfig);
                 console.log('✅ Firebase initialized', app.name);
             } else {
@@ -256,9 +256,16 @@ function showLoginRequiredModal() {
 async function signIn() {
     console.log('🔑 Sign in function called');
     
+    // Wait for Firebase to be ready
+    let retries = 0;
+    while (typeof firebase === 'undefined' && retries < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+    }
+    
     if (typeof firebase === 'undefined') {
-        console.error('Firebase SDK not available');
-        showError('Authentication service is not loaded. Please wait and try again.');
+        console.error('Firebase SDK not available after waiting');
+        showError('Authentication service is not loaded. Please refresh the page.');
         return;
     }
 
@@ -269,16 +276,18 @@ async function signIn() {
     }
 
     try {
-        // For demo purposes, sign in anonymously or prompt for email/password
+        // For demo purposes, sign in anonymously
         console.log('🔑 Starting anonymous sign in...');
         const result = await firebase.auth().signInAnonymously();
         
         // Set a display name for anonymous users
-        await result.user.updateProfile({
-            displayName: `User_${Date.now().toString().slice(-6)}`
-        });
-        
-        console.log('✅ Anonymous sign in successful:', result.user.uid);
+        if (result.user) {
+            await result.user.updateProfile({
+                displayName: `User_${Date.now().toString().slice(-6)}`
+            });
+            
+            console.log('✅ Anonymous sign in successful:', result.user.uid);
+        }
         
         // Close any login modal that might be open
         const loginModal = document.getElementById('loginRequiredModal');
@@ -292,6 +301,8 @@ async function signIn() {
             showError('Anonymous authentication is not enabled. Please enable it in Firebase Console.');
         } else if (error.code === 'auth/network-request-failed') {
             showError('Network error. Please check your internet connection and try again.');
+        } else if (error.code === 'app/no-app') {
+            showError('Firebase app not initialized. Please refresh the page.');
         } else {
             showError('Sign in failed: ' + error.message);
         }

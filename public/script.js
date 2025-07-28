@@ -1238,36 +1238,5 @@ window.copyAdText = copyAdText;
 // Attach event listeners for download functionality
 console.log('✅ Ad Generator script fully loaded');
 
-// Ensure signIn and signOut functions exist globally
-if (typeof window.signIn !== 'function') {
-    window.signIn = async () => {
-        console.log('🔑 signIn called from script.js fallback');
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                const result = await firebase.auth().signInWithPopup(provider);
-                console.log('✅ Sign in successful:', result.user.displayName);
-            } catch (error) {
-                console.error('❌ Sign in error:', error);
-                alert('Sign in failed. Please try again.');
-            }
-        } else {
-            console.warn('Firebase auth not available');
-            alert('Sign-in functionality is not available. Please ensure Firebase is properly configured.');
-        }
-    };
-}
-
-if (typeof window.signOut !== 'function') {
-    window.signOut = async () => {
-        console.log('🔑 signOut called from script.js fallback');
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            try {
-                await firebase.auth().signOut();
-                console.log('✅ Sign out successful');
-            } catch (error) {
-                console.error('❌ Sign out error:', error);
-            }
-        }
-    };
-}
+// Firebase auth functions are handled in firebase-config.js
+console.log('✅ Script.js loaded - Firebase auth managed by firebase-config.js');
