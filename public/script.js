@@ -116,6 +116,7 @@ async function loadConfig() {
         console.error('❌ Failed to load config:', error);
         showError('Failed to load configuration. Please check your API keys and refresh the page.');
         return false;
+    }
 }
 
 // Placeholder functions that should be implemented
@@ -147,7 +148,7 @@ function setupCopyProtection() {
 
 function handleFormSubmission(event) {
     event.preventDefault();
-    
+
     // Check if user is logged in
     const user = window.currentUser();
     if (!user) {
@@ -164,7 +165,7 @@ function handleFormSubmission(event) {
 
     console.log('🚀 Generating ad for user:', user.displayName);
     // Add your ad generation logic here
-    
+
     return false;
 }
 
@@ -895,6 +896,7 @@ async function displayResults(result) {
                 </div>
 
                 <div class="ad-actions">
+                    ```text
                     <button onclick="downloadAd()" class="action-btn download-btn">📥 Download</button>
                     <button onclick="copyAdText()" class="action-btn copy-btn">📋 Copy Text</button>
                     <button onclick="regenerateAd()" class="action-btn regenerate-btn">🔄 Regenerate</button>
