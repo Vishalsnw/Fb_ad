@@ -33,6 +33,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
         self.send_response(200)
+        # TODO: Replace * with specific allowed origins in production
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -62,6 +63,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             }
             self.send_response(404)
             self.send_header('Content-type', 'application/json')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(error_response).encode('utf-8'))
@@ -122,6 +124,7 @@ if (window.CONFIG.MISSING_KEYS.length > 0) {{
             self.send_response(200)
             self.send_header('Content-type', 'application/javascript')
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(config_js.encode())
@@ -146,6 +149,7 @@ console.error('❌ Config loading error: {str(e)}');
 '''
             self.send_response(200)
             self.send_header('Content-type', 'application/javascript')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(error_config.encode())
@@ -178,6 +182,7 @@ console.error('❌ Config loading error: {str(e)}');
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Cache-Control', 'no-cache')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(config_status, indent=2).encode())
@@ -191,6 +196,7 @@ console.error('❌ Config loading error: {str(e)}');
             }
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(error_response).encode())
@@ -407,6 +413,7 @@ console.error('❌ Config loading error: {str(e)}');
 
             self.send_response(status_code)
             self.send_header('Content-type', 'application/json')
+            # TODO: Replace * with specific allowed origins in production
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
             self.send_header('Access-Control-Allow-Headers', 'Content-Type')
@@ -432,6 +439,7 @@ console.error('❌ Config loading error: {str(e)}');
                 if not hasattr(self, '_headers_sent'):
                     self.send_response(500)
                     self.send_header('Content-type', 'application/json')
+                    # TODO: Replace * with specific allowed origins in production
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
                 minimal_response = b'{"success": false, "error": "Response error"}'
