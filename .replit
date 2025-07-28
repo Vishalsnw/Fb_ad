@@ -5,7 +5,7 @@ channel = "stable-25_05"
 packages = ["tree", "python311", "python311Packages.pip"]
 
 [deployment]
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "python3 server.py"]
 
 [workflows]
 runButton = "Start Server"
