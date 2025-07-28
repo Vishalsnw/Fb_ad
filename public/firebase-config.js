@@ -116,6 +116,7 @@ function setupAuthListener() {
             try {
                 await loadUserDataFromServer(user.uid);
                 updateAuthUI();
+                hideLoginScreen();
             } catch (error) {
                 console.error('Failed to load user data:', error);
                 showError('Failed to load user data. Please try signing in again.');
@@ -124,11 +125,132 @@ function setupAuthListener() {
         } else {
             currentUser = null;
             console.log('User signed out');
+            showLoginScreen();
             updateAuthUI();
             // Clear any cached data when user signs out
             document.getElementById('results')?.innerHTML = '';
         }
     });
+}
+
+function showLoginScreen() {
+    console.log('🔑 Showing login screen');
+    
+    // Hide main content
+    const mainContent = document.querySelector('.main-content');
+    const examplesSection = document.querySelector('.examples-section');
+    const testimonialsSection = document.querySelector('.testimonials-section');
+    
+    if (mainContent) mainContent.style.display = 'none';
+    if (examplesSection) examplesSection.style.display = 'none';
+    if (testimonialsSection) testimonialsSection.style.display = 'none';
+    
+    // Show login modal
+    showLoginRequiredModal();
+}
+
+function hideLoginScreen() {
+    console.log('✅ Hiding login screen, showing main content');
+    
+    // Show main content
+    const mainContent = document.querySelector('.main-content');
+    const examplesSection = document.querySelector('.examples-section');
+    const testimonialsSection = document.querySelector('.testimonials-section');
+    
+    if (mainContent) mainContent.style.display = 'block';
+    if (examplesSection) examplesSection.style.display = 'block';
+    if (testimonialsSection) testimonialsSection.style.display = 'block';
+    
+    // Hide login modal
+    const loginModal = document.getElementById('loginRequiredModal');
+    if (loginModal) {
+        loginModal.style.display = 'none';
+    }
+}
+
+function showLoginRequiredModal() {
+    console.log('🔑 Showing login required modal');
+
+    let modal = document.getElementById('loginRequiredModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'loginRequiredModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                padding: 50px;
+                border-radius: 20px;
+                text-align: center;
+                max-width: 600px;
+                margin: 20px;
+                box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+                transform: scale(0.9);
+                animation: modalSlideIn 0.3s ease-out forwards;
+            ">
+                <div style="font-size: 5rem; margin-bottom: 30px; animation: bounce 2s infinite;">🚀</div>
+                <h1 style="color: #333; margin-bottom: 20px; font-size: 2.5rem; font-weight: 800;">Welcome to Facebook Ad Generator!</h1>
+                <p style="color: #666; font-size: 1.3rem; margin-bottom: 40px; line-height: 1.6;">
+                    Create professional Facebook ads in Hindi or English using AI. Get started by signing in as a guest - no registration required!
+                </p>
+                <div style="background: #f8f9ff; padding: 25px; border-radius: 15px; margin-bottom: 35px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.4rem;">🎯 What You Get:</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left;">
+                        <div>✅ 4 FREE professional ads</div>
+                        <div>✅ AI-generated copy & images</div>
+                        <div>✅ Hindi & English support</div>
+                        <div>✅ Multiple ad formats</div>
+                    </div>
+                </div>
+                <button onclick="signIn()" style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    padding: 20px 50px;
+                    border-radius: 15px;
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+                    margin-bottom: 20px;
+                " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(102, 126, 234, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.4)'">🔑 Start Creating Ads (Sign In as Guest)</button>
+                <p style="color: #999; font-size: 1rem; margin-top: 15px;">
+                    ⚡ No registration required • Start in 5 seconds
+                </p>
+            </div>
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes modalSlideIn {
+                    from { transform: scale(0.9) translateY(-30px); opacity: 0; }
+                    to { transform: scale(1) translateY(0); opacity: 1; }
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-15px); }
+                    60% { transform: translateY(-8px); }
+                }
+            </style>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
 }
 
 async function signIn() {

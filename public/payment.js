@@ -165,7 +165,7 @@ function setupPaymentModal() {
     closeBtn.onclick = () => modal.style.display = 'none';
     window.onclick = (event) => {
         if (event.target === modal) {
-            modal.style.display = 'none';
+            modal.style.display modal.style.display = 'none';
         }
     };
 }
@@ -219,7 +219,11 @@ Transform your business with unlimited AI-powered ads!
     }
 }
 
-// Make it globally accessible
+// Make payment functions globally available
+window.showPaymentModal = showPaymentModal;
+window.canGenerateAd = canGenerateAd;
+
+console.log('✅ Payment module loaded successfully');ake it globally accessible
 window.showPaymentModal = showPaymentModal;
 
 function checkUserSubscription() {
@@ -253,9 +257,17 @@ function checkUserSubscription() {
 function updateUsageDisplay(plan, used, limit) {
     const usageCount = document.querySelector('.usage-count');
     if (usageCount) {
-        usageCount.textContent = limit === -1 ? 'Unlimited' : `${used}/${limit} ads used`;
+        usageCount.textContconst usageText = limit === -1 ? 'Unlimited' : `${used}/${limit} ads used`;
+        usageElement.textContent = usageText;
     }
 }
+
+// Subscription plans configuration
+const SUBSCRIPTION_PLANS = {
+    free: { adsPerMonth: 4, name: 'Free Plan' },
+    pro: { adsPerMonth: 100, name: 'Pro Plan' },
+    unlimited: { adsPerMonth: -1, name: 'Unlimited Plan' }
+};
 
 function canGenerateAd() {
     const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
@@ -284,6 +296,7 @@ function canGenerateAd() {
     }
 
     console.log(`✅ Can generate: ${adsUsed}/${maxUsage} ads used (free plan)`);
+    return true;ee plan)`);
     return true;
 }
 

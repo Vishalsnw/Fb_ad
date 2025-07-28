@@ -115,7 +115,7 @@ async function loadConfig() {
     } catch (error) {
         console.error('❌ Failed to load config:', error);
         showError('Failed to load configuration. Please check your API keys and refresh the page.');
-        retretreturn false;
+        return false;
 }
 
 // Placeholder functions that should be implemented
@@ -168,11 +168,7 @@ function handleFormSubmission(event) {
     return false;
 }
 
-function loadConfig() {
-    // Config loading logic
-    console.log('🔧 Loading configuration...');
-    return true;
-}
+// loadConfig function is already defined above
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -197,8 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ App initialized');
 });
 
-console.log('✅ Ad Generator script fully loaded'););.log('✅ App initialized');
-});
+console.log('✅ Ad Generator script fully loaded');
 
 function setupCopyProtection() {
     // Disable right-click context menu on ad preview
