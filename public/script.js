@@ -1051,7 +1051,29 @@ function showPaymentModal() {
     } else {
         // Create and show a simple upgrade prompt
         console.log('💳 Creating upgrade prompt...');
-        const upgradePrompt = document.createElement('div');
+        const upgradeMessage = `
+🚀 CONGRATULATIONS! 
+
+You've used all 4 FREE ads! 🎉
+
+Ready to unlock unlimited professional ads?
+
+💎 PRO PLAN - ₹599/month
+✅ 100 Professional Ads
+✅ Premium Templates  
+✅ Priority Support
+
+⭐ UNLIMITED PLAN - ₹999/month  
+✅ Unlimited Ads
+✅ All Premium Features
+✅ 24/7 Support
+✅ Custom Branding
+
+Transform your business with unlimited AI-powered ads!
+        `;
+        alert(upgradeMessage);
+    }
+}ment('div');
         upgradePrompt.style.cssText = `
             position: fixed;
             top: 0;
