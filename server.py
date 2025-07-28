@@ -202,53 +202,45 @@ console.error('❌ Config loading error: {str(e)}');
             self.wfile.write(json.dumps(error_response).encode())
 
     def handle_save_ad(self):
-        """Handle saving ad data"""
+        """Handle saving ad data - Firebase only"""
         try:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             ad_data = json.loads(post_data.decode('utf-8'))
 
-            # Save to file (in production, use a proper database)
-            user_id = ad_data.get('userId', 'anonymous')
-            filename = f'public/user_ads_{user_id}.json'
-
-            try:
-                with open(filename, 'r') as f:
-                    ads = json.load(f)
-            except (FileNotFoundError, json.JSONDecodeError):
-                ads = []
-
-            ads.insert(0, ad_data)
-            ads = ads[:4]  # Limit to 4 ads
-
-            with open(filename, 'w') as f:
-                json.dump(ads, f, indent=2)
-
+            # Data will be saved to Firebase Firestore by client-side code
+            # Server just acknowledges the request
+            print(f"📝 Ad save request received for user: {ad_data.get('userId', 'unknown')}")
+            
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps({"success": True}).encode())
+            self.wfile.write(json.dumps({"success": True, "message": "Ad saved to Firebase"}).encode())
 
         except Exception as e:
-            print(f"Error saving ad: {e}")
-            self.send_error(500, "Internal Server Error")
+            print(f"Error processing ad save request: {e}")
+            self._send_json_response({"success": False, "error": str(e)}, 500)
 
     def handle_sync_user_data(self):
-        """Handle user data synchronization"""
+        """Handle user data synchronization - Firebase only"""
         try:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             user_data = json.loads(post_data.decode('utf-8'))
 
-            # In production, sync with database
+            # Data synchronization handled by Firebase client-side
+            print(f"📊 User data sync request for: {user_data.get('uid', 'unknown')}")
+            
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps(user_data).encode())
+            self.wfile.write(json.dumps({"success": True, "message": "Data synced with Firebase"}).encode())
 
         except Exception as e:
-            print(f"Error syncing user data: {e}")
-            self.send_error(500, "Internal Server Error")
+            print(f"Error processing sync request: {e}")
+            self._send_json_response({"success": False, "error": str(e)}, 500)
 
     def handle_verify_payment(self):
         """Handle payment verification with comprehensive error handling"""
@@ -548,43 +540,26 @@ console.error('❌ Config loading error: {str(e)}');
             super().send_error(code, message)
 
     def handle_get_user_data(self, uid):
-        """Handles fetching user data based on UID"""
+        """Firebase handles user data - this is just for API compatibility"""
         try:
-            user_file = f'public/user_data_{uid}.json'
-            if os.path.exists(user_file):
-                with open(user_file, 'r') as f:
-                    user_data = json.load(f)
-                print(f"📊 Retrieved user data for {uid}: {user_data.get('usageCount', 0)} ads used")
-                self._send_json_response(user_data, 200)
-            else:
-                # If user doesn't exist, create initial data
-                initial_data = create_user_data(uid, "New User", f"user{uid}@example.com", "")
-                self._send_json_response(initial_data, 200) # Send back the data even though its new
-                print(f"📊 No existing data for user {uid}, created new user.")
-
+            print(f"📊 User data request for {uid} - handled by Firebase")
+            self._send_json_response({"message": "User data handled by Firebase client-side"}, 200)
         except Exception as e:
-            print(f"❌ Error getting user data: {e}")
+            print(f"❌ Error processing user data request: {e}")
             self._send_json_response({"error": str(e)}, 500)
 
     def handle_save_user_data(self):
-        """Handles saving user data to a file based on UID"""
+        """Firebase handles user data - this is just for API compatibility"""
         try:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             user_data = json.loads(post_data.decode('utf-8'))
             uid = user_data.get('uid')
-            if not uid:
-                self._send_json_response({"error": "No UID provided"}, 400)
-                return
-
-            user_file = f'public/user_data_{uid}.json'
-            with open(user_file, 'w') as f:
-                json.dump(user_data, f, indent=2)
-
-            print(f"📊 Saved user data for {uid}: {user_data.get('usageCount', 0)} ads used, plan: {user_data.get('subscriptionStatus', 'free')}")
-            self._send_json_response({"status": "success", "message": "User data saved"}, 200)
+            
+            print(f"📊 User data save request for {uid} - handled by Firebase")
+            self._send_json_response({"success": True, "message": "User data handled by Firebase"}, 200)
         except Exception as e:
-            print(f"❌ Error saving user data: {e}")
+            print(f"❌ Error processing save request: {e}")
             self._send_json_response({"error": str(e)}, 500)
 
     def handle_generate_ad(self):
@@ -783,29 +758,7 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
         except Exception as e:
             return {"success": False, "error": f"DeepAI API call failed: {str(e)}"}
 
-def create_user_data(uid, name, email, subscriptionStatus):
-    """Creates initial user data"""
-    timestamp = datetime.now().isoformat()
-    initial_data = {
-        "uid": uid,
-        "name": name,
-        "email": email,
-        "creationTime": timestamp,
-        "lastSignInTime": timestamp,
-        "usageCount": 0,
-        "subscriptionStatus": subscriptionStatus,
-        "planDetails": {
-            "planName": "free",
-            "startDate": timestamp,
-            "endDate": timestamp,
-            "isTrial": True
-        }
-    }
-
-    user_file = f'public/user_data_{uid}.json'
-    with open(user_file, 'w') as f:
-        json.dump(initial_data, f, indent=2)
-    return initial_data
+# Local user data creation removed - Firebase handles all user data persistence
 
 def run(server_class=HTTPServer, handler_class=AdGeneratorHandler, port=int(os.environ.get('PORT', 8000))):
     """Start the HTTP server."""

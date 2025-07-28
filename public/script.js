@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Failed to initialize application');
     }
 
-    console.log('✅ App initialized');.log('✅ App initialized');
+    console.log('✅ App initialized');
 });
 
 function setupCopyProtection() {
@@ -517,8 +517,23 @@ async function handleFormSubmission(event) {
             // Display results first
             displayResults(result);
 
-            // Then increment usage count and check if limit reached
+            // Save ad to Firebase
             const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+            if (user && typeof window.saveAd === 'function') {
+                try {
+                    const adData = {
+                        ...formData,
+                        adCopy: result.ad_copy
+                    };
+                    await window.saveAd(adData, result.image_url);
+                    console.log('✅ Ad saved to Firebase successfully');
+                } catch (saveError) {
+                    console.error('Failed to save ad to Firebase:', saveError);
+                    // Don't block the user experience if saving fails
+                }
+            }
+
+            // Then increment usage count and check if limit reached
             if (user && typeof window.incrementAdUsage === 'function') {
                 const limitReached = window.incrementAdUsage();
                 console.log(`📊 Usage incremented, limit reached: ${limitReached}`);
@@ -1175,7 +1190,9 @@ window.generateNewAd = generateNewAd;
 window.copyAdText = copyAdText;
 
 // Attach event listeners for download functionality
-console.log('✅ Ad Generator script fully loaded');empt to fix the 'signIn is not defined' error by checking if it exists
+console.log('✅ Ad Generator script fully loaded');
+
+// Ensure signIn function exists
 if (typeof window.signIn !== 'function') {
     window.signIn = async () => {
         console.warn('signIn function is not properly initialized. Please check Firebase setup.');

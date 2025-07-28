@@ -356,21 +356,31 @@ function showLoginModal() {
 async function saveAd(adData, imageUrl) {
     if (!currentUser || !window.db) {
         console.error('Cannot save ad: user not authenticated or database not available');
-        return;
+        throw new Error('User not authenticated or database not available');
     }
 
     const adToSave = {
         id: Date.now().toString(),
         userId: currentUser.uid,
-        ...adData,
-        imageUrl,
-        createdAt: new Date().toISOString()
+        productName: adData.productName || '',
+        productDescription: adData.productDescription || '',
+        targetAudience: adData.targetAudience || '',
+        specialOffer: adData.specialOffer || '',
+        language: adData.language || 'English',
+        tone: adData.tone || 'professional',
+        adFormat: adData.adFormat || 'facebook-feed',
+        businessType: adData.businessType || '',
+        adCopy: adData.adCopy || '',
+        imageUrl: imageUrl || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     try {
-        // Save to Firestore only
+        // Save to Firestore ads collection
         await window.db.collection('ads').doc(adToSave.id).set(adToSave);
         console.log('✅ Ad saved to Firestore:', adToSave.id);
+        return adToSave;
     } catch (error) {
         console.error('Failed to save ad to Firestore:', error);
         throw error;
@@ -378,7 +388,10 @@ async function saveAd(adData, imageUrl) {
 }
 
 async function loadUserAds(uid) {
-    if (!window.db) return [];
+    if (!window.db) {
+        console.warn('Firestore not available');
+        return [];
+    }
     
     try {
         const adsSnapshot = await window.db.collection('ads')
@@ -392,10 +405,101 @@ async function loadUserAds(uid) {
             ads.push({ id: doc.id, ...doc.data() });
         });
         
-        console.log(`✅ Loaded ${ads.length} ads from Firestore`);
+        console.log(`✅ Loaded ${ads.length} ads from Firestore for user ${uid}`);
         return ads;
     } catch (error) {
         console.error('Failed to load ads from Firestore:', error);
+        return [];
+    }
+}
+
+// Enhanced user settings management
+async function saveUserSettings(uid, settings) {
+    if (!window.db) {
+        console.error('Firestore not available');
+        return false;
+    }
+
+    try {
+        await window.db.collection('user_settings').doc(uid).set({
+            ...settings,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        console.log('✅ User settings saved to Firestore');
+        return true;
+    } catch (error) {
+        console.error('Failed to save user settings:', error);
+        return false;
+    }
+}
+
+async function loadUserSettings(uid) {
+    if (!window.db) {
+        console.warn('Firestore not available');
+        return {};
+    }
+
+    try {
+        const settingsDoc = await window.db.collection('user_settings').doc(uid).get();
+        if (settingsDoc.exists) {
+            console.log('✅ User settings loaded from Firestore');
+            return settingsDoc.data();
+        } else {
+            console.log('📝 No existing settings for user, returning defaults');
+            return {};
+        }
+    } catch (error) {
+        console.error('Failed to load user settings:', error);
+        return {};
+    }
+}
+
+// Payment history management
+async function savePaymentRecord(uid, paymentData) {
+    if (!window.db) {
+        console.error('Firestore not available');
+        return false;
+    }
+
+    try {
+        const paymentRecord = {
+            userId: uid,
+            ...paymentData,
+            createdAt: new Date().toISOString()
+        };
+
+        await window.db.collection('payments').add(paymentRecord);
+        console.log('✅ Payment record saved to Firestore');
+        return true;
+    } catch (error) {
+        console.error('Failed to save payment record:', error);
+        return false;
+    }
+}
+
+async function loadPaymentHistory(uid) {
+    if (!window.db) {
+        console.warn('Firestore not available');
+        return [];
+    }
+
+    try {
+        const paymentsSnapshot = await window.db.collection('payments')
+            .where('userId', '==', uid)
+            .orderBy('createdAt', 'desc')
+            .limit(20)
+            .get();
+
+        const payments = [];
+        paymentsSnapshot.forEach(doc => {
+            payments.push({ id: doc.id, ...doc.data() });
+        });
+
+        console.log(`✅ Loaded ${payments.length} payment records from Firestore`);
+        return payments;
+    } catch (error) {
+        console.error('Failed to load payment history:', error);
         return [];
     }
 }
@@ -408,6 +512,12 @@ window.canGenerateAd = canGenerateAd;
 window.incrementAdUsage = incrementAdUsage;
 window.saveUserData = saveUserData;
 window.showLoginModal = showLoginModal;
+window.saveAd = saveAd;
+window.loadUserAds = loadUserAds;
+window.saveUserSettings = saveUserSettings;
+window.loadUserSettings = loadUserSettings;
+window.savePaymentRecord = savePaymentRecord;
+window.loadPaymentHistory = loadPaymentHistory;
 
 console.log('✅ Firebase functions made globally available');
 
