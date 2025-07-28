@@ -654,6 +654,24 @@ window.loadPaymentHistory = loadPaymentHistory;
 
 console.log('✅ Firebase functions made globally available');
 
+// Ensure functions are available even before Firebase loads
+if (typeof window.signIn === 'undefined') {
+    window.signIn = async function() {
+        console.log('🔄 Firebase not ready yet, waiting...');
+        // Wait for Firebase to initialize
+        let retries = 0;
+        while (typeof firebase === 'undefined' && retries < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            return signIn();
+        } else {
+            throw new Error('Firebase authentication not available');
+        }
+    };
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM loaded, initializing Firebase...');
