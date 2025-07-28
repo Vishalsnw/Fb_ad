@@ -220,7 +220,8 @@ Transform your business with unlimited AI-powered ads!
 }
 
 // Make payment functions globally available
-window.showPaymentModal = showPaymentModal; = canGenerateAd;
+window.showPaymentModal = showPaymentModal;
+window.canGenerateAd = canGenerateAd;
 
 console.log('✅ Payment module loaded successfully');
 
