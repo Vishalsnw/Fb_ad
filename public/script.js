@@ -115,7 +115,7 @@ async function loadConfig() {
     } catch (error) {
         console.error('❌ Failed to load config:', error);
         showError('Failed to load configuration. Please check your API keys and refresh the page.');
-        return false;
+        retreturn false;
     }
 }
 
@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     console.log('✅ App initialized');
+});.log('✅ App initialized');
 });
 
 function setupCopyProtection() {

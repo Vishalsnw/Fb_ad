@@ -211,7 +211,7 @@ console.error('❌ Config loading error: {str(e)}');
             # Data will be saved to Firebase Firestore by client-side code
             # Server just acknowledges the request
             print(f"📝 Ad save request received for user: {ad_data.get('userId', 'unknown')}")
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -231,7 +231,7 @@ console.error('❌ Config loading error: {str(e)}');
 
             # Data synchronization handled by Firebase client-side
             print(f"📊 User data sync request for: {user_data.get('uid', 'unknown')}")
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -555,7 +555,7 @@ console.error('❌ Config loading error: {str(e)}');
             post_data = self.rfile.read(content_length)
             user_data = json.loads(post_data.decode('utf-8'))
             uid = user_data.get('uid')
-            
+
             print(f"📊 User data save request for {uid} - handled by Firebase")
             self._send_json_response({"success": True, "message": "User data handled by Firebase"}, 200)
         except Exception as e:
@@ -760,9 +760,9 @@ Generate ONLY the final ad copy text, no explanations or formatting."""
 
 # Local user data creation removed - Firebase handles all user data persistence
 
-def run(server_class=HTTPServer, handler_class=AdGeneratorHandler, port=int(os.environ.get('PORT', 8000))):
+def run(server_class=HTTPServer, handler_class=AdGeneratorHandler, port=int(os.environ.get('PORT', 5000))):
     """Start the HTTP server."""
-    server_address = ('', port)
+    server_address = ('0.0.0.0', port)
     httpd = server_class(server_address, handler_class)
     print(f"🚀 Starting server on port {port}...")
     try:
