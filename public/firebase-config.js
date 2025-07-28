@@ -637,24 +637,29 @@ async function loadPaymentHistory(uid) {
     }
 }
 
-// Make functions globally available immediately
-window.currentUser = () => currentUser;
-window.signIn = signIn;
-window.signOut = signOut;
-window.canGenerateAd = canGenerateAd;
-window.incrementAdUsage = incrementAdUsage;
-window.saveUserData = saveUserData;
-window.showLoginModal = showLoginModal;
-window.saveAd = saveAd;
-window.loadUserAds = loadUserAds;
-window.saveUserSettings = saveUserSettings;
-window.loadUserSettings = loadUserSettings;
-window.savePaymentRecord = savePaymentRecord;
-window.loadPaymentHistory = loadPaymentHistory;
+// Make functions globally available
+function makeGloballyAvailable() {
+    window.currentUser = () => currentUser;
+    window.signIn = signIn;
+    window.signOut = signOut;
+    window.canGenerateAd = canGenerateAd;
+    window.incrementAdUsage = incrementAdUsage;
+    window.saveUserData = saveUserData;
+    window.showLoginModal = showLoginModal;
+    window.saveAd = saveAd;
+    window.loadUserAds = loadUserAds;
+    window.saveUserSettings = saveUserSettings;
+    window.loadUserSettings = loadUserSettings;
+    window.savePaymentRecord = savePaymentRecord;
+    window.loadPaymentHistory = loadPaymentHistory;
+    
+    console.log('✅ Firebase functions made globally available');
+}
 
-console.log('✅ Firebase functions made globally available');
+// Call the function to make them available
+makeGloballyAvailable();
 
-// Ensure functions are available even before Firebase loads
+// Ensure signIn function is available even before Firebase loads
 if (typeof window.signIn === 'undefined') {
     window.signIn = async function() {
         console.log('🔄 Firebase not ready yet, waiting...');
@@ -665,7 +670,7 @@ if (typeof window.signIn === 'undefined') {
             retries++;
         }
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            return signIn();
+            return await signIn();
         } else {
             throw new Error('Firebase authentication not available');
         }
