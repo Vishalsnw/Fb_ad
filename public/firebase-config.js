@@ -82,6 +82,12 @@ async function initializeFirebase() {
       console.log('ℹ️ Firebase already initialized');
     }
 
+    // Set authentication persistence to LOCAL (persist across browser sessions)
+    if (firebase.auth) {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      console.log('✅ Authentication persistence set to LOCAL');
+    }
+
     // Initialize Firestore
     if (firebase.firestore) {
       window.db = firebase.firestore();
@@ -114,6 +120,13 @@ function setupAuthListener() {
     console.log('🔄 Auth state changed:', !!user);
     
     if (user) {
+      console.log('✅ User authenticated:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        emailVerified: user.emailVerified
+      });
+
       currentUser = {
         uid: user.uid,
         displayName: user.displayName || user.email?.split('@')[0] || `User_${user.uid.slice(-6)}`,
@@ -132,6 +145,14 @@ function setupAuthListener() {
         await loadUserDataFromServer(user.uid);
         updateAuthUI();
         hideLoginScreen();
+        
+        // Store auth state in sessionStorage as backup
+        sessionStorage.setItem('firebase_auth_user', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName
+        }));
+        
       } catch (error) {
         console.error('❌ Failed to load user data:', error);
         showError('Failed to load user data. Please try signing in again.');
@@ -140,6 +161,10 @@ function setupAuthListener() {
     } else {
       currentUser = null;
       console.log('ℹ️ User signed out');
+      
+      // Clear backup auth state
+      sessionStorage.removeItem('firebase_auth_user');
+      
       showLoginScreen();
       updateAuthUI();
       const resultsEl = document.getElementById('results');
