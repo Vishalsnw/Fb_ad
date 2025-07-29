@@ -28,23 +28,12 @@ async function initializeFirebase() {
 
     console.log('🔧 Using Firebase authentication with Google OAuth');
 
-    const currentDomain = window.location.hostname;
-    console.log(`🔧 Current domain: ${currentDomain}`);
-
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
         authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN,
         projectId: window.CONFIG.FIREBASE_PROJECT_ID,
         appId: window.CONFIG.FIREBASE_APP_ID || "1:123456789:web:abcdef123456"
     };
-
-    // For development domains
-    if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
-        console.log('🔧 Development domain detected, configuring for Replit');
-        if (!firebaseConfig.authDomain.includes('firebaseapp.com')) {
-            firebaseConfig.authDomain = firebaseConfig.authDomain || `${firebaseConfig.projectId}.firebaseapp.com`;
-        }
-    }
 
     try {
         // Wait for Firebase SDK to load
@@ -126,7 +115,10 @@ function setupAuthListener() {
             console.log('User signed out');
             showLoginScreen();
             updateAuthUI();
-            document.getElementById('results')?.innerHTML = '';
+            const resultsEl = document.getElementById('results');
+            if (resultsEl) {
+                resultsEl.innerHTML = '';
+            }
         }
     });
 }
@@ -426,7 +418,7 @@ async function loadUserDataFromServer(uid) {
 
         if (userDoc.exists) {
             const serverData = userDoc.data();
-            currentUser = { ...currentUser, ...serverData };
+            currentUser = Object.assign(currentUser, serverData);
             console.log('✅ User data loaded from Firestore:', currentUser);
         } else {
             console.log('📝 New user detected, creating default data');
@@ -462,7 +454,7 @@ async function saveUserDataToServer(userData) {
 }
 
 function saveUserData(userData) {
-    currentUser = { ...currentUser, ...userData };
+    currentUser = Object.assign(currentUser, userData);
     saveUserDataToServer(currentUser);
     updateUsageDisplay();
 }
@@ -489,7 +481,7 @@ function showError(message) {
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
 
-    setTimeout(() => {
+    setTimeout(function() {
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
@@ -497,7 +489,7 @@ function showError(message) {
 }
 
 function showLoginModal() {
-    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    const user = (typeof window.currentUser === 'function') ? window.currentUser() : null;
     if (!user) {
         signIn();
     }
@@ -550,8 +542,8 @@ async function loadUserAds(uid) {
             .get();
 
         const ads = [];
-        adsSnapshot.forEach(doc => {
-            ads.push({ id: doc.id, ...doc.data() });
+        adsSnapshot.forEach(function(doc) {
+            ads.push(Object.assign({ id: doc.id }, doc.data()));
         });
 
         console.log(`✅ Loaded ${ads.length} ads from Firestore for user ${uid}`);
@@ -569,10 +561,9 @@ async function saveUserSettings(uid, settings) {
     }
 
     try {
-        await window.db.collection('user_settings').doc(uid).set({
-            ...settings,
+        await window.db.collection('user_settings').doc(uid).set(Object.assign(settings, {
             updatedAt: new Date().toISOString()
-        }, { merge: true });
+        }), { merge: true });
 
         console.log('✅ User settings saved to Firestore');
         return true;
@@ -610,11 +601,11 @@ async function savePaymentRecord(uid, paymentData) {
     }
 
     try {
-        const paymentRecord = {
-            userId: uid,
-            ...paymentData,
+        const paymentRecord = Object.assign({
+            userId: uid
+        }, paymentData, {
             createdAt: new Date().toISOString()
-        };
+        });
 
         await window.db.collection('payments').add(paymentRecord);
         console.log('✅ Payment record saved to Firestore');
@@ -639,8 +630,8 @@ async function loadPaymentHistory(uid) {
             .get();
 
         const payments = [];
-        paymentsSnapshot.forEach(doc => {
-            payments.push({ id: doc.id, ...doc.data() });
+        paymentsSnapshot.forEach(function(doc) {
+            payments.push(Object.assign({ id: doc.id }, doc.data()));
         });
 
         console.log(`✅ Loaded ${payments.length} payment records from Firestore`);
@@ -652,7 +643,7 @@ async function loadPaymentHistory(uid) {
 }
 
 function makeGloballyAvailable() {
-    window.currentUser = () => currentUser;
+    window.currentUser = function() { return currentUser; };
     window.signIn = signIn;
     window.signOut = signOut;
     window.canGenerateAd = canGenerateAd;
@@ -671,7 +662,7 @@ function makeGloballyAvailable() {
 
 makeGloballyAvailable();
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, initializing Firebase...');
     initializeFirebase();
 });
