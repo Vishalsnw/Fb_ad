@@ -1074,58 +1074,6 @@ Transform your business with unlimited AI-powered ads!
         alert(upgradeMessage);
     }
 }
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        `;
-
-        upgradePrompt.innerHTML = `
-            <div style="
-                background: white;
-                padding: 40px;
-                border-radius: 20px;
-                text-align: center;
-                max-width: 500px;
-                margin: 20px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            ">
-                <div style="font-size: 4rem; margin-bottom: 20px;">⚡</div>
-                <h2 style="color: #333; margin-bottom: 15px;">Upgrade Required!</h2>
-                <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
-                    You've reached your free plan limit of 4 ads. Upgrade to continue generating unlimited professional ads!
-                </p>
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        border: none;
-                        padding: 15px 30px;
-                        border-radius: 10px;
-                        font-size: 1.1rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                    ">🚀 Upgrade Now (Coming Soon)</button>
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
-                        background: #f0f0f0;
-                        color: #666;
-                        border: none;
-                        padding: 15px 30px;
-                        border-radius: 10px;
-                        font-size: 1.1rem;
-                        cursor: pointer;
-                    ">Maybe Later</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(upgradePrompt);
-    }
-}
 
 // Add missing utility functions
 function setLoading(isLoading) {
