@@ -227,9 +227,16 @@
     <!-- Wait for Firebase and config to load before initializing Firebase config -->
     <script>
         (function() {
+            // Prevent multiple initialization
+            if (window.scriptsLoaded) {
+                console.log('Scripts already loaded, skipping...');
+                return;
+            }
+            
             let checkReadyInterval = setInterval(function() {
-                if (typeof firebase !== 'undefined' && window.CONFIG) {
+                if (typeof firebase !== 'undefined' && window.CONFIG && !window.scriptsLoaded) {
                     clearInterval(checkReadyInterval);
+                    window.scriptsLoaded = true;
                     console.log('✅ Firebase SDK and CONFIG ready, loading Firebase config...');
                     
                     // Load Firebase config script

@@ -11,12 +11,13 @@ window.signOut = signOut;
 window.currentUser = () => currentUser;
 
 async function initializeFirebase() {
-  if (initializationAttempted) {
+  if (initializationAttempted || window.firebaseInitialized) {
     console.log('🔄 Firebase initialization already attempted, skipping...');
     return;
   }
   
   initializationAttempted = true;
+  window.firebaseInitialized = true;
   console.log('🚀 Starting Firebase initialization...');
   
   // Wait for config to load

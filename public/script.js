@@ -1,8 +1,9 @@
 // Prevent multiple script loading
-if (window.adGeneratorLoaded) {
+if (window.adGeneratorLoaded || window.scriptInitialized) {
     console.log('Ad Generator script already loaded, skipping...');
 } else {
     window.adGeneratorLoaded = true;
+    window.scriptInitialized = true;
 
     // Global variables
     let adsUsed = 0;
