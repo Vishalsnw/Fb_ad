@@ -47,6 +47,7 @@ async function initializeFirebase() {
         if (typeof firebase !== 'undefined') {
             console.log('✅ Firebase SDK loaded successfully');
 
+            // Check if Firebase is already initialized
             if (!firebase.apps || firebase.apps.length === 0) {
                 const app = firebase.initializeApp(firebaseConfig);
                 console.log('✅ Firebase initialized', app.name);
@@ -54,6 +55,7 @@ async function initializeFirebase() {
                 console.log('✅ Firebase already initialized');
             }
 
+            // Initialize Firestore
             if (firebase.firestore) {
                 window.db = firebase.firestore();
                 console.log('✅ Firestore initialized');
@@ -255,6 +257,7 @@ function showLoginRequiredModal() {
 async function signIn() {
     console.log('🔑 Google sign in function called');
 
+    // Wait for Firebase to be available
     let retries = 0;
     while (typeof firebase === 'undefined' && retries < 30) {
         await new Promise(resolve => setTimeout(resolve, 100));
