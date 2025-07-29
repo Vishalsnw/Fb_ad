@@ -45,11 +45,11 @@ async function initializeFirebase() {
         }
     }
 
-    // Add current domain to authorized domains list for development
-    const currentDomain = window.location.hostname;
-    console.log(`🔧  Current domain: ${currentDomain}`);
-
     try {
+        // Add current domain to authorized domains list for development
+        const currentDomain = window.location.hostname;
+        console.log(`🔧  Current domain: ${currentDomain}`);
+
         // Wait for Firebase SDK to load
         let firebaseRetries = 0;
         while (typeof firebase === 'undefined' && firebaseRetries < 50) {
