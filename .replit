@@ -1,5 +1,5 @@
 run = "npm run dev"
-modules = ["nodejs-20", "web", "python-3.12"]
+modules = ["nodejs-20", "web", "python-3.11"]
 [nix]
 channel = "stable-25_05"
 packages = ["python311", "python311Packages.pip", "tree"]
