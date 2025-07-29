@@ -6,10 +6,8 @@ if (window.adGeneratorLoaded) {
 
     // Global variables
     let adsUsed = 0;
-    let userPlan = 'free';
     let currentAdData = null;
     let currentImageUrl = null;
-    let isGenerating = false;
 
     // Load configuration
     let CONFIG = {};
