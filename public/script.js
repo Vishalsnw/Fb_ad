@@ -1084,6 +1084,13 @@ function setLoading(isLoading) {
     }
 }
 
+function hideLoading() {
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+    }
+}
+
 // Close the script loading check
 console.log('✅ Ad Generator script fully loaded');
 
