@@ -8,7 +8,7 @@ let firebaseConfig = {};
 async function initializeFirebase() {
     let retries = 0;
     const maxRetries = 50; // Wait up to 5 seconds
-    
+
     while (!window.CONFIG && retries < maxRetries) {
         console.log(`Waiting for config to load... (${retries + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -52,7 +52,7 @@ async function initializeFirebase() {
 
         if (typeof firebase !== 'undefined') {
             console.log('✅ Firebase SDK loaded successfully');
-            
+
             // Check if already initialized
             if (!firebase.apps || firebase.apps.length === 0) {
                 const app = firebase.initializeApp(firebaseConfig);
@@ -60,7 +60,7 @@ async function initializeFirebase() {
             } else {
                 console.log('✅ Firebase already initialized');
             }
-            
+
             // Initialize Firestore
             if (firebase.firestore) {
                 window.db = firebase.firestore();
@@ -135,32 +135,32 @@ function setupAuthListener() {
 
 function showLoginScreen() {
     console.log('🔑 Showing login screen');
-    
+
     // Hide main content
     const mainContent = document.querySelector('.main-content');
     const examplesSection = document.querySelector('.examples-section');
     const testimonialsSection = document.querySelector('.testimonials-section');
-    
+
     if (mainContent) mainContent.style.display = 'none';
     if (examplesSection) examplesSection.style.display = 'none';
     if (testimonialsSection) testimonialsSection.style.display = 'none';
-    
+
     // Show login modal
     showLoginRequiredModal();
 }
 
 function hideLoginScreen() {
     console.log('✅ Hiding login screen, showing main content');
-    
+
     // Show main content
     const mainContent = document.querySelector('.main-content');
     const examplesSection = document.querySelector('.examples-section');
     const testimonialsSection = document.querySelector('.testimonials-section');
-    
+
     if (mainContent) mainContent.style.display = 'block';
     if (examplesSection) examplesSection.style.display = 'block';
     if (testimonialsSection) testimonialsSection.style.display = 'block';
-    
+
     // Hide login modal
     const loginModal = document.getElementById('loginRequiredModal');
     if (loginModal) {
@@ -255,14 +255,14 @@ function showLoginRequiredModal() {
 
 async function signIn() {
     console.log('🔑 Sign in function called');
-    
+
     // Wait for Firebase to be ready
     let retries = 0;
     while (typeof firebase === 'undefined' && retries < 30) {
         await new Promise(resolve => setTimeout(resolve, 100));
         retries++;
     }
-    
+
     if (typeof firebase === 'undefined') {
         console.error('Firebase SDK not available after waiting');
         showError('Authentication service is not loaded. Please refresh the page.');
@@ -279,22 +279,22 @@ async function signIn() {
         // For demo purposes, sign in anonymously
         console.log('🔑 Starting anonymous sign in...');
         const result = await firebase.auth().signInAnonymously();
-        
+
         // Set a display name for anonymous users
         if (result.user) {
             await result.user.updateProfile({
                 displayName: `User_${Date.now().toString().slice(-6)}`
             });
-            
+
             console.log('✅ Anonymous sign in successful:', result.user.uid);
         }
-        
+
         // Close any login modal that might be open
         const loginModal = document.getElementById('loginRequiredModal');
         if (loginModal) {
             loginModal.style.display = 'none';
         }
-        
+
     } catch (error) {
         console.error('Sign in error:', error);
         if (error.code === 'auth/operation-not-allowed') {
@@ -403,7 +403,7 @@ async function loadUserDataFromServer(uid) {
         }
 
         const userDoc = await window.db.collection('users').doc(uid).get();
-        
+
         if (userDoc.exists) {
             const serverData = userDoc.data();
             currentUser = { ...currentUser, ...serverData };
@@ -415,7 +415,7 @@ async function loadUserDataFromServer(uid) {
             currentUser.lastLoginAt = new Date().toISOString();
             await saveUserDataToServer(currentUser);
         }
-        
+
         updateAuthUI();
         updateUsageDisplay();
     } catch (error) {
@@ -433,7 +433,7 @@ async function saveUserDataToServer(userData) {
 
         // Update lastLoginAt
         userData.lastLoginAt = new Date().toISOString();
-        
+
         await window.db.collection('users').doc(userData.uid).set(userData, { merge: true });
         console.log('✅ User data saved to Firestore:', userData);
         return userData;
@@ -525,19 +525,19 @@ async function loadUserAds(uid) {
         console.warn('Firestore not available');
         return [];
     }
-    
+
     try {
         const adsSnapshot = await window.db.collection('ads')
             .where('userId', '==', uid)
             .orderBy('createdAt', 'desc')
             .limit(50)
             .get();
-            
+
         const ads = [];
         adsSnapshot.forEach(doc => {
             ads.push({ id: doc.id, ...doc.data() });
         });
-        
+
         console.log(`✅ Loaded ${ads.length} ads from Firestore for user ${uid}`);
         return ads;
     } catch (error) {
@@ -558,7 +558,7 @@ async function saveUserSettings(uid, settings) {
             ...settings,
             updatedAt: new Date().toISOString()
         }, { merge: true });
-        
+
         console.log('✅ User settings saved to Firestore');
         return true;
     } catch (error) {
@@ -652,30 +652,12 @@ function makeGloballyAvailable() {
     window.loadUserSettings = loadUserSettings;
     window.savePaymentRecord = savePaymentRecord;
     window.loadPaymentHistory = loadPaymentHistory;
-    
+
     console.log('✅ Firebase functions made globally available');
 }
 
 // Call the function to make them available
 makeGloballyAvailable();
-
-// Ensure signIn function is available even before Firebase loads
-if (typeof window.signIn === 'undefined') {
-    window.signIn = async function() {
-        console.log('🔄 Firebase not ready yet, waiting...');
-        // Wait for Firebase to initialize
-        let retries = 0;
-        while (typeof firebase === 'undefined' && retries < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            retries++;
-        }
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            return await signIn();
-        } else {
-            throw new Error('Firebase authentication not available');
-        }
-    };
-}
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
