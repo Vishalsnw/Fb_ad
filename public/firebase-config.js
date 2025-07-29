@@ -1,13 +1,12 @@
+
 // Firebase configuration and authentication
 let currentUser = null;
-
-// Firebase configuration - will be loaded from config
 let firebaseConfig = {};
 
 // Initialize Firebase when config is loaded
 async function initializeFirebase() {
     let retries = 0;
-    const maxRetries = 50; // Wait up to 5 seconds
+    const maxRetries = 50;
 
     while (!window.CONFIG && retries < maxRetries) {
         console.log(`Waiting for config to load... (${retries + 1}/${maxRetries})`);
@@ -29,9 +28,8 @@ async function initializeFirebase() {
 
     console.log('🔧 Using Firebase authentication with Google OAuth');
 
-    // Get current domain first
     const currentDomain = window.location.hostname;
-    console.log(`🔧  Current domain: ${currentDomain}`);
+    console.log(`🔧 Current domain: ${currentDomain}`);
 
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
@@ -40,17 +38,15 @@ async function initializeFirebase() {
         appId: window.CONFIG.FIREBASE_APP_ID || "1:123456789:web:abcdef123456"
     };
 
-    // For development domains, add them to Firebase config
+    // For development domains
     if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
         console.log('🔧 Development domain detected, configuring for Replit');
-        // Keep the original auth domain but allow current domain
         if (!firebaseConfig.authDomain.includes('firebaseapp.com')) {
             firebaseConfig.authDomain = firebaseConfig.authDomain || `${firebaseConfig.projectId}.firebaseapp.com`;
         }
     }
 
     try {
-
         // Wait for Firebase SDK to load
         let firebaseRetries = 0;
         while (typeof firebase === 'undefined' && firebaseRetries < 50) {
@@ -62,7 +58,6 @@ async function initializeFirebase() {
         if (typeof firebase !== 'undefined') {
             console.log('✅ Firebase SDK loaded successfully');
 
-            // Check if already initialized
             if (!firebase.apps || firebase.apps.length === 0) {
                 const app = firebase.initializeApp(firebaseConfig);
                 console.log('✅ Firebase initialized', app.name);
@@ -70,17 +65,11 @@ async function initializeFirebase() {
                 console.log('✅ Firebase already initialized');
             }
 
-            // Initialize Firestore
             if (firebase.firestore) {
                 window.db = firebase.firestore();
                 console.log('✅ Firestore initialized');
             } else {
                 console.warn('Firestore not available');
-            }
-
-            // Configure auth for development domain
-            if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
-                console.log('🔧 Development environment detected - configuring auth');
             }
 
             setupAuthListener();
@@ -137,7 +126,6 @@ function setupAuthListener() {
             console.log('User signed out');
             showLoginScreen();
             updateAuthUI();
-            // Clear any cached data when user signs out
             document.getElementById('results')?.innerHTML = '';
         }
     });
@@ -146,7 +134,6 @@ function setupAuthListener() {
 function showLoginScreen() {
     console.log('🔑 Showing login screen');
 
-    // Hide main content
     const mainContent = document.querySelector('.main-content');
     const examplesSection = document.querySelector('.examples-section');
     const testimonialsSection = document.querySelector('.testimonials-section');
@@ -155,14 +142,12 @@ function showLoginScreen() {
     if (examplesSection) examplesSection.style.display = 'none';
     if (testimonialsSection) testimonialsSection.style.display = 'none';
 
-    // Show login modal
     showLoginRequiredModal();
 }
 
 function hideLoginScreen() {
     console.log('✅ Hiding login screen, showing main content');
 
-    // Show main content
     const mainContent = document.querySelector('.main-content');
     const examplesSection = document.querySelector('.examples-section');
     const testimonialsSection = document.querySelector('.testimonials-section');
@@ -171,7 +156,6 @@ function hideLoginScreen() {
     if (examplesSection) examplesSection.style.display = 'block';
     if (testimonialsSection) testimonialsSection.style.display = 'block';
 
-    // Hide login modal
     const loginModal = document.getElementById('loginRequiredModal');
     if (loginModal) {
         loginModal.style.display = 'none';
@@ -279,7 +263,6 @@ function showLoginRequiredModal() {
 async function signIn() {
     console.log('🔑 Google sign in function called');
 
-    // Wait for Firebase to be ready
     let retries = 0;
     while (typeof firebase === 'undefined' && retries < 30) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -299,21 +282,15 @@ async function signIn() {
     }
 
     try {
-        // Create Google auth provider
         const provider = new firebase.auth.GoogleAuthProvider();
-
-        // Add additional scopes if needed
         provider.addScope('email');
         provider.addScope('profile');
-
-        // Configure provider settings
         provider.setCustomParameters({
             prompt: 'select_account'
         });
 
         console.log('🔑 Starting Google OAuth sign in...');
 
-        // Sign in with popup
         const result = await firebase.auth().signInWithPopup(provider);
 
         if (result.user) {
@@ -324,7 +301,6 @@ async function signIn() {
             });
         }
 
-        // Close any login modal that might be open
         const loginModal = document.getElementById('loginRequiredModal');
         if (loginModal) {
             loginModal.style.display = 'none';
@@ -334,7 +310,6 @@ async function signIn() {
         console.error('Google sign in error:', error);
 
         if (error.code === 'auth/popup-blocked') {
-            // Try redirect method if popup is blocked
             try {
                 console.log('Popup blocked, trying redirect method...');
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -347,7 +322,6 @@ async function signIn() {
             }
         } else if (error.code === 'auth/popup-closed-by-user') {
             console.log('User cancelled Google sign in');
-            // Don't show error for user cancellation
         } else if (error.code === 'auth/network-request-failed') {
             showError('Network error. Please check your internet connection and try again.');
         } else if (error.code === 'auth/operation-not-allowed') {
@@ -400,15 +374,12 @@ function updateAuthUI() {
 
 function canGenerateAd() {
     if (!currentUser) return false;
-
     if (currentUser.subscriptionStatus === 'premium') return true;
-
     return currentUser.usageCount < currentUser.maxUsage;
 }
 
 function incrementAdUsage() {
     if (!currentUser) return false;
-
     if (currentUser.subscriptionStatus === 'premium') return false;
 
     currentUser.usageCount++;
@@ -431,7 +402,6 @@ function updateUsageDisplay() {
         }
     }
 
-    // Update usage info in header
     const usageInfo = document.querySelector('.usage-info');
     if (usageInfo) {
         const usageCount = usageInfo.querySelector('.usage-count');
@@ -445,7 +415,6 @@ function updateUsageDisplay() {
     }
 }
 
-// User data management - Firebase Firestore based
 async function loadUserDataFromServer(uid) {
     try {
         if (!window.db) {
@@ -460,7 +429,6 @@ async function loadUserDataFromServer(uid) {
             currentUser = { ...currentUser, ...serverData };
             console.log('✅ User data loaded from Firestore:', currentUser);
         } else {
-            // New user - create default data
             console.log('📝 New user detected, creating default data');
             currentUser.createdAt = new Date().toISOString();
             currentUser.lastLoginAt = new Date().toISOString();
@@ -482,7 +450,6 @@ async function saveUserDataToServer(userData) {
             return;
         }
 
-        // Update lastLoginAt
         userData.lastLoginAt = new Date().toISOString();
 
         await window.db.collection('users').doc(userData.uid).set(userData, { merge: true });
@@ -536,7 +503,6 @@ function showLoginModal() {
     }
 }
 
-// Saved ads management - Firebase Firestore
 async function saveAd(adData, imageUrl) {
     if (!currentUser || !window.db) {
         console.error('Cannot save ad: user not authenticated or database not available');
@@ -561,7 +527,6 @@ async function saveAd(adData, imageUrl) {
     };
 
     try {
-        // Save to Firestore ads collection
         await window.db.collection('ads').doc(adToSave.id).set(adToSave);
         console.log('✅ Ad saved to Firestore:', adToSave.id);
         return adToSave;
@@ -597,7 +562,6 @@ async function loadUserAds(uid) {
     }
 }
 
-// Enhanced user settings management
 async function saveUserSettings(uid, settings) {
     if (!window.db) {
         console.error('Firestore not available');
@@ -639,7 +603,6 @@ async function loadUserSettings(uid) {
     }
 }
 
-// Payment history management
 async function savePaymentRecord(uid, paymentData) {
     if (!window.db) {
         console.error('Firestore not available');
@@ -688,7 +651,6 @@ async function loadPaymentHistory(uid) {
     }
 }
 
-// Make functions globally available
 function makeGloballyAvailable() {
     window.currentUser = () => currentUser;
     window.signIn = signIn;
@@ -707,10 +669,8 @@ function makeGloballyAvailable() {
     console.log('✅ Firebase functions made globally available');
 }
 
-// Call the function to make them available
 makeGloballyAvailable();
 
-// Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM loaded, initializing Firebase...');
     initializeFirebase();
