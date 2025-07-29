@@ -27,8 +27,7 @@ async function initializeFirebase() {
         return;
     }
 
-    console.log('🔧 Using Firebase authentication (Anonymous only)');
-    // Using anonymous authentication only - no Google OAuth needed
+    console.log('🔧 Using Firebase authentication with Google OAuth');
 
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
@@ -103,13 +102,14 @@ function setupAuthListener() {
         if (user) {
             currentUser = {
                 uid: user.uid,
-                displayName: user.displayName || `User_${user.uid.slice(-6)}`,
-                email: user.email || 'anonymous@example.com',
-                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`,
+                displayName: user.displayName || user.email?.split('@')[0] || `User_${user.uid.slice(-6)}`,
+                email: user.email || 'no-email@example.com',
+                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email?.split('@')[0] || 'User')}&background=random`,
                 usageCount: 0,
                 maxUsage: 4,
                 subscriptionStatus: 'free',
-                isAnonymous: user.isAnonymous
+                isAnonymous: false,
+                provider: 'google'
             };
 
             console.log('✅ User signed in:', currentUser.email);
@@ -216,7 +216,7 @@ function showLoginRequiredModal() {
                     </div>
                 </div>
                 <button onclick="signIn()" style="
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
                     color: white;
                     border: none;
                     padding: 20px 50px;
@@ -225,11 +225,11 @@ function showLoginRequiredModal() {
                     font-weight: 700;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+                    box-shadow: 0 8px 25px rgba(66, 133, 244, 0.4);
                     margin-bottom: 20px;
-                " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(102, 126, 234, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.4)'">🔑 Start Creating Ads (Sign In as Guest)</button>
+                " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(66, 133, 244, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(66, 133, 244, 0.4)'">🔑 Continue with Google</button>
                 <p style="color: #999; font-size: 1rem; margin-top: 15px;">
-                    ⚡ No registration required • Start in 5 seconds
+                    🔒 Secure Google authentication • Your data is protected
                 </p>
             </div>
             <style>
@@ -254,7 +254,7 @@ function showLoginRequiredModal() {
 }
 
 async function signIn() {
-    console.log('🔑 Sign in function called');
+    console.log('🔑 Google sign in function called');
 
     // Wait for Firebase to be ready
     let retries = 0;
@@ -276,17 +276,29 @@ async function signIn() {
     }
 
     try {
-        // For demo purposes, sign in anonymously
-        console.log('🔑 Starting anonymous sign in...');
-        const result = await firebase.auth().signInAnonymously();
+        // Create Google auth provider
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        // Add additional scopes if needed
+        provider.addScope('email');
+        provider.addScope('profile');
+        
+        // Configure provider settings
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
 
-        // Set a display name for anonymous users
+        console.log('🔑 Starting Google OAuth sign in...');
+        
+        // Sign in with popup
+        const result = await firebase.auth().signInWithPopup(provider);
+        
         if (result.user) {
-            await result.user.updateProfile({
-                displayName: `User_${Date.now().toString().slice(-6)}`
+            console.log('✅ Google sign in successful:', {
+                uid: result.user.uid,
+                email: result.user.email,
+                displayName: result.user.displayName
             });
-
-            console.log('✅ Anonymous sign in successful:', result.user.uid);
         }
 
         // Close any login modal that might be open
@@ -296,15 +308,31 @@ async function signIn() {
         }
 
     } catch (error) {
-        console.error('Sign in error:', error);
-        if (error.code === 'auth/operation-not-allowed') {
-            showError('Anonymous authentication is not enabled. Please enable it in Firebase Console.');
+        console.error('Google sign in error:', error);
+        
+        if (error.code === 'auth/popup-blocked') {
+            // Try redirect method if popup is blocked
+            try {
+                console.log('Popup blocked, trying redirect method...');
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('email');
+                provider.addScope('profile');
+                await firebase.auth().signInWithRedirect(provider);
+            } catch (redirectError) {
+                console.error('Redirect sign-in also failed:', redirectError);
+                showError('Sign-in popup was blocked. Please allow popups for this site or try again.');
+            }
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            console.log('User cancelled Google sign in');
+            // Don't show error for user cancellation
         } else if (error.code === 'auth/network-request-failed') {
             showError('Network error. Please check your internet connection and try again.');
+        } else if (error.code === 'auth/operation-not-allowed') {
+            showError('Google authentication is not enabled. Please enable it in Firebase Console.');
         } else if (error.code === 'app/no-app') {
             showError('Firebase app not initialized. Please refresh the page.');
         } else {
-            showError('Sign in failed: ' + error.message);
+            showError('Google sign in failed: ' + error.message);
         }
     }
 }
@@ -334,7 +362,7 @@ function updateAuthUI() {
         if (userInfo) {
             userInfo.innerHTML = `
                 <img src="${currentUser.photoURL}" alt="User" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
-                <span>${currentUser.displayName}${currentUser.isAnonymous ? ' (Guest)' : ''}</span>
+                <span>${currentUser.displayName}</span>
             `;
             userInfo.style.display = 'flex';
         }
