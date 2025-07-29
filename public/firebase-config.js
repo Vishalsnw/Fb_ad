@@ -78,7 +78,7 @@ async function initializeFirebase() {
             }
 
             // Configure auth for development domain
-            if (currentDomain.includes('replit.dev')) {
+            if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
                 console.log('🔧 Development environment detected - configuring auth');
             }
 
