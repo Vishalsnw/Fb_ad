@@ -65,7 +65,7 @@ async function loadConfig() {
             });
 
             // Validate keys are not empty strings
-            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5; // API keys should be at least 6 chars
+            const hasDeepSeek = DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.trim().length > 5;
             const hasDeepAI = DEEPAI_API_KEY && DEEPAI_API_KEY.trim().length > 5;
 
             console.log('DEEPSEEK_API_KEY loaded:', hasDeepSeek, DEEPSEEK_API_KEY ? `(${DEEPSEEK_API_KEY.length} chars)` : '(empty)');
@@ -119,147 +119,6 @@ async function loadConfig() {
     }
 }
 
-// Placeholder functions that should be implemented
-function setupEventListeners() {
-    // Setup form submission
-    const form = document.getElementById('adForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmission);
-        console.log('✅ Form submit event listener attached');
-    }
-
-    // Setup generate button
-    const generateBtn = document.getElementById('generateButton');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', handleFormSubmission);
-        console.log('✅ Generate button click event listener attached');
-    }
-}
-
-function setupLanguagePlaceholders() {
-    // Language placeholder setup
-    console.log('✅ Language placeholders setup');
-}
-
-function setupCopyProtection() {
-    // Copy protection setup
-    console.log('✅ Copy protection setup');
-}
-
-function handleFormSubmission(event) {
-    event.preventDefault();
-
-    // Check if user is logged in
-    const user = window.currentUser();
-    if (!user) {
-        console.log('🔑 User not logged in, showing login prompt');
-        window.showLoginModal();
-        return false;
-    }
-
-    // Check if user can generate ads
-    if (!window.canGenerateAd()) {
-        alert('You have reached your ad generation limit. Please upgrade to premium to continue.');
-        return false;
-    }
-
-    console.log('🚀 Generating ad for user:', user.displayName);
-    // Add your ad generation logic here
-
-    return false;
-}
-
-// loadConfig function is already defined above
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 App initializing...');
-
-    // Usage display will be updated by Firebase auth state change
-    console.log('📊 Usage display will be handled by Firebase authentication');
-
-    // Setup UI first
-    setupEventListeners();
-    setupLanguagePlaceholders();
-    setupCopyProtection();
-
-    // Then load config
-    const configLoaded = loadConfig();
-    if (configLoaded) {
-        console.log('✅ Application initialized successfully');
-    } else {
-        console.error('❌ Failed to initialize application');
-    }
-
-    console.log('✅ App initialized');
-});
-
-console.log('✅ Ad Generator script fully loaded');
-
-function setupCopyProtection() {
-    // Disable right-click context menu on ad preview
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.closest('.ad-preview')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // Disable text selection on ad preview
-    document.addEventListener('selectstart', function(e) {
-        if (e.target.closest('.ad-preview')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // Disable drag and drop on images
-    document.addEventListener('dragstart', function(e) {
-        if (e.target.closest('.ad-image')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // Disable common keyboard shortcuts for screenshots and copying
-    document.addEventListener('keydown', function(e) {
-        if (e.target.closest('.ad-preview')) {
-            // Disable Ctrl+A, Ctrl+C, Ctrl+S, Ctrl+P, PrintScreen, etc.
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 's' || e.key === 'p')) {
-                e.preventDefault();
-                return false;
-            }
-            if (e.key === 'PrintScreen' || e.key === 'F12') {
-                e.preventDefault();
-                return false;
-            }
-        }
-    });
-
-    // Add screenshot detection
-    let isScreenshotAttempt = false;
-    document.addEventListener('keyup', function(e) {
-        if (e.key === 'PrintScreen') {
-            isScreenshotAttempt = true;
-            showScreenshotWarning();
-        }
-    });
-
-    // Detect if page becomes hidden (possible screenshot)
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden && isScreenshotAttempt) {
-            setTimeout(() => {
-                showScreenshotWarning();
-                isScreenshotAttempt = false;
-            }, 100);
-        }
-    });
-}
-
-function showScreenshotWarning() {
-    alert('⚠️ Screenshots are not allowed. Please use the download button to save your ad.');
-}
-
 function setupEventListeners() {
     const form = document.getElementById('adForm');
     const generateButton = document.getElementById('generateButton');
@@ -269,17 +128,12 @@ function setupEventListeners() {
         console.log('✅ Form submit event listener attached');
     }
 
-    // Also attach to generate button directly
     if (generateButton) {
         generateButton.addEventListener('click', handleGenerateClick);
         console.log('✅ Generate button click event listener attached');
     }
-
-    // Note: Download, regenerate, copy, and variations buttons are dynamically created
-    // Event listeners for these are attached in displayResults function
 }
 
-// Handle generate button click
 function handleGenerateClick(event) {
     event.preventDefault();
     console.log('🖱️ Generate button clicked');
@@ -329,181 +183,66 @@ function updatePlaceholders(language) {
     if (targetAudienceInput) targetAudienceInput.placeholder = currentPlaceholders.targetAudience;
 }
 
-// User data is now handled exclusively by Firebase
-function loadUserData() {
-    // User data loading is handled by Firebase auth state change
-    console.log('📊 User data loading handled by Firebase authentication');
-}
-
-function saveUserData() {
-    // User data saving is handled by Firebase functions
-    console.log('💾 User data saving handled by Firebase');
-}
-
-// Update usage display
-function updateUsageDisplay() {
-    let usageDisplay = document.getElementById('usageDisplay');
-
-    if (!usageDisplay) {
-        const header = document.querySelector('header');
-        if (header) {
-            usageDisplay = document.createElement('div');
-            usageDisplay.id = 'usageDisplay';
-            usageDisplay.style.cssText = `
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 25px;
-                font-size: 0.9rem;
-                font-weight: 600;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-                margin-left: auto;
-            `;
-            header.appendChild(usageDisplay);
+function setupCopyProtection() {
+    // Disable right-click context menu on ad preview
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            e.preventDefault();
+            return false;
         }
-    }
+    });
 
-    if (usageDisplay) {
-        if (userPlan === 'premium') {
-            usageDisplay.innerHTML = `⭐ Premium - Unlimited ads`;
-        } else {
-            const remaining = Math.max(0, 4 - adsUsed);
-            usageDisplay.innerHTML = `🎯 ${remaining}/4 ads remaining ${remaining === 0 ? '- <span style="text-decoration: underline; cursor: pointer;" onclick="showPaymentModal()">Upgrade Now</span>' : ''}`;
+    // Disable text selection on ad preview
+    document.addEventListener('selectstart', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            e.preventDefault();
+            return false;
         }
-    }
-}
+    });
 
-// Show login required modal
-function showLoginRequiredModal() {
-    console.log('🔑 Showing login required modal');
+    // Disable drag and drop on images
+    document.addEventListener('dragstart', function(e) {
+        if (e.target.closest('.ad-image')) {
+            e.preventDefault();
+            return false;
+        }
+    });
 
-    let modal = document.getElementById('loginRequiredModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'loginRequiredModal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            animation: fadeIn 0.3s ease-out;
-        `;
-
-        modal.innerHTML = `
-            <div style="
-                background: white;
-                padding: 40px;
-                border-radius: 20px;
-                text-align: center;
-                max-width: 500px;
-                margin: 20px;
-                box-shadow: 0 25px 70px rgba(0,0,0,0.4);
-                transform: scale(0.9);
-                animation: modalSlideIn 0.3s ease-out forwards;
-            ">
-                <div style="font-size: 4rem; margin-bottom: 20px; animation: bounce 2s infinite;">🔐</div>
-                <h2 style="color: #333; margin-bottom: 15px; font-size: 1.8rem;">Sign In Required!</h2>
-                <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
-                    Please sign in with your Google account to start generating amazing Facebook ads with AI!
-                </p>
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <button onclick="signInForMore()" style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        border: none;
-                        padding: 18px 35px;
-                        border-radius: 12px;
-                        font-size: 1.1rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)'">🔑 Sign In with Google</button>
-                    <button onclick="closeLoginModal()" style="
-                        background: #f8f9fa;
-                        color: #666;
-                        border: 2px solid #e9ecef;
-                        padding: 18px 35px;
-                        border-radius: 12px;
-                        font-size: 1.1rem;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                    " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">Maybe Later</button>
-                </div>
-                <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
-                    ✨ Get 4 free ads, then upgrade for unlimited access!
-                </p>
-            </div>
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes modalSlideIn {
-                    from { transform: scale(0.9) translateY(-20px); opacity: 0; }
-                    to { transform: scale(1) translateY(0); opacity: 1; }
-                }
-                @keyframes bounce {
-                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                    40% { transform: translateY(-10px); }
-                    60% { transform: translateY(-5px); }
-                }
-            </style>
-        `;
-        document.body.appendChild(modal);
-    }
-    modal.style.display = 'flex';
-
-    // Focus trap
-    modal.focus();
-}
-
-// Close login modal
-function closeLoginModal() {
-    const modal = document.getElementById('loginRequiredModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// Sign in for more ads
-async function signInForMore() {
-    console.log('🔑 Attempting to sign in...');
-
-    // Check if Firebase is available
-    if (typeof firebase === 'undefined') {
-        console.error('Firebase not loaded');
-        alert('Authentication service is loading. Please wait a moment and try again.');
-        return;
-    }
-
-    if (typeof window.signIn === 'function') {
-        try {
-            await window.signIn();
-            closeLoginModal();
-        } catch (error) {
-            console.error('Sign in error:', error);
-            if (error.code === 'auth/popup-blocked') {
-                alert('Popup blocked! Please allow popups for this site and try again.');
-            } else if (error.code === 'auth/popup-closed-by-user') {
-                console.log('User cancelled sign in');
-            } else {
-                alert('Sign in failed. Please try again.');
+    // Disable common keyboard shortcuts for screenshots and copying
+    document.addEventListener('keydown', function(e) {
+        if (e.target.closest('.ad-preview')) {
+            // Disable Ctrl+A, Ctrl+C, Ctrl+S, Ctrl+P, PrintScreen, etc.
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 's' || e.key === 'p')) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.key === 'PrintScreen' || e.key === 'F12') {
+                e.preventDefault();
+                return false;
             }
         }
-    } else {
-        console.error('signIn function not available');
-        alert('Sign in functionality is not available. Please refresh the page and try again.');
-    }
+    });
+
+    // Add screenshot detection
+    let isScreenshotAttempt = false;
+    document.addEventListener('keyup', function(e) {
+        if (e.key === 'PrintScreen') {
+            isScreenshotAttempt = true;
+        }
+    });
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isScreenshotAttempt) {
+            showScreenshotWarning();
+            isScreenshotAttempt = false;
+        }
+    });
 }
 
-// Handle form submission
+function showScreenshotWarning() {
+    alert('⚠️ Screenshots are not allowed. Please use the download button to save your ad.');
+}
+
 async function handleFormSubmission(event) {
     event.preventDefault();
 
@@ -522,7 +261,7 @@ async function handleFormSubmission(event) {
         auth: typeof firebase !== 'undefined' && !!firebase.auth
     });
 
-    // Check if user is logged in and has remaining ads
+    // Check if user is logged in
     if (!user) {
         console.log('🚫 User not authenticated, showing login modal');
         showLoginRequiredModal();
@@ -561,7 +300,6 @@ async function handleFormSubmission(event) {
             displayResults(result);
 
             // Save ad to Firebase
-            const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
             if (user && typeof window.saveAd === 'function') {
                 try {
                     const adData = {
@@ -572,7 +310,6 @@ async function handleFormSubmission(event) {
                     console.log('✅ Ad saved to Firebase successfully');
                 } catch (saveError) {
                     console.error('Failed to save ad to Firebase:', saveError);
-                    // Don't block the user experience if saving fails
                 }
             }
 
@@ -586,7 +323,7 @@ async function handleFormSubmission(event) {
                     setTimeout(() => {
                         console.log('💳 Showing payment modal after reaching limit');
                         showPaymentModal();
-                    }, 3000); // Give user time to see their ad
+                    }, 3000);
                 }
             } else {
                 console.error('Firebase user tracking not available');
@@ -601,7 +338,6 @@ async function handleFormSubmission(event) {
     }
 }
 
-// Collect form data
 function collectFormData() {
     const productName = document.getElementById('productName');
     const productDescription = document.getElementById('productDescription');
@@ -612,7 +348,6 @@ function collectFormData() {
     const adFormat = document.getElementById('adFormat');
     const competitorUrl = document.getElementById('competitorUrl');
 
-    // Get language from radio buttons
     const languageRadio = document.querySelector('input[name="language"]:checked');
     const language = languageRadio ? languageRadio.value : 'English';
 
@@ -629,7 +364,6 @@ function collectFormData() {
     };
 }
 
-// Validate form data
 function validateFormData(formData) {
     if (!formData.productName || !formData.productName.trim()) {
         console.log('❌ Product name missing');
@@ -651,7 +385,6 @@ function validateFormData(formData) {
     return true;
 }
 
-// Show loading animation
 function showLoading() {
     const resultsDiv = document.getElementById('results');
     if (resultsDiv) {
@@ -684,7 +417,6 @@ function showLoading() {
     }
 }
 
-// Animate loading steps
 function animateLoadingSteps() {
     const steps = document.querySelectorAll('.step-3d');
     let stepIndex = 0;
@@ -710,7 +442,6 @@ function animateLoadingSteps() {
     }, 200);
 }
 
-// Show error message
 function showError(message) {
     const resultsDiv = document.getElementById('results');
     if (resultsDiv) {
@@ -724,7 +455,7 @@ function showError(message) {
                 text-align: center;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             ">
-                <h3 style="color: #e53e3e; margin-bottom: 15px; font-size: 1.5rem;">❌ Configuration Error</h3>
+                <h3 style="color: #e53e3e; margin-bottom: 15px; font-size: 1.5rem;">❌ Error</h3>
                 <div style="color: #2d3748; line-height: 1.6; margin-bottom: 20px;">
                     ${message}
                 </div>
@@ -746,38 +477,10 @@ function showError(message) {
     console.error('Error:', message);
 }
 
-// Generate ad function
-async function generateAd() {
+async function generateAd(formData) {
     console.log('🚀 Starting ad generation...');
 
-    // Check authentication first
-    const user = window.currentUser ? window.currentUser() : null;
-    if (!user) {
-        console.log('❌ User not authenticated');
-        showLoginRequiredModal();
-        return;
-    }
-
-    // Show loading state immediately
-    showLoading('🤖 Generating your ad copy...');
-
     try {
-        // Get form data
-        const formData = getFormData();
-        console.log('📝 Form data:', formData);
-
-        // Validate required fields
-        if (!formData.productName || !formData.productDescription) {
-            throw new Error('Please fill in all required fields');
-        }
-
-        // Check if user can generate more ads
-        if (!canGenerateAd()) {
-            console.log('❌ User has reached generation limit');
-            hideLoading();
-            showPaymentModal();
-            return;
-        }
         console.log('🚀 Sending request to /generate-ad with data:', formData);
 
         const response = await fetch('/generate-ad', {
@@ -875,22 +578,7 @@ async function displayResults(result) {
                 </div>
 
                 <div class="ad-performance">
-                    <h4>📊 Estimated Performance</h4>
-                    <div class="ad-metrics">
-                        <div class="metric">
-                            <span class="metric-label">Reach</span>
-                            <span class="metric-value">High</span>
                         </div>
-                        <div class="metric">
-                            <span class="metric-label">Engagement</span>
-                            <span class="metric-value">Good</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Relevance</span>
-                            <span class="metric-value">${calculatePerformanceScore(result, formData)}%</span>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="ad-actions">
                     <button onclick="downloadAd()" class="action-btn download-btn">📥 Download</button>
@@ -910,220 +598,30 @@ async function displayResults(result) {
     }
 }
 
-// Copy to clipboard
-function copyAdText() {
-    if (!currentAdData) {
-        alert('No ad text to copy');
-        return;
-    }
-
-    copyToClipboard(currentAdData, 'Ad text');
-}
-
-function copyToClipboard(text, type) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert(`${type} copied to clipboard!`);
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-        alert('Failed to copy to clipboard');
-    });
-}
-
 function formatAdText(text) {
     if (!text) return 'Generated ad text will appear here.';
 
-    // Clean up the text
     let cleanText = text.trim();
-
-    // Remove any existing HTML tags
     cleanText = cleanText.replace(/<[^>]*>/g, '');
 
-    // Split into sentences
     const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
 
     if (sentences.length <= 1) {
         return `<p style="margin: 8px 0; line-height: 1.5;">${cleanText}</p>`;
     }
 
-    // Format with better structure
     const formatted = sentences.map((sentence, index) => {
         const trimmed = sentence.trim();
         if (index === 0) {
-            // Main hook sentence
             return `<p style="margin: 8px 0; font-weight: 600; font-size: 1.05em; color: #333;">${trimmed}.</p>`;
         } else if (index === sentences.length - 1 && sentences.length > 2) {
-            // Call to action sentence
             return `<p style="margin: 8px 0; font-style: italic; color: #667eea;">${trimmed}!</p>`;
         } else {
-            // Supporting sentences
             return `<p style="margin: 8px 0; line-height: 1.5; color: #555;">${trimmed}.</p>`;
         }
     }).join('');
 
     return formatted;
-}
-
-function calculatePerformanceScore(result, formData) {
-    let score = 70; // Base score
-
-    // Assuming ad_copy contains both headline and ad text
-    if (result && result.ad_copy) {
-        const adTextWords = result.ad_copy.split(' ').length;
-        if (adTextWords >= 15 && adTextWords <= 50) score += 15; // Adjust the word count range
-    }
-
-    if (formData.specialOffer && formData.specialOffer.trim()) score += 5;
-
-    return Math.min(score, 100);
-}
-
-// Download image
-function downloadImage() {
-    if (!currentImageUrl) {
-        alert('No image to download');
-        return;
-    }
-
-    const formData = collectFormData();
-    const filename = formData.productName ? formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'ad';
-
-    const link = document.createElement('a');
-    link.href = currentImageUrl;
-    link.download = `${filename}_ad_image.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function regenerateAd() {
-    const formData = collectFormData();
-    if (validateFormData(formData)) {
-        handleFormSubmission({ preventDefault: () => {} });
-    }
-}
-
-function getFormData() {
-    console.log('📋 Extracting form data...');
-
-    const productName = document.getElementById('productName');
-    const productDescription = document.getElementById('productDescription');
-    const targetAudience = document.getElementById('targetAudience');
-    const businessType = document.getElementById('businessType');
-    const specialOffer = document.getElementById('specialOffer');
-    const tone = document.getElementById('tone');
-    const adFormat = document.getElementById('adFormat');
-    const competitorUrl = document.getElementById('competitorUrl');
-
-    // Get language from radio buttons
-    const languageRadio = document.querySelector('input[name="language"]:checked');
-    const language = languageRadio ? languageRadio.value : 'English';
-
-    const formData = {
-        productName: productName ? productName.value.trim() : '',
-        productDescription: productDescription ? productDescription.value.trim() : '',
-        targetAudience: targetAudience ? targetAudience.value.trim() : '',
-        specialOffer: specialOffer ? specialOffer.value.trim() : '',
-        language: language,
-        tone: tone ? tone.value : 'professional',
-        adFormat: adFormat ? adFormat.value : 'facebook-feed',
-        businessType: businessType ? businessType.value : '',
-        competitorUrl: competitorUrl ? competitorUrl.value.trim() : ''
-    };
-
-    console.log('📋 Form data extracted:', formData);
-    return formData;
-}
-
-function showPaymentModal() {
-    console.log('💳 Attempting to show payment modal...');
-
-    // First try the global function
-    if (typeof window.showPaymentModal === 'function') {
-        window.showPaymentModal();
-        return;
-    }
-
-    // Fallback: Show modal manually
-    let modal = document.getElementById('paymentModal');
-    if (modal) {
-        modal.style.display = 'block';
-        console.log('💳 Payment modal displayed');
-    } else {
-        // Create and show a simple upgrade prompt
-        console.log('💳 Creating upgrade prompt...');
-        const upgradeMessage = `
-🚀 CONGRATULATIONS! 
-
-You've used all 4 FREE ads! 🎉
-
-Ready to unlock unlimited professional ads?
-
-💎 PRO PLAN - ₹599/month
-✅ 100 Professional Ads
-✅ Premium Templates  
-✅ Priority Support
-
-⭐ UNLIMITED PLAN - ₹999/month  
-✅ Unlimited Ads
-✅ All Premium Features
-✅ 24/7 Support
-✅ Custom Branding
-
-Transform your business with unlimited AI-powered ads!
-        `;
-        alert(upgradeMessage);
-    }
-}
-
-// Add missing utility functions
-function setLoading(isLoading) {
-    if (isLoading) {
-        showLoading();
-    } else {
-        hideLoading();
-    }
-}
-
-function hideLoading() {
-    const resultsDiv = document.getElementById('results');
-    if (resultsDiv) {
-        resultsDiv.style.display = 'none';
-    }
-}
-
-// Close the script loading check
-console.log('✅ Ad Generator script fully loaded');
-
-// Ensure currentUser is available globally
-if (typeof window.currentUser === 'undefined') {
-    window.currentUser = null;
-}
-
-// Usage tracking functions
-function checkUsageLimits() {
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-
-    if (currentUser) {
-        // Check if user has premium subscription using canGenerateAd function
-        return typeof window.canGenerateAd === 'function' ? window.canGenerateAd() : false;
-    } else {
-        showLoginRequiredModal();
-        return false;
-    }
-}
-
-function incrementUsageCount() {
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-
-    if (currentUser && typeof window.incrementAdUsage === 'function') {
-        // Use Firebase-based increment function
-        const limitReached = window.incrementAdUsage();
-        console.log(`📊 Usage incremented via Firebase: ${currentUser.usageCount}/${currentUser.maxUsage} ads used`);
-        return limitReached;
-    } else {
-        console.error('Firebase user tracking not available');
-        throw new Error('User tracking not available');
-    }
 }
 
 function getAdFormatClass(adFormat) {
@@ -1165,7 +663,20 @@ function getFormatLabel(adFormat) {
     }
 }
 
-// Download ad function
+function copyAdText() {
+    if (!currentAdData) {
+        alert('No ad text to copy');
+        return;
+    }
+
+    navigator.clipboard.writeText(currentAdData).then(() => {
+        alert('Ad text copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
 function downloadAd() {
     if (!currentImageUrl || !currentAdData) {
         alert('No ad to download');
@@ -1175,7 +686,6 @@ function downloadAd() {
     const formData = collectFormData();
     const filename = formData.productName ? formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'ad';
 
-    // Create download link for image
     const link = document.createElement('a');
     link.href = currentImageUrl;
     link.download = `${filename}_ad_image.jpg`;
@@ -1183,7 +693,6 @@ function downloadAd() {
     link.click();
     document.body.removeChild(link);
 
-    // Also copy ad text to clipboard
     navigator.clipboard.writeText(currentAdData).then(() => {
         alert('🎉 Image download started and ad text copied to clipboard!');
     }).catch(() => {
@@ -1191,21 +700,238 @@ function downloadAd() {
     });
 }
 
-function generateNewAd() {
+function regenerateAd() {
     const formData = collectFormData();
     if (validateFormData(formData)) {
         handleFormSubmission({ preventDefault: () => {} });
     }
 }
 
+function showLoginRequiredModal() {
+    console.log('🔑 Showing login required modal');
+
+    let modal = document.getElementById('loginRequiredModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'loginRequiredModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                max-width: 500px;
+                margin: 20px;
+                box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+                transform: scale(0.9);
+                animation: modalSlideIn 0.3s ease-out forwards;
+            ">
+                <div style="font-size: 4rem; margin-bottom: 20px; animation: bounce 2s infinite;">🔐</div>
+                <h2 style="color: #333; margin-bottom: 15px; font-size: 1.8rem;">Sign In Required!</h2>
+                <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6;">
+                    Please sign in to start generating amazing Facebook ads with AI!
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="signInForMore()" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        padding: 18px 35px;
+                        border-radius: 12px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+                    ">🔑 Sign In as Guest</button>
+                    <button onclick="closeLoginModal()" style="
+                        background: #f8f9fa;
+                        color: #666;
+                        border: 2px solid #e9ecef;
+                        padding: 18px 35px;
+                        border-radius: 12px;
+                        font-size: 1.1rem;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    ">Maybe Later</button>
+                </div>
+                <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
+                    ✨ Get 4 free ads, then upgrade for unlimited access!
+                </p>
+            </div>
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes modalSlideIn {
+                    from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+                    to { transform: scale(1) translateY(0); opacity: 1; }
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            </style>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+}
+
+function closeLoginModal() {
+    const modal = document.getElementById('loginRequiredModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function signInForMore() {
+    console.log('🔑 Attempting to sign in...');
+
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase not loaded');
+        alert('Authentication service is loading. Please wait a moment and try again.');
+        return;
+    }
+
+    if (typeof window.signIn === 'function') {
+        try {
+            await window.signIn();
+            closeLoginModal();
+        } catch (error) {
+            console.error('Sign in error:', error);
+            if (error.code === 'auth/popup-blocked') {
+                alert('Popup blocked! Please allow popups for this site and try again.');
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                console.log('User cancelled sign in');
+            } else {
+                alert('Sign in failed. Please try again.');
+            }
+        }
+    } else {
+        console.error('signIn function not available');
+        alert('Sign in functionality is not available. Please refresh the page and try again.');
+    }
+}
+
+function showPaymentModal() {
+    console.log('💳 Attempting to show payment modal...');
+
+    if (typeof window.showPaymentModal === 'function') {
+        window.showPaymentModal();
+        return;
+    }
+
+    const upgradeMessage = `
+🚀 CONGRATULATIONS! 
+
+You've used all 4 FREE ads! 🎉
+
+Ready to unlock unlimited professional ads?
+
+💎 PRO PLAN - ₹599/month
+✅ 100 Professional Ads
+✅ Premium Templates  
+✅ Priority Support
+
+⭐ UNLIMITED PLAN - ₹999/month  
+✅ Unlimited Ads
+✅ All Premium Features
+✅ 24/7 Support
+✅ Custom Branding
+
+Transform your business with unlimited AI-powered ads!
+    `;
+    alert(upgradeMessage);
+}
+
+// Add missing utility functions
+function setLoading(isLoading) {
+    if (isLoading) {
+        showLoading();
+    } else {
+        hideLoading();
+    }
+}
+
+function hideLoading() {
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+    }
+}
+
+// Ensure currentUser is available globally
+if (typeof window.currentUser === 'undefined') {
+    window.currentUser = null;
+}
+
+// Usage tracking functions
+function checkUsageLimits() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+
+    if (currentUser) {
+        // Check if user has premium subscription using canGenerateAd function
+        return typeof window.canGenerateAd === 'function' ? window.canGenerateAd() : false;
+    } else {
+        showLoginRequiredModal();
+        return false;
+    }
+}
+
+function incrementUsageCount() {
+    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+
+    if (currentUser && typeof window.incrementAdUsage === 'function') {
+        // Use Firebase-based increment function
+        const limitReached = window.incrementAdUsage();
+        console.log(`📊 Usage incremented via Firebase: ${currentUser.usageCount}/${currentUser.maxUsage} ads used`);
+        return limitReached;
+    } else {
+        console.error('Firebase user tracking not available');
+        throw new Error('User tracking not available');
+    }
+}
+
 // Make functions globally available
 window.downloadAd = downloadAd;
-window.downloadImage = downloadImage;
-window.regenerateAd = generateNewAd;
 window.copyAdText = copyAdText;
+window.regenerateAd = regenerateAd;
+window.closeLoginModal = closeLoginModal;
+window.signInForMore = signInMore;
 
-// Attach event listeners for download functionality
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 App initializing...');
+
+    setupEventListeners();
+    setupLanguagePlaceholders();
+    setupCopyProtection();
+
+    const configLoaded = loadConfig();
+    if (configLoaded) {
+        console.log('✅ Application initialized successfully');
+    } else {
+        console.error('❌ Failed to initialize application');
+    }
+
+    console.log('✅ App initialized');
+});
+
 console.log('✅ Ad Generator script fully loaded');
-
-// Firebase auth functions are handled in firebase-config.js
-console.log('✅ Script.js loaded - Firebase auth managed by firebase-config.js');
