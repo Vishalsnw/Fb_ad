@@ -29,6 +29,10 @@ async function initializeFirebase() {
 
     console.log('🔧 Using Firebase authentication with Google OAuth');
 
+    // Get current domain first
+    const currentDomain = window.location.hostname;
+    console.log(`🔧  Current domain: ${currentDomain}`);
+
     firebaseConfig = {
         apiKey: window.CONFIG.FIREBASE_API_KEY,
         authDomain: window.CONFIG.FIREBASE_AUTH_DOMAIN,
@@ -36,19 +40,16 @@ async function initializeFirebase() {
         appId: window.CONFIG.FIREBASE_APP_ID || "1:123456789:web:abcdef123456"
     };
 
-    try {
-        // Add current domain to authorized domains list for development
-        const currentDomain = window.location.hostname;
-        console.log(`🔧  Current domain: ${currentDomain}`);
-
-        // For development domains, add them to Firebase config
-        if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
-            console.log('🔧 Development domain detected, configuring for Replit');
-            // Keep the original auth domain but allow current domain
-            if (!firebaseConfig.authDomain.includes('firebaseapp.com')) {
-                firebaseConfig.authDomain = firebaseConfig.authDomain || `${firebaseConfig.projectId}.firebaseapp.com`;
-            }
+    // For development domains, add them to Firebase config
+    if (currentDomain.includes('replit.dev') || currentDomain.includes('replit.co')) {
+        console.log('🔧 Development domain detected, configuring for Replit');
+        // Keep the original auth domain but allow current domain
+        if (!firebaseConfig.authDomain.includes('firebaseapp.com')) {
+            firebaseConfig.authDomain = firebaseConfig.authDomain || `${firebaseConfig.projectId}.firebaseapp.com`;
         }
+    }
+
+    try {
 
         // Wait for Firebase SDK to load
         let firebaseRetries = 0;
