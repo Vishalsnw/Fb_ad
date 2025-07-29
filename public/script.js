@@ -1073,10 +1073,7 @@ Transform your business with unlimited AI-powered ads!
         `;
         alert(upgradeMessage);
     }
-}ment('div');
-        upgradePrompt.style.cssText = `
-            position: fixed;
-            top: 0;
+}
             left: 0;
             width: 100%;
             height: 100%;
