@@ -93,7 +93,13 @@ async function signIn() {
     await firebase.auth().signInWithPopup(provider);
   } catch (err) {
     if (err.code === 'auth/popup-blocked') {
-      await firebase.auth().signInWithRedirect(provider);
+      try {
+        await firebase.auth().signInWithRedirect(provider);
+      } catch (redirectErr) {
+        console.error("❌ Redirect sign-in error:", redirectErr);
+      }
+    } else if (err.code === 'auth/popup-closed-by-user') {
+      console.log("👤 User cancelled sign-in");
     } else {
       console.error("❌ Sign-in error:", err);
     }
