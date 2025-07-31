@@ -1,0 +1,30 @@
+<!-- public/debug.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Debug Logs</title>
+    <style>
+      body { font-family: monospace; padding: 10px; background: #111; color: #0f0; }
+      #logs { white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h2>📋 Console Logs:</h2>
+    <div id="logs"></div>
+
+    <script>
+      (function() {
+        const logDiv = document.getElementById("logs");
+        const originalLog = console.log;
+        console.log = function(...args) {
+          logDiv.innerText += args.join(" ") + "\n";
+          originalLog.apply(console, args);
+        };
+      })();
+    </script>
+
+    <script src="/config.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/script.js"></script>
+  </body>
+</html>
