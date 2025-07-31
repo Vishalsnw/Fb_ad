@@ -52,7 +52,7 @@ function setupAuthListener() {
     if (user) {
       // User is signed in
       console.log('✅ User authenticated:', user.displayName);
-      
+
       // Set current user immediately
       currentUser = {
         uid: user.uid,
@@ -202,15 +202,15 @@ function hideLoginScreen() {
 
 function updateUIForAuthenticatedUser(user) {
   console.log('🔄 Updating UI for authenticated user');
-  
+
   // Update sign in/out buttons
   const signInBtn = document.getElementById('signInBtn');
   const signOutBtn = document.getElementById('signOutBtn');
   const userInfo = document.getElementById('userInfo');
-  
+
   if (signInBtn) signInBtn.style.display = 'none';
   if (signOutBtn) signOutBtn.style.display = 'inline-block';
-  
+
   if (userInfo) {
     userInfo.innerHTML = `
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -221,19 +221,19 @@ function updateUIForAuthenticatedUser(user) {
     `;
     userInfo.style.display = 'block';
   }
-  
+
   // Update usage counter
   updateUsageCounter();
 }
 
 function updateUIForUnauthenticatedUser() {
   console.log('🔄 Updating UI for unauthenticated user');
-  
+
   const signInBtn = document.getElementById('signInBtn');
   const signOutBtn = document.getElementById('signOutBtn');
   const userInfo = document.getElementById('userInfo');
   const usageCount = document.getElementById('usageCount');
-  
+
   if (signInBtn) signInBtn.style.display = 'inline-block';
   if (signOutBtn) signOutBtn.style.display = 'none';
   if (userInfo) userInfo.style.display = 'none';
@@ -246,7 +246,7 @@ function updateUsageCounter() {
     const used = currentUser.usageCount || 0;
     const max = currentUser.maxUsage || 4;
     const remaining = Math.max(0, max - used);
-    
+
     if (currentUser.subscriptionStatus === 'unlimited') {
       usageCount.innerHTML = '✨ Unlimited ads available';
     } else if (currentUser.subscriptionStatus === 'pro') {
@@ -264,6 +264,42 @@ function updateAuthUI() {
     updateUIForUnauthenticatedUser();
   }
 }
+
+// Increment ad usage count
+        window.incrementAdUsage = async function() {
+            if (!currentUserData) {
+                console.warn('⚠️ No user data available for incrementing usage');
+                return false;
+            }
+
+            const oldUsage = currentUserData.usageCount || 0;
+            currentUserData.usageCount = oldUsage + 1;
+            const newUsage = currentUserData.usageCount;
+            const maxUsage = currentUserData.maxUsage || 4;
+            const subscriptionStatus = currentUserData.subscriptionStatus || 'free';
+
+            console.log(`📊 Usage incremented: ${oldUsage} → ${newUsage} (max: ${maxUsage}, plan: ${subscriptionStatus})`);
+
+            // Save to Firebase and wait for completion
+            if (db && currentUserData.uid) {
+                try {
+                    await db.collection('users').doc(currentUserData.uid).update({
+                        usageCount: newUsage,
+                        lastAdGeneratedAt: new Date().toISOString()
+                    });
+                    console.log('✅ Usage count updated in Firebase');
+                } catch (error) {
+                    console.error('❌ Failed to update usage count in Firebase:', error);
+                    // Don't return error, just log it
+                }
+            }
+
+            // Check if limit reached (for free users)
+            const limitReached = (subscriptionStatus === 'free' && newUsage >= maxUsage);
+            console.log(`🔍 Limit check: ${newUsage}/${maxUsage} (${subscriptionStatus}) → limit reached: ${limitReached}`);
+
+            return limitReached;
+        };
 
 // 🔃 Auto run Firebase init
 document.addEventListener("DOMContentLoaded", () => {

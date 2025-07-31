@@ -239,17 +239,29 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             return;
         }
 
+        // Get fresh user data from Firebase before checking limits
+        const freshUser = await loadFreshUserData();
+        const currentUsage = freshUser ? freshUser.usageCount : 0;
+        const maxUsage = freshUser ? freshUser.maxUsage || 4 : 4;
+        const subscriptionStatus = freshUser ? freshUser.subscriptionStatus || 'free' : 'free';
+        
+        console.log(`🔍 Fresh user data - Usage: ${currentUsage}/${maxUsage}, Plan: ${subscriptionStatus}`);
+
         // Check if user has reached their limit BEFORE generating
-        if (user && user.usageCount >= 4 && user.subscriptionStatus === 'free') {
-            console.log('🚫 User has reached 4 ads limit, showing payment modal');
+        if (currentUsage >= maxUsage && subscriptionStatus === 'free') {
+            console.log(`🚫 User has reached ${maxUsage} ads limit (${currentUsage} used), showing payment modal`);
             showPaymentModal();
             return;
         }
 
-        if (typeof window.canGenerateAd === 'function' && !window.canGenerateAd()) {
-            console.log('🚫 canGenerateAd returned false, showing payment modal');
-            showPaymentModal();
-            return;
+        if (typeof window.canGenerateAd === 'function') {
+            const canGenerate = window.canGenerateAd();
+            console.log(`🔍 canGenerateAd check result: ${canGenerate}`);
+            if (!canGenerate) {
+                console.log('🚫 canGenerateAd returned false, showing payment modal');
+                showPaymentModal();
+                return;
+            }
         }
 
         // Validate form data
@@ -297,19 +309,32 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
 
                 // Then increment usage count and check if limit reached
                 if (user && typeof window.incrementAdUsage === 'function') {
-                    const limitReached = window.incrementAdUsage();
-                    console.log(`📊 Usage incremented, limit reached: ${limitReached}`);
+                    try {
+                        const limitReached = await window.incrementAdUsage();
+                        console.log(`📊 Usage incremented, limit reached: ${limitReached}`);
+                        
+                        // Update user object with new usage count
+                        const updatedUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+                        if (updatedUser) {
+                            console.log(`📊 Updated usage count: ${updatedUser.usageCount}/4`);
+                        }
 
-                    // Show payment modal immediately when limit is reached (after 4th ad)
-                    if (limitReached) {
-                        setTimeout(() => {
-                            console.log('💳 Showing payment modal after reaching limit');
-                            showPaymentModal();
-                        }, 3000);
+                        // Show payment modal immediately when limit is reached (after 4th ad)
+                        if (limitReached) {
+                            setTimeout(() => {
+                                console.log('💳 Showing payment modal after reaching limit');
+                                showPaymentModal();
+                            }, 3000);
+                        }
+                    } catch (usageError) {
+                        console.error('❌ Error incrementing usage:', usageError);
+                        // Still allow the ad to be generated, but warn user
+                        console.warn('⚠️ Usage tracking failed, but ad was generated successfully');
                     }
                 } else {
                     console.error('Firebase user tracking not available');
-                    showError('User tracking not available. Please refresh the page.');
+                    // Don't show error, just log it - the ad was generated successfully
+                    console.warn('⚠️ Usage tracking not available, but ad generated successfully');
                 }
             } else {
                 console.error('❌ Invalid result structure:', result);
@@ -876,6 +901,31 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             console.log('❌ Form data is invalid');
         }
     };
+
+    // Function to load fresh user data from Firebase 
+    async function loadFreshUserData() {
+        try {
+            const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+            if (!currentUser) return null;
+
+            // Force reload from Firebase to get latest data
+            if (window.db && typeof window.db.collection === 'function') {
+                const userDoc = await window.db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const freshData = userDoc.data();
+                    // Update the current user object with fresh data
+                    Object.assign(currentUser, freshData);
+                    console.log(`📊 Fresh user data loaded: ${freshData.usageCount || 0} ads used, plan: ${freshData.subscriptionStatus || 'free'}`);
+                    return currentUser;
+                }
+            }
+            return currentUser;
+        } catch (error) {
+            console.error('❌ Failed to load fresh user data:', error);
+            // Return current user object as fallback
+            return typeof window.currentUser === 'function' ? window.currentUser() : null;
+        }
+    }
 
     // Add direct API test function
     window.testAPI = async function() {
