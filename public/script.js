@@ -1,3 +1,13 @@
+// Global error handlers
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('❌ Unhandled promise rejection:', event.reason);
+    console.error('❌ Promise that was rejected:', event.promise);
+});
+
+window.addEventListener('error', function(event) {
+    console.error('❌ Global error:', event.error);
+});
+
 // Prevent multiple script loading
 if (window.adGeneratorLoaded || window.scriptInitialized) {
     console.log('Ad Generator script already loaded, skipping...');
@@ -172,6 +182,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
 
     async function handleFormSubmission(event) {
         event.preventDefault();
+        console.log('🚀 Form submission started');
 
         // Wait for Firebase to initialize
         let retries = 0;
@@ -185,7 +196,9 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         console.log('🔍 Checking authentication status:', {
             user: !!user,
             firebase: typeof firebase !== 'undefined',
-            auth: typeof firebase !== 'undefined' && !!firebase.auth
+            auth: typeof firebase !== 'undefined' && !!firebase.auth,
+            currentUserFunction: typeof window.currentUser,
+            userData: user ? { uid: user.uid, usageCount: user.usageCount, subscriptionStatus: user.subscriptionStatus } : null
         });
 
         // Check if user is logged in

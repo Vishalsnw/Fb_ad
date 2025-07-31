@@ -48,39 +48,85 @@ async function initializeFirebase() {
 }
 
 function setupAuthListener() {
-  firebase.auth().onAuthStateChanged(async user => {
+  firebase.auth().onAuthStateChanged(user => {
     if (user) {
-      currentUser = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email?.split('@')[0],
-        photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random`,
-        isAnonymous: user.isAnonymous,
-        provider: 'google'
-      };
+      // User is signed in
+      console.log('✅ User authenticated:', user.displayName);
+      updateUIForAuthenticatedUser(user);
 
-      sessionStorage.setItem('firebase_auth_user', JSON.stringify(currentUser));
+      // Load user data from Firestore
+      loadUserFromFirestore(user.uid, user).then(userData => {
+        window.user = userData;
+        console.log('✅ User data loaded:', userData);
 
-      updateAuthUI();
-      hideLoginScreen();
-
-      // 🔄 Automatically redirect logged in user from login page to dashboard
-      if (window.location.pathname.includes('index.html') || window.location.pathname === "/") {
-        window.location.href = "/dashboard.html";
-      }
-
+        // Update usage display
+        if (typeof updateUsageDisplay === 'function') {
+          updateUsageDisplay();
+        }
+      }).catch(error => {
+        console.error('❌ Failed to load user data:', error);
+      });
     } else {
-      currentUser = null;
-      sessionStorage.removeItem('firebase_auth_user');
-      updateAuthUI();
-      showLoginScreen();
-
-      // 🚫 User not logged in, redirect from protected pages
-      if (window.location.pathname.includes('dashboard.html')) {
-        window.location.href = "/index.html";
-      }
+      // User is signed out
+      console.log('👤 User not authenticated');
+      updateUIForUnauthenticatedUser();
     }
   });
+}
+
+async function loadUserFromFirestore(uid, firebaseUser) {
+  try {
+    const userDoc = await db.collection('users').doc(uid).get();
+
+    let userData;
+    if (userDoc.exists) {
+      userData = { uid, ...userDoc.data() };
+      console.log('📊 Existing user data loaded from Firestore');
+    } else {
+      // Create new user document
+      userData = {
+        uid: uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        usageCount: 0,
+        maxUsage: 4,
+        subscriptionStatus: 'free',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      };
+
+      try {
+        await db.collection('users').doc(uid).set(userData);
+        console.log('👤 New user created in Firestore');
+      } catch (setError) {
+        console.error('❌ Failed to create user in Firestore:', setError);
+      }
+    }
+
+    // Update last login time
+    try {
+      await db.collection('users').doc(uid).update({
+        lastLoginAt: new Date().toISOString()
+      });
+    } catch (updateError) {
+      console.error('❌ Failed to update last login time:', updateError);
+    }
+
+    return userData;
+  } catch (error) {
+    console.error('❌ Error loading user from Firestore:', error);
+    // Return basic user data if Firestore fails
+    return {
+      uid: uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      photoURL: firebaseUser.photoURL,
+      usageCount: 0,
+      maxUsage: 4,
+      subscriptionStatus: 'free'
+    };
+  }
 }
 
 async function signIn() {
