@@ -118,7 +118,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
 
     function setupEventListeners() {
         console.log('🔧 Setting up event listeners...');
-        
+
         const form = document.getElementById('adForm');
         const generateButton = document.getElementById('generateButton');
 
@@ -155,13 +155,13 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     function handleGenerateClick(event) {
         event.preventDefault();
         console.log('🖱️ Generate button clicked');
-        
+
         // Create a synthetic form submission event
         const syntheticEvent = {
             preventDefault: () => {},
             target: event.target.closest('form') || document.getElementById('adForm')
         };
-        
+
         handleFormSubmission(syntheticEvent);
     }
 
@@ -211,7 +211,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     async function handleFormSubmission(event) {
         event.preventDefault();
         console.log('🚀 Form submission started');
-        
+
         try {
             // Wait for Firebase to initialize
             let retries = 0;
@@ -229,7 +229,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                 currentUserFunction: typeof window.currentUser,
                 userData: user ? { uid: user.uid, usageCount: user.usageCount, subscriptionStatus: user.subscriptionStatus } : null
             });
-            
+
             console.log('🔍 Full user object:', user);
 
         // Check if user is logged in
@@ -264,7 +264,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
 
         try {
             console.log('🚀 Starting ad generation process...');
-            
+
             // Set a timeout for the request
             const timeoutId = setTimeout(() => {
                 console.warn('⚠️ Ad generation taking longer than expected...');
@@ -319,12 +319,12 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             console.error('❌ Generation error:', error);
             console.error('❌ Error type:', typeof error);
             console.error('❌ Error stack:', error.stack);
-            
+
             let errorMessage = 'Network error. Please check your connection and try again.';
             if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             showError(errorMessage);
         }
     } catch (mainError) {
@@ -800,7 +800,8 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         } else {
             console.error('signIn function not available');
             alert('Sign in functionality is not available. Please refresh the page and try again.');
-        }
+        ```text
+
     }
 
     function showPaymentModal() {
@@ -834,6 +835,35 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         alert(upgradeMessage);
     }
 
+    function canGenerateAd() {
+        const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
+        if (!currentUser) {
+            console.log('🚫 No user logged in');
+            return false; // Anonymous users handled separately
+        }
+
+        const userPlan = currentUser.subscriptionStatus || 'free';
+        const adsUsed = currentUser.usageCount || 0;
+        const maxUsage = 4; // Fixed limit for free users
+
+        console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, maxUsage=${maxUsage}`);
+
+        // For premium/unlimited users (allow unlimited generation)
+        if (userPlan === 'premium' || userPlan === 'pro' || userPlan === 'unlimited') {
+            console.log('✅ Premium plan, allowing generation');
+            return true;
+        }
+
+        // For free users, check if they've reached their 4 ad limit BEFORE generating
+        if (adsUsed >= maxUsage && userPlan === 'free') {
+            console.log(`🚫 User has reached free plan limit (${adsUsed}/${maxUsage} ads), showing payment modal`);
+            return false;
+        }
+
+        console.log(`✅ Can generate: ${adsUsed}/${maxUsage} ads used (free plan)`);
+        return true;
+    }
+
     // Add debug function for testing
     window.testGenerate = function() {
         console.log('🧪 Test generate function called');
@@ -859,10 +889,10 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                 tone: 'professional',
                 adFormat: 'facebook-feed'
             };
-            
+
             const result = await generateAd(testData);
             console.log('🧪 Direct API test result:', result);
-            
+
             if (result.success) {
                 displayResults(result);
             }

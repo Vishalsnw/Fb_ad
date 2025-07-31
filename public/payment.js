@@ -172,51 +172,48 @@ function setupPaymentModal() {
 
 function showPaymentModal() {
     console.log('💳 showPaymentModal called');
-    const modal = document.getElementById('paymentModal');
-    if (modal) {
-        modal.style.display = 'block';
-        modal.style.zIndex = '10000';
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-        console.log('💳 Payment modal opened');
-    } else {
-        console.error('❌ Payment modal not found, creating it...');
-        // Try to setup the modal if it doesn't exist
+    
+    // First, ensure the modal exists
+    if (!document.getElementById('paymentModal')) {
+        console.log('💳 Payment modal not found, creating it...');
         setupPaymentModal();
+    }
+    
+    // Small delay to ensure modal is created
+    setTimeout(() => {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.style.display = 'block';
+            modal.style.zIndex = '10000';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            console.log('💳 Payment modal opened successfully');
+        } else {
+            console.error('❌ Payment modal still not found after creation attempt');
+            // Final fallback - show enhanced alert
+            const upgradeMessage = `🎉 CONGRATULATIONS! You've reached your 4 FREE ads limit!
 
-        // Try again after a short delay
-        setTimeout(() => {
-            const newModal = document.getElementById('paymentModal');
-            if (newModal) {
-                newModal.style.display = 'block';
-                newModal.style.zIndex = '10000';
-                document.body.style.overflow = 'hidden';
-                console.log('💳 Payment modal created and opened');
-            } else {
-                // Final fallback - show attractive alert
-                const upgradeMessage = `
-🚀 CONGRATULATIONS! 
-
-You've used all 4 FREE ads! 🎉
-
-Ready to unlock unlimited professional ads?
+🚀 Ready to unlock UNLIMITED professional ads?
 
 💎 PRO PLAN - ₹599/month
-✅ 100 Professional Ads
-✅ Premium Templates  
-✅ Priority Support
+✅ 100 Professional Ads per month
+✅ Premium Templates & Designs
+✅ Priority Customer Support
+✅ Advanced Analytics
 
 ⭐ UNLIMITED PLAN - ₹999/month  
-✅ Unlimited Ads
+✅ UNLIMITED Ad Generation
 ✅ All Premium Features
-✅ 24/7 Support
-✅ Custom Branding
+✅ 24/7 Priority Support
+✅ Custom Branding Options
+✅ API Access
 
-Transform your business with unlimited AI-powered ads!
-                `;
-                alert(upgradeMessage);
-            }
-        }, 100);
-    }
+Transform your business with unlimited AI-powered Facebook ads!
+
+Click OK to continue with your current plan or refresh the page to upgrade.`;
+            
+            alert(upgradeMessage);
+        }
+    }, 200);
 }
 
 // Make payment functions globally available
