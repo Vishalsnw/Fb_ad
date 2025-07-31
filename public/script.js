@@ -250,7 +250,14 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         // Check if user has reached their limit BEFORE generating
         if (currentUsage >= maxUsage && subscriptionStatus === 'free') {
             console.log(`🚫 User has reached ${maxUsage} ads limit (${currentUsage} used), showing payment modal`);
-            showPaymentModal();
+            setTimeout(() => {
+                if (typeof window.showPaymentModal === 'function') {
+                    window.showPaymentModal();
+                } else {
+                    console.error('❌ showPaymentModal function not available');
+                    alert('🎉 You\'ve reached your 4 FREE ads limit!\n\n🚀 Upgrade to Pro Plan (₹599/month) for 100 ads\n⭐ Or get Unlimited Plan (₹999/month) for unlimited ads\n\nRefresh the page to see upgrade options.');
+                }
+            }, 100);
             return;
         }
 
@@ -323,7 +330,12 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                         if (limitReached) {
                             setTimeout(() => {
                                 console.log('💳 Showing payment modal after reaching limit');
-                                showPaymentModal();
+                                if (typeof window.showPaymentModal === 'function') {
+                                    window.showPaymentModal();
+                                } else {
+                                    console.error('❌ showPaymentModal function not available after limit reached');
+                                    alert('🎉 CONGRATULATIONS! You\'ve reached your 4 FREE ads limit!\n\n💎 PRO PLAN - ₹599/month\n✅ 100 Professional Ads\n✅ Premium Templates\n✅ Priority Support\n\n⭐ UNLIMITED PLAN - ₹999/month\n✅ Unlimited Ads\n✅ All Premium Features\n✅ 24/7 Support\n\nRefresh the page to upgrade!');
+                                }
                             }, 2000); // Show after 2 seconds to let user see the ad
                         }
                     } catch (usageError) {

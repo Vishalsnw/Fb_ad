@@ -1,73 +1,29 @@
 // Payment configuration
-window.RAZORPAY_KEY_ID = window.RAZORPAY_KEY_ID || '';
-window.RAZORPAY_KEY_SECRET = window.RAZORPAY_KEY_SECRET || '';
+let RAZORPAY_KEY_ID = '';
+let RAZORPAY_KEY_SECRET = '';
 
-// Load Razorpay keys from config
-function loadRazorpayConfig() {
-    if (window.CONFIG && window.CONFIG.RAZORPAY_KEY_ID && window.CONFIG.RAZORPAY_KEY_SECRET) {
-        window.RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID;
-        window.RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET;
-        console.log('✅ Razorpay keys loaded successfully');
-        console.log('RAZORPAY_KEY_ID loaded:', !!window.RAZORPAY_KEY_ID);
+// Load Razorpay configuration
+async function loadRazorpayConfig() {
+    try {
+        let retries = 0;
+        while (!window.CONFIG && retries < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
 
-        // Verify Razorpay script is loaded
-        if (typeof Razorpay === 'undefined') {
-            console.error('❌ Razorpay script not loaded');
-            loadRazorpayScript();
-        } else {
-            console.log('✅ Razorpay script ready');
+        if (window.CONFIG) {
+            RAZORPAY_KEY_ID = window.CONFIG.RAZORPAY_KEY_ID || '';
+            RAZORPAY_KEY_SECRET = window.CONFIG.RAZORPAY_KEY_SECRET || '';
+
+            console.log('💳 Razorpay config loaded:', {
+                hasKeyId: !!RAZORPAY_KEY_ID,
+                hasKeySecret: !!RAZORPAY_KEY_SECRET
+            });
         }
-        return true;
-    } else {
-        // Wait for config to load
-        if (!window.razorpayRetryCount) window.razorpayRetryCount = 0;
-        if (window.razorpayRetryCount < 20) {
-            window.razorpayRetryCount++;
-            setTimeout(loadRazorpayConfig, 200);
-        } else {
-            console.error('❌ Failed to load Razorpay keys - CONFIG not available');
-            console.log('Available CONFIG:', window.CONFIG);
-        }
-        return false;
+    } catch (error) {
+        console.error('❌ Failed to load Razorpay config:', error);
     }
 }
-
-// Load Razorpay script dynamically if not available
-function loadRazorpayScript() {
-    if (document.getElementById('razorpay-script')) return Promise.resolve();
-
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.id = 'razorpay-script';
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => {
-            console.log('✅ Razorpay script loaded dynamically');
-            resolve();
-        };
-        script.onerror = () => {
-            console.error('❌ Failed to load Razorpay script');
-            reject(new Error('Failed to load Razorpay script'));
-        };
-        document.head.appendChild(script);
-    });
-}
-
-// Load Razorpay payment buttons - now inline in HTML
-function loadRazorpayPaymentButtons() {
-    console.log('✅ Razorpay payment buttons loaded inline in form tags');
-}
-
-// Load config when available
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait for config to be loaded
-    setTimeout(loadRazorpayConfig, 100);
-});
-
-// Initialize Razorpay when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    setupPaymentModal();
-    checkUserSubscription();
-});
 
 // Subscription plans
 const SUBSCRIPTION_PLANS = {
@@ -100,7 +56,8 @@ function getUserCurrency() {
     return isIndian ? 'INR' : 'USD';
 }
 
-function formatPrice(plan, currency = 'INR') {
+// Format price based on currency
+function formatPrice(plan, currency) {
     if (plan.price === 0) return 'Free';
 
     if (currency === 'INR') {
@@ -110,7 +67,142 @@ function formatPrice(plan, currency = 'INR') {
     }
 }
 
+// Handle subscription
+async function handleSubscription(planKey) {
+    console.log('💳 Handling subscription for plan:', planKey);
+
+    if (planKey === 'free') {
+        alert('You are already on the free plan!');
+        return;
+    }
+
+    const plan = SUBSCRIPTION_PLANS[planKey];
+    const currency = getUserCurrency();
+    const amount = currency === 'INR' ? plan.price : plan.priceUSD;
+
+    if (!RAZORPAY_KEY_ID) {
+        console.error('❌ Razorpay key not configured');
+        alert('Payment system not configured. Please contact support.');
+        return;
+    }
+
+    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (!user) {
+        alert('Please sign in to subscribe');
+        return;
+    }
+
+    try {
+        // Create Razorpay order
+        const orderResponse = await fetch('/api/create-razorpay-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                amount: amount,
+                currency: currency,
+                planKey: planKey,
+                userId: user.uid
+            })
+        });
+
+        const orderData = await orderResponse.json();
+
+        if (!orderData.success) {
+            throw new Error(orderData.error || 'Failed to create order');
+        }
+
+        // Initialize Razorpay payment
+        const options = {
+            key: RAZORPAY_KEY_ID,
+            amount: amount,
+            currency: currency,
+            name: 'Facebook Ad Generator',
+            description: `${plan.name} Plan Subscription`,
+            order_id: orderData.orderId,
+            handler: function(response) {
+                verifyPayment(response, planKey, user.uid);
+            },
+            prefill: {
+                name: user.displayName || user.email,
+                email: user.email
+            },
+            theme: {
+                color: '#667eea'
+            },
+            modal: {
+                ondismiss: function() {
+                    console.log('Payment modal closed');
+                }
+            }
+        };
+
+        const razorpay = new Razorpay(options);
+        razorpay.open();
+
+    } catch (error) {
+        console.error('❌ Payment error:', error);
+        alert('Payment failed. Please try again.');
+    }
+}
+
+// Verify payment
+async function verifyPayment(paymentResponse, planKey, userId) {
+    try {
+        const response = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ...paymentResponse,
+                planKey: planKey,
+                userId: userId
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('🎉 Payment successful! Your subscription is now active.');
+
+            // Update current user
+            if (typeof window.currentUser === 'function') {
+                const user = window.currentUser();
+                if (user) {
+                    user.subscriptionStatus = planKey;
+                    user.usageCount = 0; // Reset usage count
+                }
+            }
+
+            // Close payment modal
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+
+            // Refresh page to update UI
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+
+        } else {
+            throw new Error(result.error || 'Payment verification failed');
+        }
+    } catch (error) {
+        console.error('❌ Payment verification error:', error);
+        alert('Payment verification failed. Please contact support.');
+    }
+}
+
+// Setup payment modal
 function setupPaymentModal() {
+    if (document.getElementById('paymentModal')) {
+        console.log('💳 Payment modal already exists');
+        return;
+    }
+
     const userCurrency = getUserCurrency();
 
     // Create payment modal HTML
@@ -155,30 +247,33 @@ function setupPaymentModal() {
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Load Razorpay payment buttons
-    loadRazorpayPaymentButtons();
-
     // Setup modal events
     const modal = document.getElementById('paymentModal');
     const closeBtn = document.querySelector('.payment-close');
 
-    closeBtn.onclick = () => modal.style.display = 'none';
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    };
+
     window.onclick = (event) => {
         if (event.target === modal) {
             modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
     };
 }
 
+// Show payment modal
 function showPaymentModal() {
     console.log('💳 showPaymentModal called');
-    
+
     // First, ensure the modal exists
     if (!document.getElementById('paymentModal')) {
         console.log('💳 Payment modal not found, creating it...');
         setupPaymentModal();
     }
-    
+
     // Small delay to ensure modal is created
     setTimeout(() => {
         const modal = document.getElementById('paymentModal');
@@ -210,424 +305,29 @@ function showPaymentModal() {
 Transform your business with unlimited AI-powered Facebook ads!
 
 Click OK to continue with your current plan or refresh the page to upgrade.`;
-            
+
             alert(upgradeMessage);
         }
     }, 200);
 }
 
+// Check user subscription status
+function checkUserSubscription() {
+    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+    if (user) {
+        console.log('👤 Current user subscription:', user.subscriptionStatus || 'free');
+    }
+}
+
 // Make payment functions globally available
 window.showPaymentModal = showPaymentModal;
-window.canGenerateAd = canGenerateAd;
+window.handleSubscription = handleSubscription;
+
+// Load config when available
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(loadRazorpayConfig, 100);
+    setupPaymentModal();
+    checkUserSubscription();
+});
 
 console.log('✅ Payment module loaded successfully');
-
-function checkUserSubscription() {
-    // Only show for logged in users
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!currentUser) return;
-
-    // Use Firebase user data instead of localStorage
-    const userPlan = currentUser.subscriptionStatus || 'free';
-    const adsUsed = currentUser.usageCount || 0;
-    const planLimits = SUBSCRIPTION_PLANS[userPlan];
-
-    updateUsageDisplay(userPlan, adsUsed, planLimits.adsPerMonth);
-
-    // Add usage info to header for logged in users
-    const header = document.querySelector('header');
-    if (header && !document.querySelector('.usage-info') && currentUser) {
-        const usageHTML = `
-            <div class="usage-info">
-                <div class="plan-badge">${planLimits.name} Plan</div>
-                <div class="usage-count">
-                    ${planLimits.adsPerMonth === -1 ? 'Unlimited' : `${adsUsed}/${planLimits.adsPerMonth}`} ads used
-                </div>
-                ${userPlan === 'free' ? '<button onclick="showPaymentModal()" class="upgrade-btn">🚀 Upgrade</button>' : ''}
-            </div>
-        `;
-        header.insertAdjacentHTML('beforeend', usageHTML);
-    }
-}
-
-function updateUsageDisplay(plan, used, limit) {
-    const usageCount = document.querySelector('.usage-count');
-    if (usageCount) {
-        const usageText = limit === -1 ? 'Unlimited' : `${used}/${limit} ads used`;
-        usageCount.textContent = usageText;
-    }
-}
-
-// Subscription plans configuration moved to top of file
-
-function canGenerateAd() {
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!currentUser) {
-        console.log('🚫 No user logged in');
-        return false; // Anonymous users handled separately
-    }
-
-    const userPlan = currentUser.subscriptionStatus || 'free';
-    const adsUsed = currentUser.usageCount || 0;
-    const maxUsage = currentUser.maxUsage || 4;
-    const planLimits = SUBSCRIPTION_PLANS[userPlan];
-
-    console.log(`🔍 Checking generation limits: plan=${userPlan}, adsUsed=${adsUsed}, maxUsage=${maxUsage}, limit=${planLimits ? planLimits.adsPerMonth : 'unknown'}`);
-
-    // For premium/unlimited users
-    if (userPlan !== 'free' && planLimits && (planLimits.adsPerMonth === -1 || planLimits.adsPerMonth === 100)) {
-        console.log('✅ Premium/Unlimited plan, allowing generation');
-        return true;
-    }
-
-    // For free users, check if they've reached their max usage limit
-    if (adsUsed >= maxUsage && userPlan === 'free') {
-        console.log(`🚫 User has reached free plan limit (${adsUsed}/${maxUsage} ads), blocking generation`);
-        return false; // Don't show modal here, let calling function handle it
-    }
-
-    console.log(`✅ Can generate: ${adsUsed}/${maxUsage} ads used (free plan)`);
-    return true;
-}
-
-// Show payment modal for new users after they sign in
-function checkAndShowUpgradePrompt() {
-    const currentUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!currentUser) return;
-
-    //const userPlan = localStorage.getItem('userPlan') || 'free';
-    //const hasSeenUpgradePrompt = localStorage.getItem('hasSeenUpgradePrompt');
-
-    // Show upgrade prompt for new free users
-    //if (userPlan === 'free' && !hasSeenUpgradePrompt) {
-        //setTimeout(() => {
-            //showPaymentModal();
-            //localStorage.setItem('hasSeenUpgradePrompt', 'true');
-        //}, 2000); // Show after 2 seconds
-    //}
-}
-
-function incrementAdUsage() {
-    //const adsUsed = parseInt(localStorage.getItem('adsUsed') || '0');
-    //localStorage.setItem('adsUsed', (adsUsed + 1).toString());
-
-    //const userPlan = localStorage.getItem('userPlan') || 'free';
-    //updateUsageDisplay(userPlan, adsUsed + 1, SUBSCRIPTION_PLANS[userPlan].adsPerMonth);
-}
-
-async function handleSubscription(planKey) {
-    if (planKey === 'free') return;
-
-    const plan = SUBSCRIPTION_PLANS[planKey];
-    const userCurrency = getUserCurrency();
-    const price = userCurrency === 'INR' ? plan.price : plan.priceUSD;
-
-    if (userCurrency === 'USD') {
-        alert('USD payments will be available soon. Please contact support for international payments.');
-        return;
-    }
-
-    const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
-    if (!user) {
-        showLoginModal();
-        return;
-    }
-
-    try {
-        // Create Razorpay order
-        const response = await fetch('/api/create-razorpay-order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                planKey,
-                planName: plan.name,
-                price: price,
-                currency: userCurrency
-            })
-        });
-
-        const orderData = await response.json();
-
-        if (orderData.error) {
-            alert('Error creating order: ' + orderData.error);
-            return;
-        }
-
-        // Check if Razorpay is available
-        if (typeof Razorpay === 'undefined') {
-            console.error('❌ Razorpay not loaded, attempting to load...');
-            try {
-                await loadRazorpayScript();
-                console.log('✅ Razorpay script loaded, retrying payment...');
-                // Retry after loading
-                setTimeout(() => handleSubscription(planKey), 1000);
-                return;
-            } catch (loadError) {
-                console.error('❌ Failed to load Razorpay script:', loadError);
-                alert('Payment system not ready. Please refresh the page and try again.');
-                return;
-            }
-        }
-
-        if (!window.RAZORPAY_KEY_ID) {
-            console.error('❌ Razorpay key not configured');
-            alert('Payment configuration error. Please contact support.');
-            return;
-        }
-
-        // Log Razorpay key for debugging (first few characters only)
-        console.log('🔧 Using Razorpay key:', window.RAZORPAY_KEY_ID.substring(0, 8) + '...');
-        console.log('🔧 Order data received:', orderData);
-
-        // Initialize Razorpay payment
-        const options = {
-            key: window.RAZORPAY_KEY_ID,
-            amount: orderData.amount || price,
-            currency: orderData.currency || userCurrency,
-            name: 'AdGenie - Facebook Ad Generator',
-            description: `${plan.name} Plan Subscription`,
-            order_id: orderData.order_id,
-            handler: function(response) {
-                console.log('✅ Payment successful in handler:', response);
-                handlePaymentSuccess(planKey, response);
-            },
-            prefill: {
-                name: user?.displayName || 'User',
-                email: user?.email || 'user@example.com'
-            },
-            theme: {
-                color: '#667eea'
-            },
-            modal: {
-                ondismiss: function() {
-                    console.log('💳 Payment modal closed by user');
-                }
-            },
-            retry: {
-                enabled: true,
-                max_count: 3
-            }
-        };
-
-        try {
-            console.log('🔧 Razorpay options:', {
-                key: options.key,
-                amount: options.amount,
-                currency: options.currency,
-                order_id: options.order_id,
-                name: options.name
-            });
-
-            // Create Razorpay instance
-            const rzp = new Razorpay(options);
-
-            // Add success handler
-            rzp.on('payment.success', function (response) {
-                console.log('✅ Payment successful:', response);
-                handlePaymentSuccess(planKey, response);
-            });
-
-            rzp.on('payment.failed', function (response) {
-                console.error('❌ Payment failed:', response);
-                console.error('❌ Error details:', response.error);
-                console.error('❌ Full response:', JSON.stringify(response, null, 2));
-
-                let errorMessage = 'Payment failed';
-                if (response.error) {
-                    if (response.error.description) {
-                        errorMessage = response.error.description;
-                    } else if (response.error.reason) {
-                        errorMessage = response.error.reason;
-                    } else if (response.error.code) {
-                        errorMessage = `Error: ${response.error.code}`;
-                        // Add specific error code handling
-                        switch(response.error.code) {
-                            case 'BAD_REQUEST_ERROR':
-                                errorMessage = 'Invalid payment request. Please try again.';
-                                break;
-                            case 'GATEWAY_ERROR':
-                                errorMessage = 'Payment gateway error. Please try again.';
-                                break;
-                            case 'NETWORK_ERROR':
-                                errorMessage = 'Network error. Please check your connection.';
-                                break;
-                            case 'SERVER_ERROR':
-                                errorMessage = 'Server error. Please try again later.';
-                                break;
-                        }
-                    }
-                }
-
-                // Show more user-friendly error messages
-                if (errorMessage.includes('Your card was declined')) {
-                    errorMessage = 'Your card was declined. Please try a different payment method.';
-                } else if (errorMessage.includes('insufficient funds')) {
-                    errorMessage = 'Insufficient funds. Please check your account balance.';
-                } else if (errorMessage.includes('invalid card')) {
-                    errorMessage = 'Invalid card details. Please check and try again.';
-                }
-
-                alert(`Payment failed: ${errorMessage}\n\nIf this issue persists, please contact support.`);
-            });
-
-            console.log('🔧 Opening Razorpay checkout...');
-
-            // Try to open with retry mechanism
-            setTimeout(() => {
-                try {
-                    rzp.open();
-                    console.log('✅ Razorpay checkout opened successfully');
-                } catch (openError) {
-                    console.error('❌ Failed to open Razorpay on first attempt:', openError);
-
-                    // Retry after a short delay
-                    setTimeout(() => {
-                        try {
-                            rzp.open();
-                            console.log('✅ Razorpay checkout opened on retry');
-                        } catch (retryError) {
-                            console.error('❌ Failed to open Razorpay on retry:', retryError);
-                            alert('Unable to open payment window. Please ensure popups are allowed and try again.');
-                        }
-                    }, 500);
-                }
-            }, 100);
-
-        } catch (error) {
-            console.error('❌ Error creating Razorpay instance:', error);
-            console.error('❌ Error type:', error.constructor.name);
-            console.error('❌ Error details:', error.message);
-
-            // More specific error messages
-            if (error.message.includes('Razorpay is not defined')) {
-                alert('Payment system not loaded. Please refresh the page and try again.');
-            } else if (error.message.includes('Invalid key')) {
-                alert('Payment configuration error. Please contact support.');
-            } else if (error.message.includes('Amount should be') || error.message.includes('amount')) {
-                alert('Invalid payment amount. Please contact support.');
-            } else {
-                alert('Failed to initialize payment gateway. Please check your internet connection and try again.');
-            }
-        }
-
-    } catch (error) {
-        console.error('Payment error:', error.message || error);
-        alert('Payment failed: ' + (error.message || 'Unknown error. Please try again.'));
-    }
-}
-
-// Payment success handler
-async function handlePaymentSuccess(planKey, paymentResponse) {
-    try {
-        // Verify payment on server side
-        const response = await fetch('/api/verify-payment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                planKey,
-                payment_id: paymentResponse.razorpay_payment_id,
-                order_id: paymentResponse.razorpay_order_id,
-                signature: paymentResponse.razorpay_signature
-            })
-        });
-
-        let data;
-        try {
-            console.log('Payment verification response status:', response.status);
-            console.log('Payment verification response headers:', Object.fromEntries(response.headers));
-
-            // Check if response is OK first
-            if (!response.ok) {
-                console.error('Payment verification failed with status:', response.status);
-                const errorText = await response.text();
-                console.error('Error response text:', errorText.substring(0, 500));
-                throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}`);
-            }
-
-            // Get response as text first to debug
-            const responseText = await response.text();
-            console.log('Payment verification raw response length:', responseText.length);
-            console.log('Payment verification raw response:', responseText.substring(0, 1000));
-
-            // Check if response starts with HTML (error page)
-            if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
-                console.error('Received HTML instead of JSON:', responseText.substring(0, 200));
-                throw new Error('Server returned HTML error page instead of JSON. Please check server logs.');
-            }
-
-            // Check if response is empty
-            if (!responseText.trim()) {
-                throw new Error('Server returned empty response');
-            }
-
-            // Check if response contains "The page" which might indicate an error page
-            if (responseText.includes('The page') && !responseText.trim().startsWith('{')) {
-                console.error('Response appears to be an error page:', responseText.substring(0, 200));
-                throw new Error('Server returned an error page instead of JSON');
-            }
-
-            data = JSON.parse(responseText);
-            console.log('Parsed payment data:', data);
-
-            // Validate response structure
-            if (typeof data !== 'object' || data === null) {
-                throw new Error('Invalid response structure - not an object');
-            }
-
-        } catch (parseError) {
-            console.error('Failed to parse payment response:', parseError);
-            console.error('Error type:', parseError.constructor.name);
-            if (typeof responseText !== 'undefined') {
-                console.error('Full response text was:', responseText);
-            }
-            throw new Error(`Payment verification failed: ${parseError.message}`);
-        }
-
-        if (data.success) {
-            // Update user subscription status
-            const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
-            if (user) {
-                user.subscriptionStatus = 'premium';
-                user.maxUsage = Infinity;
-                if (typeof saveUserData === 'function') {
-                    saveUserData(user);
-                }
-            }
-
-            // Update UI and redirect
-            alert('Payment successful! 🎉');
-            location.reload();
-        } else {
-            alert('Payment verification failed. Please contact support.');
-        }
-    } catch (error) {
-        console.error('Payment verification error:', error.message || error);
-        alert('Payment verification failed: ' + (error.message || 'Please contact support.'));
-    }
-}
-
-async function loadUserData() {
-    const currentUser = window.currentUser();
-    if (currentUser) {
-        // Force reload from Firebase to get latest data
-        if (window.db) {
-            try {
-                const userDoc = await window.db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists) {
-                    const freshData = userDoc.data();
-                    Object.assign(currentUser, freshData);
-                    console.log(`📊 Fresh user data loaded from Firebase: ${currentUser.usageCount || 0} ads used, plan: ${currentUser.subscriptionStatus || 'free'}`);
-                }
-            } catch (error) {
-                console.error('Failed to refresh user data from Firebase:', error);
-            }
-        }
-        updateUsageDisplay();
-        return currentUser;
-    }
-    return null;
-}
