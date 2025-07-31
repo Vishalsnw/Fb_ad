@@ -263,10 +263,21 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         document.getElementById('resultSection').style.display = 'block';
 
         try {
+            console.log('🚀 Starting ad generation process...');
+            
+            // Set a timeout for the request
+            const timeoutId = setTimeout(() => {
+                console.warn('⚠️ Ad generation taking longer than expected...');
+            }, 10000);
+
             // Generate the ad
             const result = await generateAd(formData);
+            clearTimeout(timeoutId);
 
-            if (result.success) {
+            console.log('✅ Ad generation completed, result:', result);
+
+            if (result && result.success) {
+                console.log('🎨 Displaying results...');
                 // Display results first
                 displayResults(result);
 
@@ -301,12 +312,20 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                     showError('User tracking not available. Please refresh the page.');
                 }
             } else {
-                showError(result.error || 'Failed to generate ad');
+                console.error('❌ Invalid result structure:', result);
+                showError(result?.error || 'Failed to generate ad - invalid response');
             }
         } catch (error) {
             console.error('❌ Generation error:', error);
+            console.error('❌ Error type:', typeof error);
             console.error('❌ Error stack:', error.stack);
-            showError('Network error. Please check your connection and try again.');
+            
+            let errorMessage = 'Network error. Please check your connection and try again.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showError(errorMessage);
         }
     } catch (mainError) {
         console.error('❌ Main form submission error:', mainError);
@@ -469,14 +488,26 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             });
 
             console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ HTTP error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
 
-            const result = await response.json();
+            const responseText = await response.text();
+            console.log('📡 Raw response text:', responseText.substring(0, 200) + '...');
+
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('❌ Failed to parse JSON response:', parseError);
+                console.error('❌ Response text:', responseText);
+                throw new Error('Invalid JSON response from server');
+            }
+
             console.log('✅ API Response received:', result);
 
             if (!result.success) {
@@ -487,6 +518,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             return result;
         } catch (error) {
             console.error('❌ Ad generation error:', error);
+            console.error('❌ Error stack:', error.stack);
             throw error;
         }
     }
@@ -812,6 +844,30 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             handleFormSubmission({ preventDefault: () => {} });
         } else {
             console.log('❌ Form data is invalid');
+        }
+    };
+
+    // Add direct API test function
+    window.testAPI = async function() {
+        console.log('🧪 Testing API directly...');
+        try {
+            const testData = {
+                productName: 'Test Product',
+                productDescription: 'Test description',
+                targetAudience: 'Test audience',
+                language: 'English',
+                tone: 'professional',
+                adFormat: 'facebook-feed'
+            };
+            
+            const result = await generateAd(testData);
+            console.log('🧪 Direct API test result:', result);
+            
+            if (result.success) {
+                displayResults(result);
+            }
+        } catch (error) {
+            console.error('🧪 Direct API test failed:', error);
         }
     };
 
