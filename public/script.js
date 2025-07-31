@@ -316,7 +316,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                         // Update user object with new usage count
                         const updatedUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
                         if (updatedUser) {
-                            console.log(`📊 Updated usage count: ${updatedUser.usageCount}/4`);
+                            console.log(`📊 Updated usage count: ${updatedUser.usageCount}/${updatedUser.maxUsage || 4}`);
                         }
 
                         // Show payment modal immediately when limit is reached (after 4th ad)
@@ -324,7 +324,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                             setTimeout(() => {
                                 console.log('💳 Showing payment modal after reaching limit');
                                 showPaymentModal();
-                            }, 3000);
+                            }, 2000); // Show after 2 seconds to let user see the ad
                         }
                     } catch (usageError) {
                         console.error('❌ Error incrementing usage:', usageError);
@@ -332,8 +332,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                         console.warn('⚠️ Usage tracking failed, but ad was generated successfully');
                     }
                 } else {
-                    console.error('Firebase user tracking not available');
-                    // Don't show error, just log it - the ad was generated successfully
+                    console.error('❌ incrementAdUsage function not available');
                     console.warn('⚠️ Usage tracking not available, but ad generated successfully');
                 }
             } else {
@@ -948,6 +947,59 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             }
         } catch (error) {
             console.error('🧪 Direct API test failed:', error);
+        }
+    };
+
+    // Add usage testing function
+    window.testUsage = async function() {
+        console.log('🧪 Testing usage tracking...');
+        const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+        
+        if (!user) {
+            console.log('❌ No user logged in');
+            return;
+        }
+
+        console.log('👤 Current user:', {
+            uid: user.uid,
+            usageCount: user.usageCount,
+            maxUsage: user.maxUsage,
+            subscriptionStatus: user.subscriptionStatus
+        });
+
+        if (typeof window.incrementAdUsage === 'function') {
+            console.log('🧪 Testing incrementAdUsage...');
+            const limitReached = await window.incrementAdUsage();
+            console.log('🧪 Limit reached:', limitReached);
+            
+            if (limitReached) {
+                console.log('🧪 Should show payment modal...');
+                showPaymentModal();
+            }
+        } else {
+            console.error('❌ incrementAdUsage function not available');
+        }
+    };
+
+    // Add function to reset usage for testing
+    window.resetUsage = async function() {
+        const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+        if (!user) {
+            console.log('❌ No user logged in');
+            return;
+        }
+
+        if (window.db) {
+            try {
+                await window.db.collection('users').doc(user.uid).update({
+                    usageCount: 0
+                });
+                user.usageCount = 0;
+                console.log('✅ Usage count reset to 0');
+                updateUsageCounter();
+            } catch (error) {
+                console.error('❌ Failed to reset usage:', error);
+            }
         }
     };
 

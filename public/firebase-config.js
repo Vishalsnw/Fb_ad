@@ -266,40 +266,43 @@ function updateAuthUI() {
 }
 
 // Increment ad usage count
-        window.incrementAdUsage = async function() {
-            if (!currentUserData) {
-                console.warn('⚠️ No user data available for incrementing usage');
-                return false;
-            }
+window.incrementAdUsage = async function() {
+    if (!currentUser) {
+        console.warn('⚠️ No current user available for incrementing usage');
+        return false;
+    }
 
-            const oldUsage = currentUserData.usageCount || 0;
-            currentUserData.usageCount = oldUsage + 1;
-            const newUsage = currentUserData.usageCount;
-            const maxUsage = currentUserData.maxUsage || 4;
-            const subscriptionStatus = currentUserData.subscriptionStatus || 'free';
+    const oldUsage = currentUser.usageCount || 0;
+    currentUser.usageCount = oldUsage + 1;
+    const newUsage = currentUser.usageCount;
+    const maxUsage = currentUser.maxUsage || 4;
+    const subscriptionStatus = currentUser.subscriptionStatus || 'free';
 
-            console.log(`📊 Usage incremented: ${oldUsage} → ${newUsage} (max: ${maxUsage}, plan: ${subscriptionStatus})`);
+    console.log(`📊 Usage incremented: ${oldUsage} → ${newUsage} (max: ${maxUsage}, plan: ${subscriptionStatus})`);
 
-            // Save to Firebase and wait for completion
-            if (db && currentUserData.uid) {
-                try {
-                    await db.collection('users').doc(currentUserData.uid).update({
-                        usageCount: newUsage,
-                        lastAdGeneratedAt: new Date().toISOString()
-                    });
-                    console.log('✅ Usage count updated in Firebase');
-                } catch (error) {
-                    console.error('❌ Failed to update usage count in Firebase:', error);
-                    // Don't return error, just log it
-                }
-            }
+    // Save to Firebase and wait for completion
+    if (db && currentUser.uid) {
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                usageCount: newUsage,
+                lastAdGeneratedAt: new Date().toISOString()
+            });
+            console.log('✅ Usage count updated in Firebase');
+        } catch (error) {
+            console.error('❌ Failed to update usage count in Firebase:', error);
+            // Don't return error, just log it
+        }
+    }
 
-            // Check if limit reached (for free users)
-            const limitReached = (subscriptionStatus === 'free' && newUsage >= maxUsage);
-            console.log(`🔍 Limit check: ${newUsage}/${maxUsage} (${subscriptionStatus}) → limit reached: ${limitReached}`);
+    // Update usage display
+    updateUsageCounter();
 
-            return limitReached;
-        };
+    // Check if limit reached (for free users)
+    const limitReached = (subscriptionStatus === 'free' && newUsage >= maxUsage);
+    console.log(`🔍 Limit check: ${newUsage}/${maxUsage} (${subscriptionStatus}) → limit reached: ${limitReached}`);
+
+    return limitReached;
+};
 
 // 🔃 Auto run Firebase init
 document.addEventListener("DOMContentLoaded", () => {
