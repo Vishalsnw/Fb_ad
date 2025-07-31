@@ -117,24 +117,52 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     }
 
     function setupEventListeners() {
+        console.log('🔧 Setting up event listeners...');
+        
         const form = document.getElementById('adForm');
         const generateButton = document.getElementById('generateButton');
 
+        console.log('🔍 Form element found:', !!form);
+        console.log('🔍 Generate button found:', !!generateButton);
+
         if (form) {
+            // Remove existing listeners to prevent duplicates
+            form.removeEventListener('submit', handleFormSubmission);
             form.addEventListener('submit', handleFormSubmission);
             console.log('✅ Form submit event listener attached');
+        } else {
+            console.error('❌ Form element with ID "adForm" not found');
         }
 
         if (generateButton) {
+            // Remove existing listeners to prevent duplicates
+            generateButton.removeEventListener('click', handleGenerateClick);
             generateButton.addEventListener('click', handleGenerateClick);
             console.log('✅ Generate button click event listener attached');
+        } else {
+            console.error('❌ Generate button with ID "generateButton" not found');
         }
+
+        // Also try to attach to any button with class "generate-btn"
+        const generateBtns = document.querySelectorAll('.generate-btn');
+        generateBtns.forEach((btn, index) => {
+            btn.removeEventListener('click', handleGenerateClick);
+            btn.addEventListener('click', handleGenerateClick);
+            console.log(`✅ Generate button ${index + 1} event listener attached`);
+        });
     }
 
     function handleGenerateClick(event) {
         event.preventDefault();
         console.log('🖱️ Generate button clicked');
-        handleFormSubmission(event);
+        
+        // Create a synthetic form submission event
+        const syntheticEvent = {
+            preventDefault: () => {},
+            target: event.target.closest('form') || document.getElementById('adForm')
+        };
+        
+        handleFormSubmission(syntheticEvent);
     }
 
     function setupLanguagePlaceholders() {
@@ -774,6 +802,19 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         alert(upgradeMessage);
     }
 
+    // Add debug function for testing
+    window.testGenerate = function() {
+        console.log('🧪 Test generate function called');
+        const formData = collectFormData();
+        console.log('🧪 Form data:', formData);
+        if (validateFormData(formData)) {
+            console.log('✅ Form data is valid');
+            handleFormSubmission({ preventDefault: () => {} });
+        } else {
+            console.log('❌ Form data is invalid');
+        }
+    };
+
     // Make functions globally available
     window.downloadAd = downloadAd;
     window.copyAdText = copyAdText;
@@ -782,21 +823,33 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     window.signInForMore = signInForMore;
 
     // Initialize the application
-    document.addEventListener('DOMContentLoaded', function() {
+    async function initializeApp() {
         console.log('🚀 App initializing...');
 
-        setupEventListeners();
-        setupLanguagePlaceholders();
+        try {
+            // Load config first
+            const configLoaded = await loadConfig();
+            if (!configLoaded) {
+                console.error('❌ Failed to load config');
+                return;
+            }
 
-        const configLoaded = loadConfig();
-        if (configLoaded) {
+            // Setup event listeners after config is loaded
+            setupEventListeners();
+            setupLanguagePlaceholders();
+
             console.log('✅ Application initialized successfully');
-        } else {
-            console.error('❌ Failed to initialize application');
+        } catch (error) {
+            console.error('❌ Failed to initialize application:', error);
         }
+    }
 
-        console.log('✅ App initialized');
-    });
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+        initializeApp();
+    }
 
     console.log('✅ Ad Generator script fully loaded');
 }
