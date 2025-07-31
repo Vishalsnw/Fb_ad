@@ -26,7 +26,7 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
 
-        if parsed_path.path == '/config.js':
+        if parsed_path.path == '/config.js' or parsed_path.path == '/api/config.js':
             self.serve_config()
         elif parsed_path.path.startswith('/api/'):
             self.handle_api_request()
