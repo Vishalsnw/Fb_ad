@@ -183,23 +183,26 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     async function handleFormSubmission(event) {
         event.preventDefault();
         console.log('🚀 Form submission started');
+        
+        try {
+            // Wait for Firebase to initialize
+            let retries = 0;
+            while (typeof firebase === 'undefined' && retries < 20) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
 
-        // Wait for Firebase to initialize
-        let retries = 0;
-        while (typeof firebase === 'undefined' && retries < 20) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            retries++;
-        }
+            const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
 
-        const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
-
-        console.log('🔍 Checking authentication status:', {
-            user: !!user,
-            firebase: typeof firebase !== 'undefined',
-            auth: typeof firebase !== 'undefined' && !!firebase.auth,
-            currentUserFunction: typeof window.currentUser,
-            userData: user ? { uid: user.uid, usageCount: user.usageCount, subscriptionStatus: user.subscriptionStatus } : null
-        });
+            console.log('🔍 Checking authentication status:', {
+                user: !!user,
+                firebase: typeof firebase !== 'undefined',
+                auth: typeof firebase !== 'undefined' && !!firebase.auth,
+                currentUserFunction: typeof window.currentUser,
+                userData: user ? { uid: user.uid, usageCount: user.usageCount, subscriptionStatus: user.subscriptionStatus } : null
+            });
+            
+            console.log('🔍 Full user object:', user);
 
         // Check if user is logged in
         if (!user) {
@@ -273,10 +276,16 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                 showError(result.error || 'Failed to generate ad');
             }
         } catch (error) {
-            console.error('Generation error:', error);
+            console.error('❌ Generation error:', error);
+            console.error('❌ Error stack:', error.stack);
             showError('Network error. Please check your connection and try again.');
         }
+    } catch (mainError) {
+        console.error('❌ Main form submission error:', mainError);
+        console.error('❌ Main error stack:', mainError.stack);
+        showError('An unexpected error occurred. Please refresh the page and try again.');
     }
+}
 
     function collectFormData() {
         const productName = document.getElementById('productName');

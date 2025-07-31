@@ -48,14 +48,29 @@ async function initializeFirebase() {
 }
 
 function setupAuthListener() {
-  firebase.auth().onAuthStateChanged(user => {
+  firebase.auth().onAuthStateChanged(async user => {
     if (user) {
       // User is signed in
       console.log('✅ User authenticated:', user.displayName);
+      
+      // Set current user immediately
+      currentUser = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email?.split('@')[0],
+        photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random`,
+        isAnonymous: user.isAnonymous,
+        usageCount: 0,
+        maxUsage: 4,
+        subscriptionStatus: 'free'
+      };
+
       updateUIForAuthenticatedUser(user);
 
-      // Load user data from Firestore
-      loadUserFromFirestore(user.uid, user).then(userData => {
+      // Load user data from Firestore in background
+      try {
+        const userData = await loadUserFromFirestore(user.uid, user);
+        currentUser = userData;
         window.user = userData;
         console.log('✅ User data loaded:', userData);
 
@@ -63,12 +78,15 @@ function setupAuthListener() {
         if (typeof updateUsageDisplay === 'function') {
           updateUsageDisplay();
         }
-      }).catch(error => {
+      } catch (error) {
         console.error('❌ Failed to load user data:', error);
-      });
+        // Continue with basic user data if Firestore fails
+      }
     } else {
       // User is signed out
       console.log('👤 User not authenticated');
+      currentUser = null;
+      window.user = null;
       updateUIForUnauthenticatedUser();
     }
   });
@@ -182,8 +200,69 @@ function hideLoginScreen() {
   if (loginModal) loginModal.style.display = 'none';
 }
 
+function updateUIForAuthenticatedUser(user) {
+  console.log('🔄 Updating UI for authenticated user');
+  
+  // Update sign in/out buttons
+  const signInBtn = document.getElementById('signInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const userInfo = document.getElementById('userInfo');
+  
+  if (signInBtn) signInBtn.style.display = 'none';
+  if (signOutBtn) signOutBtn.style.display = 'inline-block';
+  
+  if (userInfo) {
+    userInfo.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || 'User')}" 
+             style="width: 32px; height: 32px; border-radius: 50%;" alt="Profile">
+        <span style="color: white;">${user.displayName || user.email}</span>
+      </div>
+    `;
+    userInfo.style.display = 'block';
+  }
+  
+  // Update usage counter
+  updateUsageCounter();
+}
+
+function updateUIForUnauthenticatedUser() {
+  console.log('🔄 Updating UI for unauthenticated user');
+  
+  const signInBtn = document.getElementById('signInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const userInfo = document.getElementById('userInfo');
+  const usageCount = document.getElementById('usageCount');
+  
+  if (signInBtn) signInBtn.style.display = 'inline-block';
+  if (signOutBtn) signOutBtn.style.display = 'none';
+  if (userInfo) userInfo.style.display = 'none';
+  if (usageCount) usageCount.textContent = 'Sign in to see usage';
+}
+
+function updateUsageCounter() {
+  const usageCount = document.getElementById('usageCount');
+  if (usageCount && currentUser) {
+    const used = currentUser.usageCount || 0;
+    const max = currentUser.maxUsage || 4;
+    const remaining = Math.max(0, max - used);
+    
+    if (currentUser.subscriptionStatus === 'unlimited') {
+      usageCount.innerHTML = '✨ Unlimited ads available';
+    } else if (currentUser.subscriptionStatus === 'pro') {
+      usageCount.innerHTML = `📊 Pro Plan: ${remaining}/100 ads remaining`;
+    } else {
+      usageCount.innerHTML = `📊 Free Plan: ${remaining}/${max} ads remaining`;
+    }
+  }
+}
+
 function updateAuthUI() {
-  if (typeof window.updateAuthUI === 'function') window.updateAuthUI();
+  if (currentUser) {
+    updateUIForAuthenticatedUser(currentUser);
+  } else {
+    updateUIForUnauthenticatedUser();
+  }
 }
 
 // 🔃 Auto run Firebase init
