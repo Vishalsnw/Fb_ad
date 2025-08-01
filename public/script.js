@@ -901,7 +901,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                                 <li>✅ Premium Templates</li>
                                 <li>✅ Priority Support</li>
                             </ul>
-                            <button onclick="alert('Payment system will be available soon!')" style="
+                            <button onclick="handleSubscription('pro')" style="
                                 background: #667eea;
                                 color: white;
                                 border: none;
@@ -921,7 +921,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                                 <li>✅ 24/7 Support</li>
                                 <li>✅ Custom Branding</li>
                             </ul>
-                            <button onclick="alert('Payment system will be available soon!')" style="
+                            <button onclick="handleSubscription('unlimited')" style="
                                 background: #f6ad55;
                                 color: white;
                                 border: none;
