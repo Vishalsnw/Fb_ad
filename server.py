@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 import os
 import json
-import mimetypes
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
-import traceback
-import time
-from datetime import datetime
 import requests
+import logging
+from urllib.parse import urlparse, parse_qs
+import socketserver
+import threading
+import time
+import hmac
+import hashlib
+import uuid
 
 class AdGeneratorHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -21,6 +24,9 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
     def do_GET(self):
@@ -34,14 +40,17 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
-        parsed_path = urlparse(self.path)
+        """Handle POST requests"""
+        path = urlparse(self.path).path
 
-        if parsed_path.path == '/generate-ad':
+        if path == '/generate-ad':
             self.handle_ad_generation()
-        elif parsed_path.path.startswith('/api/'):
-            self.handle_api_request()
+        elif path == '/api/create-razorpay-order':
+            self.handle_create_razorpay_order()
+        elif path == '/api/verify-payment':
+            self.handle_verify_payment()
         else:
-            self.send_error(404, "Not Found")
+            self.send_error(404, "API endpoint not implemented")
 
     def serve_config(self):
         try:
@@ -257,6 +266,177 @@ Write in {language} language only."""
 
     def handle_api_request(self):
         self.send_error(404, "API endpoint not implemented")
+
+    def send_json(self, data, status=200):
+        """Send a JSON response"""
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode('utf-8'))
+
+    def handle_create_razorpay_order(self):
+        """Handle Razorpay order creation"""
+        try:
+            # Set CORS headers
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+            # Get request data
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            print(f"📡 Creating Razorpay order: {data}")
+
+            # Validate required fields
+            required_fields = ['amount', 'planKey']
+            missing_fields = [field for field in required_fields if not data.get(field)]
+
+            if missing_fields:
+                self.send_json({
+                    'success': False,
+                    'error': f'Missing required fields: {", ".join(missing_fields)}'
+                }, status=400)
+                return
+
+            # Get Razorpay keys
+            razorpay_key_id = os.getenv('RAZORPAY_KEY_ID')
+            razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+
+            if not razorpay_key_id or not razorpay_key_secret:
+                print("❌ Razorpay keys not found in environment")
+                self.send_json({
+                    'success': False,
+                    'error': 'Payment system configuration error'
+                }, status=500)
+                return
+
+            # Create order using Razorpay API
+            import base64
+            auth_str = f"{razorpay_key_id}:{razorpay_key_secret}"
+            auth_bytes = auth_str.encode('ascii')
+            auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+
+            order_data = {
+                'amount': int(data['amount']),
+                'currency': data.get('currency', 'INR'),
+                'receipt': f"receipt_{data.get('userId', 'user')}_{int(time.time())}",
+                'notes': {
+                    'planKey': data['planKey'],
+                    'userId': data.get('userId', '')
+                }
+            }
+
+            response = requests.post(
+                'https://api.razorpay.com/v1/orders',
+                json=order_data,
+                headers={
+                    'Authorization': f'Basic {auth_b64}',
+                    'Content-Type': 'application/json'
+                }
+            )
+
+            if response.status_code == 200:
+                order = response.json()
+                print(f"✅ Razorpay order created: {order['id']}")
+
+                self.send_json({
+                    'success': True,
+                    'orderId': order['id'],
+                    'amount': order['amount'],
+                    'currency': order['currency'],
+                    'planKey': data['planKey']
+                })
+            else:
+                print(f"❌ Razorpay API error: {response.text}")
+                self.send_json({
+                    'success': False,
+                    'error': 'Failed to create order',
+                    'details': response.text
+                }, status=500)
+
+        except Exception as e:
+            print(f"❌ Order creation error: {e}")
+            self.send_json({
+                'success': False,
+                'error': 'Failed to create order',
+                'details': str(e)
+            }, status=500)
+
+    def handle_verify_payment(self):
+        """Handle payment verification"""
+        try:
+            # Set CORS headers
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+            # Get request data
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            print(f"📡 Verifying payment: {data}")
+
+            # Validate required fields
+            required_fields = ['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature']
+            missing_fields = [field for field in required_fields if not data.get(field)]
+
+            if missing_fields:
+                self.send_json({
+                    'success': False,
+                    'error': f'Missing required payment details: {", ".join(missing_fields)}'
+                }, status=400)
+                return
+
+            # Get Razorpay secret
+            razorpay_key_secret = os.getenv('RAZORPAY_KEY_SECRET')
+
+            if not razorpay_key_secret:
+                print("❌ Razorpay secret not found in environment")
+                self.send_json({
+                    'success': False,
+                    'error': 'Payment verification configuration error'
+                }, status=500)
+                return
+
+            # Verify signature
+            body = f"{data['razorpay_order_id']}|{data['razorpay_payment_id']}"
+            expected_signature = hmac.new(
+                razorpay_key_secret.encode('utf-8'),
+                body.encode('utf-8'),
+                hashlib.sha256
+            ).hexdigest()
+
+            is_authentic = hmac.compare_digest(expected_signature, data['razorpay_signature'])
+
+            if not is_authentic:
+                print("❌ Payment signature verification failed")
+                self.send_json({
+                    'success': False,
+                    'error': 'Payment verification failed - invalid signature'
+                }, status=400)
+                return
+
+            print("✅ Payment signature verified successfully")
+
+            # Payment verified successfully
+            self.send_json({
+                'success': True,
+                'message': 'Payment verified successfully',
+                'planKey': data.get('planKey', 'pro'),
+                'payment_id': data['razorpay_payment_id'],
+                'order_id': data['razorpay_order_id']
+            })
+
+        except Exception as e:
+            print(f"❌ Payment verification error: {e}")
+            self.send_json({
+                'success': False,
+                'error': 'Payment verification failed',
+                'details': str(e)
+            }, status=500)
 
 def run_server():
     port = int(os.getenv('PORT', 5000))
