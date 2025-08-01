@@ -6,8 +6,8 @@ let RAZORPAY_KEY_SECRET = '';
 async function loadRazorpayConfig() {
     try {
         let retries = 0;
-        while (!window.CONFIG && retries < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+        while (!window.CONFIG && retries < 100) {
+            await new Promise(resolve => setTimeout(resolve, 200));
             retries++;
         }
 
@@ -17,11 +17,23 @@ async function loadRazorpayConfig() {
 
             console.log('💳 Razorpay config loaded:', {
                 hasKeyId: !!RAZORPAY_KEY_ID,
-                hasKeySecret: !!RAZORPAY_KEY_SECRET
+                hasKeySecret: !!RAZORPAY_KEY_SECRET,
+                keyIdLength: RAZORPAY_KEY_ID ? RAZORPAY_KEY_ID.length : 0
             });
+
+            // Validate that keys are properly loaded
+            if (!RAZORPAY_KEY_ID || RAZORPAY_KEY_ID.length < 10) {
+                console.error('❌ Invalid Razorpay Key ID');
+                return false;
+            }
+            return true;
+        } else {
+            console.error('❌ CONFIG not available after waiting');
+            return false;
         }
     } catch (error) {
         console.error('❌ Failed to load Razorpay config:', error);
+        return false;
     }
 }
 
@@ -76,15 +88,22 @@ async function handleSubscription(planKey) {
         return;
     }
 
+    // Ensure config is loaded before proceeding
+    const configLoaded = await loadRazorpayConfig();
+    if (!configLoaded || !RAZORPAY_KEY_ID || RAZORPAY_KEY_ID.length < 10) {
+        console.error('❌ Razorpay configuration not available');
+        console.log('❌ Current config state:', {
+            configExists: !!window.CONFIG,
+            keyId: RAZORPAY_KEY_ID ? `${RAZORPAY_KEY_ID.substring(0, 8)}...` : 'none',
+            keyLength: RAZORPAY_KEY_ID ? RAZORPAY_KEY_ID.length : 0
+        });
+        alert('Payment system is still loading. Please wait a moment and try again.');
+        return;
+    }
+
     const plan = SUBSCRIPTION_PLANS[planKey];
     const currency = getUserCurrency();
     const amount = currency === 'INR' ? plan.price : plan.priceUSD;
-
-    if (!RAZORPAY_KEY_ID) {
-        console.error('❌ Razorpay key not configured');
-        alert('Payment system not configured. Please contact support.');
-        return;
-    }
 
     const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
     if (!user) {
@@ -321,9 +340,20 @@ window.handleSubscription = handleSubscription;
 
 // Load config when available
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(loadRazorpayConfig, 100);
-    setupPaymentModal();
-    checkUserSubscription();
+    // Wait for config to be available before setting up payment
+    const initPayment = async () => {
+        console.log('💳 Initializing payment system...');
+        const configLoaded = await loadRazorpayConfig();
+        if (configLoaded) {
+            console.log('✅ Payment system ready');
+        } else {
+            console.warn('⚠️ Payment system configuration incomplete');
+        }
+        setupPaymentModal();
+        checkUserSubscription();
+    };
+    
+    setTimeout(initPayment, 500);
 });
 
 console.log('✅ Payment module loaded successfully');
