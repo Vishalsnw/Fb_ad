@@ -250,25 +250,13 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         // Check if user has reached their limit BEFORE generating
         if (currentUsage >= maxUsage && subscriptionStatus === 'free') {
             console.log(`🚫 User has reached ${maxUsage} ads limit (${currentUsage} used), showing payment modal`);
-            setTimeout(() => {
-                if (typeof window.showPaymentModal === 'function') {
-                    window.showPaymentModal();
-                } else {
-                    console.error('❌ showPaymentModal function not available');
-                    alert('🎉 You\'ve reached your 4 FREE ads limit!\n\n🚀 Upgrade to Pro Plan (₹599/month) for 100 ads\n⭐ Or get Unlimited Plan (₹999/month) for unlimited ads\n\nRefresh the page to see upgrade options.');
-                }
-            }, 100);
+            showPaymentModal();
             return;
         }
 
-        if (typeof window.canGenerateAd === 'function') {
-            const canGenerate = window.canGenerateAd();
-            console.log(`🔍 canGenerateAd check result: ${canGenerate}`);
-            if (!canGenerate) {
-                console.log('🚫 canGenerateAd returned false, showing payment modal');
-                showPaymentModal();
-                return;
-            }
+        // Check if user can generate more ads
+        if (!canGenerateAd()) {
+            return;
         }
 
         // Validate form data
@@ -893,6 +881,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         // For free users, check if they've reached their 4 ad limit BEFORE generating
         if (adsUsed >= maxUsage && userPlan === 'free') {
             console.log(`🚫 User has reached free plan limit (${adsUsed}/${maxUsage} ads), showing payment modal`);
+            showPaymentModal();
             return false;
         }
 

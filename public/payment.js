@@ -198,9 +198,10 @@ async function verifyPayment(paymentResponse, planKey, userId) {
 
 // Setup payment modal
 function setupPaymentModal() {
-    if (document.getElementById('paymentModal')) {
-        console.log('💳 Payment modal already exists');
-        return;
+    // Remove existing modal if it exists
+    const existingModal = document.getElementById('paymentModal');
+    if (existingModal) {
+        existingModal.remove();
     }
 
     const userCurrency = getUserCurrency();
@@ -268,24 +269,20 @@ function setupPaymentModal() {
 function showPaymentModal() {
     console.log('💳 showPaymentModal called');
 
-    // First, ensure the modal exists
-    if (!document.getElementById('paymentModal')) {
-        console.log('💳 Payment modal not found, creating it...');
-        setupPaymentModal();
-    }
+    // Force create modal if it doesn't exist
+    setupPaymentModal();
 
-    // Small delay to ensure modal is created
-    setTimeout(() => {
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.style.display = 'block';
-            modal.style.zIndex = '10000';
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-            console.log('💳 Payment modal opened successfully');
-        } else {
-            console.error('❌ Payment modal still not found after creation attempt');
-            // Final fallback - show enhanced alert
-            const upgradeMessage = `🎉 CONGRATULATIONS! You've reached your 4 FREE ads limit!
+    // Show the modal immediately
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.style.zIndex = '10000';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        console.log('💳 Payment modal opened successfully');
+    } else {
+        console.error('❌ Payment modal creation failed, showing fallback alert');
+        // Final fallback - show enhanced alert
+        const upgradeMessage = `🎉 CONGRATULATIONS! You've reached your 4 FREE ads limit!
 
 🚀 Ready to unlock UNLIMITED professional ads?
 
@@ -306,9 +303,8 @@ Transform your business with unlimited AI-powered Facebook ads!
 
 Click OK to continue with your current plan or refresh the page to upgrade.`;
 
-            alert(upgradeMessage);
-        }
-    }, 200);
+        alert(upgradeMessage);
+    }
 }
 
 // Check user subscription status
