@@ -131,7 +131,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             form.addEventListener('submit', handleFormSubmission);
             console.log('✅ Form submit event listener attached');
         } else {
-            console.error('❌ Form element with ID "adForm" not found');
+            console.error('❌ Form element with ID "adFoconsole.error('❌ Generate form not found');
         }
 
         if (generateButton) {
@@ -166,7 +166,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     }
 
     function setupLanguagePlaceholders() {
-        const languageRadios = document.querySelectorAll('input[name="language"]');
+        const languageRadios = documentent.querySelectorAll('input[name="language"]');
 
         languageRadios.forEach(radio => {
             radio.addEventListener('change', function() {
