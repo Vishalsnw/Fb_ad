@@ -244,7 +244,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
         const currentUsage = freshUser ? freshUser.usageCount : 0;
         const maxUsage = freshUser ? freshUser.maxUsage || 4 : 4;
         const subscriptionStatus = freshUser ? freshUser.subscriptionStatus || 'free' : 'free';
-        
+
         console.log(`🔍 Fresh user data - Usage: ${currentUsage}/${maxUsage}, Plan: ${subscriptionStatus}`);
 
         // Check if user has reached their limit BEFORE generating
@@ -307,7 +307,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                     try {
                         const limitReached = await window.incrementAdUsage();
                         console.log(`📊 Usage incremented, limit reached: ${limitReached}`);
-                        
+
                         // Update user object with new usage count
                         const updatedUser = typeof window.currentUser === 'function' ? window.currentUser() : null;
                         if (updatedUser) {
@@ -954,7 +954,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     window.testUsage = async function() {
         console.log('🧪 Testing usage tracking...');
         const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
-        
+
         if (!user) {
             console.log('❌ No user logged in');
             return;
@@ -971,7 +971,7 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             console.log('🧪 Testing incrementAdUsage...');
             const limitReached = await window.incrementAdUsage();
             console.log('🧪 Limit reached:', limitReached);
-            
+
             if (limitReached) {
                 console.log('🧪 Should show payment modal...');
                 showPaymentModal();
@@ -1041,3 +1041,41 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
 
     console.log('✅ Ad Generator script fully loaded');
 }
+
+    // Add function to test payment modal directly
+    window.testPaymentModal = function() {
+        console.log('🧪 Testing payment modal directly...');
+        showPaymentModal();
+    };
+
+    // Add function to check current Firebase data
+    window.checkFirebaseData = async function() {
+        const user = typeof window.currentUser === 'function' ? window.currentUser() : null;
+        if (!user) {
+            console.log('❌ No user logged in');
+            return;
+        }
+
+        console.log('📊 Current user object:', user);
+
+        if (window.db) {
+            try {
+                const userDoc = await window.db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const firebaseData = userDoc.data();
+                    console.log('📊 Firebase data:', firebaseData);
+                    console.log(`📊 Usage in Firebase: ${firebaseData.usageCount}/${firebaseData.maxUsage}`);
+                    console.log(`📊 Plan in Firebase: ${firebaseData.subscriptionStatus}`);
+
+                    if (firebaseData.usageCount >= 4 && firebaseData.subscriptionStatus === 'free') {
+                        console.log('🚫 User has reached limit according to Firebase data');
+                        showPaymentModal();
+                    }
+                } else {
+                    console.log('❌ No user document found in Firebase');
+                }
+            } catch (error) {
+                console.error('❌ Failed to check Firebase data:', error);
+            }
+        }
+    };
