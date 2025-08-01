@@ -318,10 +318,13 @@ Write in {language} language only."""
             auth_bytes = auth_str.encode('ascii')
             auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
 
+            # Generate a short receipt ID (max 40 chars)
+            receipt_id = f"rcpt_{str(uuid.uuid4())[:8]}_{int(time.time()) % 100000}"
+            
             order_data = {
                 'amount': int(data['amount']),
                 'currency': data.get('currency', 'INR'),
-                'receipt': f"receipt_{data.get('userId', 'user')}_{int(time.time())}",
+                'receipt': receipt_id,
                 'notes': {
                     'planKey': data['planKey'],
                     'userId': data.get('userId', '')

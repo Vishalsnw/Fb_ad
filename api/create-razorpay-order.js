@@ -54,11 +54,13 @@ export default async function handler(req, res) {
       key_secret: RAZORPAY_KEY_SECRET,
     });
 
-    // Create order
+    // Create order with short receipt ID (max 40 chars)
+    const receiptId = `rcpt_${Math.random().toString(36).substr(2, 8)}_${Date.now() % 100000}`;
+    
     const orderOptions = {
       amount: parseInt(amount), // amount in paise
       currency: currency || 'INR',
-      receipt: `receipt_${userId}_${Date.now()}`,
+      receipt: receiptId,
       notes: {
         planKey: planKey,
         userId: userId
