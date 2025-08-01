@@ -254,6 +254,23 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
             return;
         }
 
+        // Double-check with direct Firebase query if local data seems outdated
+        if (window.db && currentUsage === 0 && user.usageCount !== currentUsage) {
+            try {
+                const directUserDoc = await window.db.collection('users').doc(user.uid).get();
+                if (directUserDoc.exists) {
+                    const directData = directUserDoc.data();
+                    if (directData.usageCount >= 4 && directData.subscriptionStatus === 'free') {
+                        console.log(`🚫 Direct Firebase check: User has reached limit (${directData.usageCount}/4), showing payment modal`);
+                        showPaymentModal();
+                        return;
+                    }
+                }
+            } catch (directCheckError) {
+                console.error('❌ Direct Firebase check failed:', directCheckError);
+            }
+        }
+
         // Check if user can generate more ads
         if (!canGenerateAd()) {
             return;
@@ -830,32 +847,114 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
     function showPaymentModal() {
         console.log('💳 Attempting to show payment modal...');
 
-        if (typeof window.showPaymentModal === 'function') {
+        // First try to use the payment module's function
+        if (typeof window.showPaymentModal === 'function' && window.showPaymentModal !== showPaymentModal) {
+            console.log('💳 Using payment module showPaymentModal');
             window.showPaymentModal();
             return;
         }
 
-        const upgradeMessage = `
-    🚀 CONGRATULATIONS! 
+        // If payment module not loaded, create modal directly
+        console.log('💳 Creating payment modal directly');
+        
+        // Remove existing modal if it exists
+        const existingModal = document.getElementById('paymentModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
 
-    You've used all 4 FREE ads! 🎉
-
-    Ready to unlock unlimited professional ads?
-
-    💎 PRO PLAN - ₹599/month
-    ✅ 100 Professional Ads
-    ✅ Premium Templates  
-    ✅ Priority Support
-
-    ⭐ UNLIMITED PLAN - ₹999/month  
-    ✅ Unlimited Ads
-    ✅ All Premium Features
-    ✅ 24/7 Support
-    ✅ Custom Branding
-
-    Transform your business with unlimited AI-powered ads!
+        const modalHTML = `
+            <div id="paymentModal" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease-out;
+            ">
+                <div style="
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    text-align: center;
+                    max-width: 600px;
+                    margin: 20px;
+                    box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+                ">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+                    <h2 style="color: #333; margin-bottom: 15px; font-size: 1.8rem;">Congratulations!</h2>
+                    <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px;">
+                        You've reached your 4 FREE ads limit! Ready to unlock unlimited professional ads?
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+                        <div style="border: 2px solid #667eea; border-radius: 12px; padding: 20px;">
+                            <h3 style="color: #667eea; margin-bottom: 10px;">💎 PRO PLAN</h3>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 15px;">₹599/month</div>
+                            <ul style="text-align: left; color: #555; margin-bottom: 20px;">
+                                <li>✅ 100 Professional Ads</li>
+                                <li>✅ Premium Templates</li>
+                                <li>✅ Priority Support</li>
+                            </ul>
+                            <button onclick="alert('Payment system will be available soon!')" style="
+                                background: #667eea;
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                width: 100%;
+                            ">Choose Pro</button>
+                        </div>
+                        
+                        <div style="border: 2px solid #f6ad55; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #fff7ed, #fed7aa);">
+                            <h3 style="color: #f6ad55; margin-bottom: 10px;">⭐ UNLIMITED</h3>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 15px;">₹999/month</div>
+                            <ul style="text-align: left; color: #555; margin-bottom: 20px;">
+                                <li>✅ Unlimited Ads</li>
+                                <li>✅ All Premium Features</li>
+                                <li>✅ 24/7 Support</li>
+                                <li>✅ Custom Branding</li>
+                            </ul>
+                            <button onclick="alert('Payment system will be available soon!')" style="
+                                background: #f6ad55;
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                width: 100%;
+                            ">Choose Unlimited</button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="document.getElementById('paymentModal').style.display='none'" style="
+                        background: #e2e8f0;
+                        color: #666;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    ">Maybe Later</button>
+                </div>
+            </div>
         `;
-        alert(upgradeMessage);
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Show the modal
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            console.log('💳 Payment modal displayed successfully');
+        }
     }
 
     function canGenerateAd() {
@@ -1067,15 +1166,29 @@ if (window.adGeneratorLoaded || window.scriptInitialized) {
                     console.log(`📊 Usage in Firebase: ${firebaseData.usageCount}/${firebaseData.maxUsage}`);
                     console.log(`📊 Plan in Firebase: ${firebaseData.subscriptionStatus}`);
 
+                    // Update local user object with Firebase data
+                    Object.assign(user, firebaseData);
+
                     if (firebaseData.usageCount >= 4 && firebaseData.subscriptionStatus === 'free') {
                         console.log('🚫 User has reached limit according to Firebase data');
                         showPaymentModal();
+                        return true;
                     }
+                    return false;
                 } else {
                     console.log('❌ No user document found in Firebase');
+                    return false;
                 }
             } catch (error) {
                 console.error('❌ Failed to check Firebase data:', error);
+                return false;
             }
         }
+        return false;
+    };
+
+    // Add function to force payment modal for testing
+    window.forcePaymentModal = function() {
+        console.log('🧪 Forcing payment modal for testing');
+        showPaymentModal();
     };
