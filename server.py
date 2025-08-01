@@ -271,17 +271,15 @@ Write in {language} language only."""
         """Send a JSON response"""
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode('utf-8'))
 
     def handle_create_razorpay_order(self):
         """Handle Razorpay order creation"""
         try:
-            # Set CORS headers
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-
             # Get request data
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -337,7 +335,8 @@ Write in {language} language only."""
                 headers={
                     'Authorization': f'Basic {auth_b64}',
                     'Content-Type': 'application/json'
-                }
+                },
+                timeout=30
             )
 
             if response.status_code == 200:
@@ -352,13 +351,19 @@ Write in {language} language only."""
                     'planKey': data['planKey']
                 })
             else:
-                print(f"❌ Razorpay API error: {response.text}")
+                print(f"❌ Razorpay API error: {response.status_code} - {response.text}")
                 self.send_json({
                     'success': False,
                     'error': 'Failed to create order',
                     'details': response.text
                 }, status=500)
 
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON decode error: {e}")
+            self.send_json({
+                'success': False,
+                'error': 'Invalid JSON in request'
+            }, status=400)
         except Exception as e:
             print(f"❌ Order creation error: {e}")
             self.send_json({
@@ -370,11 +375,6 @@ Write in {language} language only."""
     def handle_verify_payment(self):
         """Handle payment verification"""
         try:
-            # Set CORS headers
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-
             # Get request data
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -433,6 +433,12 @@ Write in {language} language only."""
                 'order_id': data['razorpay_order_id']
             })
 
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON decode error in payment verification: {e}")
+            self.send_json({
+                'success': False,
+                'error': 'Invalid JSON in request'
+            }, status=400)
         except Exception as e:
             print(f"❌ Payment verification error: {e}")
             self.send_json({
