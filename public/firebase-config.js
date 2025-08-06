@@ -1,25 +1,28 @@
+
 let currentUser = null;
 let firebaseConfig = {};
-let initializationAttempted = false;
 
 window.signIn = signIn;
 window.signOut = signOut;
 window.currentUser = () => currentUser;
 
 async function initializeFirebase() {
-  if (initializationAttempted || window.firebaseInitialized) return;
-
-  initializationAttempted = true;
+  if (window.firebaseInitialized) return;
   window.firebaseInitialized = true;
+  
   console.log("🚀 Initializing Firebase...");
 
+  // Wait for config with shorter timeout
   let retries = 0;
-  while (!window.CONFIG && retries < 50) {
-    await new Promise(res => setTimeout(res, 100));
+  while (!window.CONFIG && retries < 20) {
+    await new Promise(res => setTimeout(res, 50));
     retries++;
   }
 
-  if (!window.CONFIG) return console.error("❌ Config load failed");
+  if (!window.CONFIG) {
+    console.error("❌ Config load failed");
+    return;
+  }
 
   firebaseConfig = {
     apiKey: window.CONFIG.FIREBASE_API_KEY,
@@ -29,19 +32,32 @@ async function initializeFirebase() {
   };
 
   try {
+    // Wait for Firebase SDK with shorter timeout
     let sdkRetries = 0;
-    while (typeof firebase === "undefined" && sdkRetries < 50) {
-      await new Promise(res => setTimeout(res, 200));
+    while (typeof firebase === "undefined" && sdkRetries < 20) {
+      await new Promise(res => setTimeout(res, 100));
       sdkRetries++;
     }
 
-    if (!firebase) return console.error("❌ Firebase SDK not loaded");
+    if (!firebase) {
+      console.error("❌ Firebase SDK not loaded");
+      return;
+    }
 
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    if (firebase.auth) await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    if (firebase.firestore) window.db = firebase.firestore();
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    
+    if (firebase.auth) {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    }
+    
+    if (firebase.firestore) {
+      window.db = firebase.firestore();
+    }
 
     setupAuthListener();
+    console.log("✅ Firebase initialized successfully");
   } catch (err) {
     console.error("❌ Firebase Init Error:", err);
   }
@@ -50,10 +66,9 @@ async function initializeFirebase() {
 function setupAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
     if (user) {
-      // User is signed in
       console.log('✅ User authenticated:', user.displayName);
 
-      // Set current user immediately
+      // Set current user immediately for faster UI updates
       currentUser = {
         uid: user.uid,
         email: user.email,
@@ -67,23 +82,16 @@ function setupAuthListener() {
 
       updateUIForAuthenticatedUser(user);
 
-      // Load user data from Firestore in background
-      try {
-        const userData = await loadUserFromFirestore(user.uid, user);
+      // Load user data from Firestore in background (non-blocking)
+      loadUserFromFirestore(user.uid, user).then(userData => {
         currentUser = userData;
         window.user = userData;
         console.log('✅ User data loaded:', userData);
-
-        // Update usage display
-        if (typeof updateUsageDisplay === 'function') {
-          updateUsageDisplay();
-        }
-      } catch (error) {
+        updateUsageDisplay();
+      }).catch(error => {
         console.error('❌ Failed to load user data:', error);
-        // Continue with basic user data if Firestore fails
-      }
+      });
     } else {
-      // User is signed out
       console.log('👤 User not authenticated');
       currentUser = null;
       window.user = null;
@@ -93,6 +101,19 @@ function setupAuthListener() {
 }
 
 async function loadUserFromFirestore(uid, firebaseUser) {
+  if (!db) {
+    console.warn('⚠️ Firestore not available, using basic user data');
+    return {
+      uid: uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      photoURL: firebaseUser.photoURL,
+      usageCount: 0,
+      maxUsage: 4,
+      subscriptionStatus: 'free'
+    };
+  }
+
   try {
     const userDoc = await db.collection('users').doc(uid).get();
 
@@ -101,7 +122,6 @@ async function loadUserFromFirestore(uid, firebaseUser) {
       userData = { uid, ...userDoc.data() };
       console.log('📊 Existing user data loaded from Firestore');
     } else {
-      // Create new user document
       userData = {
         uid: uid,
         email: firebaseUser.email,
@@ -114,27 +134,18 @@ async function loadUserFromFirestore(uid, firebaseUser) {
         lastLoginAt: new Date().toISOString()
       };
 
-      try {
-        await db.collection('users').doc(uid).set(userData);
-        console.log('👤 New user created in Firestore');
-      } catch (setError) {
-        console.error('❌ Failed to create user in Firestore:', setError);
-      }
+      await db.collection('users').doc(uid).set(userData);
+      console.log('👤 New user created in Firestore');
     }
 
-    // Update last login time
-    try {
-      await db.collection('users').doc(uid).update({
-        lastLoginAt: new Date().toISOString()
-      });
-    } catch (updateError) {
-      console.error('❌ Failed to update last login time:', updateError);
-    }
+    // Update last login time (non-blocking)
+    db.collection('users').doc(uid).update({
+      lastLoginAt: new Date().toISOString()
+    }).catch(error => console.error('❌ Failed to update last login time:', error));
 
     return userData;
   } catch (error) {
     console.error('❌ Error loading user from Firestore:', error);
-    // Return basic user data if Firestore fails
     return {
       uid: uid,
       email: firebaseUser.email,
@@ -148,12 +159,16 @@ async function loadUserFromFirestore(uid, firebaseUser) {
 }
 
 async function signIn() {
-  if (!firebase.auth) return;
+  if (!firebase?.auth) {
+    console.error('❌ Firebase Auth not available');
+    return;
+  }
 
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('email');
     provider.setCustomParameters({ prompt: 'select_account' });
+    
     await firebase.auth().signInWithPopup(provider);
   } catch (err) {
     if (err.code === 'auth/popup-blocked') {
@@ -174,36 +189,15 @@ async function signOut() {
   try {
     await firebase.auth().signOut();
     console.log("👋 Signed out");
-    window.location.href = "/index.html";
+    window.location.href = "/";
   } catch (err) {
     console.error("❌ Sign-out error:", err);
   }
 }
 
-function showLoginScreen() {
-  const sections = ['.main-content', '.examples-section', '.testimonials-section'];
-  sections.forEach(sel => {
-    const el = document.querySelector(sel);
-    if (el) el.style.display = 'none';
-  });
-  const loginModal = document.getElementById('loginRequiredModal');
-  if (loginModal) loginModal.style.display = 'block';
-}
-
-function hideLoginScreen() {
-  const sections = ['.main-content', '.examples-section', '.testimonials-section'];
-  sections.forEach(sel => {
-    const el = document.querySelector(sel);
-    if (el) el.style.display = 'block';
-  });
-  const loginModal = document.getElementById('loginRequiredModal');
-  if (loginModal) loginModal.style.display = 'none';
-}
-
 function updateUIForAuthenticatedUser(user) {
   console.log('🔄 Updating UI for authenticated user');
 
-  // Update sign in/out buttons
   const signInBtn = document.getElementById('signInBtn');
   const signOutBtn = document.getElementById('signOutBtn');
   const userInfo = document.getElementById('userInfo');
@@ -222,7 +216,6 @@ function updateUIForAuthenticatedUser(user) {
     userInfo.style.display = 'block';
   }
 
-  // Update usage counter
   updateUsageCounter();
 }
 
@@ -257,59 +250,47 @@ function updateUsageCounter() {
   }
 }
 
-function updateAuthUI() {
-  if (currentUser) {
-    updateUIForAuthenticatedUser(currentUser);
-  } else {
-    updateUIForUnauthenticatedUser();
-  }
+function updateUsageDisplay() {
+  updateUsageCounter();
 }
 
-// Increment ad usage count
 window.incrementAdUsage = async function() {
-    if (!currentUser) {
-        console.warn('⚠️ No current user available for incrementing usage');
-        return false;
+  if (!currentUser) {
+    console.warn('⚠️ No current user available for incrementing usage');
+    return false;
+  }
+
+  const oldUsage = currentUser.usageCount || 0;
+  currentUser.usageCount = oldUsage + 1;
+  const newUsage = currentUser.usageCount;
+  const maxUsage = currentUser.maxUsage || 4;
+  const subscriptionStatus = currentUser.subscriptionStatus || 'free';
+
+  console.log(`📊 Usage incremented: ${oldUsage} → ${newUsage} (max: ${maxUsage}, plan: ${subscriptionStatus})`);
+
+  if (db && currentUser.uid) {
+    try {
+      await db.collection('users').doc(currentUser.uid).update({
+        usageCount: newUsage,
+        lastAdGeneratedAt: new Date().toISOString()
+      });
+      console.log('✅ Usage count updated in Firebase');
+    } catch (error) {
+      console.error('❌ Failed to update usage count in Firebase:', error);
     }
+  }
 
-    const oldUsage = currentUser.usageCount || 0;
-    currentUser.usageCount = oldUsage + 1;
-    const newUsage = currentUser.usageCount;
-    const maxUsage = currentUser.maxUsage || 4;
-    const subscriptionStatus = currentUser.subscriptionStatus || 'free';
+  updateUsageCounter();
 
-    console.log(`📊 Usage incremented: ${oldUsage} → ${newUsage} (max: ${maxUsage}, plan: ${subscriptionStatus})`);
+  const limitReached = (subscriptionStatus === 'free' && newUsage >= maxUsage);
+  console.log(`🔍 Limit check: ${newUsage}/${maxUsage} (${subscriptionStatus}) → limit reached: ${limitReached}`);
 
-    // Save to Firebase and wait for completion
-    if (db && currentUser.uid) {
-        try {
-            await db.collection('users').doc(currentUser.uid).update({
-                usageCount: newUsage,
-                lastAdGeneratedAt: new Date().toISOString()
-            });
-            console.log('✅ Usage count updated in Firebase');
-        } catch (error) {
-            console.error('❌ Failed to update usage count in Firebase:', error);
-            // Don't return error, just log it
-        }
-    }
-
-    // Update usage display
-    updateUsageCounter();
-
-    // Check if limit reached (for free users)
-    const limitReached = (subscriptionStatus === 'free' && newUsage >= maxUsage);
-    console.log(`🔍 Limit check: ${newUsage}/${maxUsage} (${subscriptionStatus}) → limit reached: ${limitReached}`);
-
-    return limitReached;
+  return limitReached;
 };
 
-// 🔃 Auto run Firebase init
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("📄 DOM loaded → Init Firebase");
+// Initialize Firebase when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeFirebase);
+} else {
   initializeFirebase();
-});
-if (document.readyState !== "loading") {
-  console.log("📄 DOM already ready → Init Firebase");
-  initializeFirebase();
-  }
+}
