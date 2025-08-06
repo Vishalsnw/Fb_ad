@@ -17,3 +17,21 @@ Allow: /script.js
 # Disallow user-specific data
 Disallow: /user_ads_*.json
 Disallow: /user_data_*.json
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.adgenie.space/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1
+
+# Allow all pages
+Allow: /guides.html
+Allow: /privacy.html
+Allow: /index.html
+
+# Disallow test/debug pages if any
+Disallow: /debug.html
+Disallow: /test-form.html
+Disallow: /*.json$
