@@ -34,10 +34,44 @@ class AdGeneratorHandler(SimpleHTTPRequestHandler):
 
         if parsed_path.path == '/config.js' or parsed_path.path == '/api/config.js':
             self.serve_config()
+        elif parsed_path.path == '/sitemap.xml':
+            self.serve_sitemap()
+        elif parsed_path.path == '/robots.txt':
+            self.serve_robots()
         elif parsed_path.path.startswith('/api/'):
             self.handle_api_request()
         else:
             super().do_GET()
+
+    def serve_sitemap(self):
+        """Serve sitemap.xml"""
+        try:
+            with open('public/sitemap.xml', 'r') as f:
+                sitemap_content = f.read()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/xml')
+            self.send_header('Cache-Control', 'max-age=86400')  # Cache for 1 day
+            self.end_headers()
+            self.wfile.write(sitemap_content.encode())
+        except Exception as e:
+            print(f"❌ Error serving sitemap: {e}")
+            self.send_error(404, "Sitemap not found")
+
+    def serve_robots(self):
+        """Serve robots.txt"""
+        try:
+            with open('public/robots.txt', 'r') as f:
+                robots_content = f.read()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.send_header('Cache-Control', 'max-age=86400')  # Cache for 1 day
+            self.end_headers()
+            self.wfile.write(robots_content.encode())
+        except Exception as e:
+            print(f"❌ Error serving robots.txt: {e}")
+            self.send_error(404, "Robots.txt not found")
 
     def do_POST(self):
         """Handle POST requests"""

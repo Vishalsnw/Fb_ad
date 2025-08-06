@@ -1,0 +1,19 @@
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://facebook-ad-generator.replit.app/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Allow all important pages
+Allow: /guides.html
+Allow: /privacy.html
+Allow: /styles.css
+Allow: /script.js
+
+# Disallow user-specific data
+Disallow: /user_ads_*.json
+Disallow: /user_data_*.json
